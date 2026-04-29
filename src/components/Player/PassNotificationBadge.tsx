@@ -25,7 +25,11 @@ export function PassNotificationBadge() {
 
     // Si c'est un nouveau pass (lastPlayerWhoPassedId a changé)
     if (player?.hasPassed === true && lastPassedIdRef.current !== turnState?.lastPlayerWhoPassedId) {
-      // [COMMENTED-v1] console.log(`[PASS-BADGE] ✅ Showing badge for ${player.name}`);
+      console.log(`[PASS-BADGE] ✅ SHOW_BADGE`, {
+        playerId: player.id,
+        playerName: player.name,
+        displayDuration: 1500
+      });
       lastPassedIdRef.current = turnState?.lastPlayerWhoPassedId ?? null;
 
       // Annuler le timer précédent si existant
@@ -38,20 +42,25 @@ export function PassNotificationBadge() {
 
       // Timer 1500ms
       timerRef.current = setTimeout(() => {
-        // [COMMENTED-v1] console.log(`[PASS-BADGE] ⏱️ Hiding badge after 1500ms`);
+        console.log(`[PASS-BADGE] ⏱️  HIDE_BADGE`, {
+          playerId: player.id,
+          playerName: player.name
+        });
         setIsVisible(false);
         setDisplayName(null);
         lastPassedIdRef.current = null;
 
         // Notifier l'engine que le badge est caché
-        // [COMMENTED-v1] console.log(`[PASS-BADGE] 📡 Emitting PASS_HIDDEN event`, player.id);
+        console.log(`[PASS-BADGE] 📡 EMIT_PASS_HIDDEN`, {
+          playerId: player.id
+        });
         if (dispatcher) {
           dispatcher.emit({
             type: 'PASS_HIDDEN',
             payload: { playerId: player.id }
           });
         } else {
-          // [COMMENTED-v1] console.log(`[PASS-BADGE] ⚠️ WARNING: Dispatcher not available!`);
+          console.warn(`[PASS-BADGE] ⚠️ Dispatcher not available`);
         }
       }, 1500);
     }
