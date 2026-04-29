@@ -47,6 +47,13 @@ export class GameEngine {
   async startGameLoop(adapter: ILocalEventDispatcher): Promise<void> {
     const firstPlayer = this.players[this.currentPlayerIndex];
 
+    // Afficher TURN 1 + HANDS au démarrage
+    console.log(`LOG  ════════════════════════════════════════════════════════════════════════════ TURN ${this.turnNumber} ════════════════════════════════════════════════════════════════════════════`);
+    this.players.forEach(p => {
+      const dominoStr = p.hand.map(d => `${d.left}|${d.right}`).join(', ');
+      console.log(`LOG  [HANDS] ${p.name}: [${dominoStr}]`);
+    });
+
     while (!this.isOver) {
       const currentPlayer = this.players[this.currentPlayerIndex];
       const playableResult = this.board.getPlayableDominos(currentPlayer.hand);
@@ -450,6 +457,13 @@ export class GameEngine {
     if (this.isOver) {
       const winner = this.getWinner();
       console.log(`LOG  [GAME-ENGINE] 🏆 GAME_ENDED {"winner":"${winner?.name}","winnerId":${winner?.id},"scores":${JSON.stringify(this.getPlayers().map(p => ({name: p.name, score: p.score})))},"totalTurnsPlayed":${this.turnNumber}}`);
+
+      // Afficher les hands finales après la fin du game
+      console.log(`LOG  ════════════════════════════════════════════════════════════════════════════ GAME ENDED - FINAL HANDS ════════════════════════════════════════════════════════════════════════════`);
+      this.players.forEach(p => {
+        const dominoStr = p.hand.map(d => `${d.left}|${d.right}`).join(', ');
+        console.log(`LOG  [HANDS] ${p.name}: [${dominoStr}]`);
+      });
 
       if (adapter) {
         adapter.emit({
