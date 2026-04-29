@@ -477,6 +477,13 @@ export class GameEngine {
     // Séparateur visuel de tour
     const boardStr = this.board.playedDominos.map(d => `${d.left}|${d.right}`).join(' ← → ');
     console.log(`LOG  ════════════════════════════════════════════════════════════════════════════ TURN ${this.turnNumber} ════════════════════════════════════════════════════════════════════════════`);
+
+    // Log les dominos de tous les joueurs
+    this.players.forEach(p => {
+      const dominoStr = p.hand.map(d => `${d.left}|${d.right}`).join(', ');
+      console.log(`LOG  [HANDS] ${p.name}: [${dominoStr}]`);
+    });
+
     console.log(`LOG  [GAME-ENGINE] 📋 NEXT_TURN {"nextPlayer":"${currentPlayer.name}","turnNumber":${this.turnNumber},"board":"${boardStr || 'empty'}","boardSize":${this.board.playedDominos.length},"consecutivePasses":${this.consecutivePasses}}`);
 
     if (adapter) {
