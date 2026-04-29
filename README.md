@@ -2,6 +2,20 @@
 
 This is an [Expo](https://expo.dev) project created with [`create-expo-app`](https://www.npmjs.com/package/create-expo-app).
 
+## Installation initiale (une fois)
+
+1. Installer EAS CLI globalement
+
+   ```bash
+   npm install -g eas-cli
+   ```
+
+2. Se connecter à EAS
+
+   ```bash
+   eas login
+   ```
+
 ## Get started
 
 1. Install dependencies
