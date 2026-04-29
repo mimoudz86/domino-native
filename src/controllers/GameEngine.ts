@@ -41,25 +41,11 @@ export class GameEngine {
     this.findStartingPlayer();
     this.turnNumber = 1;
 
-    console.log(`[GAME-ENGINE] 🎮 INIT_GAME`, {
-      totalPlayers: this.players.length,
-      aiPlayers: this.players.filter(p => p.isAI).length,
-      startingPlayerIndex: this.currentPlayerIndex,
-      startingPlayerName: this.players[this.currentPlayerIndex].name,
-      initialHandSizes: this.players.map(p => p.hand.length),
-      gameState: 'INITIALIZED'
-    });
+    console.log(`LOG  [GAME-ENGINE] 🎮 INIT_GAME {"players":${this.players.length},"aiPlayers":${this.players.filter(p => p.isAI).length},"startingPlayer":"${this.players[this.currentPlayerIndex].name}"}`);
   }
 
   async startGameLoop(adapter: ILocalEventDispatcher): Promise<void> {
     const firstPlayer = this.players[this.currentPlayerIndex];
-    console.log(`[GAME-ENGINE] 🔄 LOOP_START`, {
-      turnNumber: this.turnNumber,
-      firstPlayerIndex: this.currentPlayerIndex,
-      firstPlayerName: firstPlayer.name,
-      isFirstPlayerAI: firstPlayer.isAI,
-      gameState: 'RUNNING'
-    });
 
     while (!this.isOver) {
       const currentPlayer = this.players[this.currentPlayerIndex];
@@ -160,15 +146,7 @@ export class GameEngine {
       }
     };
 
-    console.log(`[GAME-ENGINE] 🚀 GAME_STARTED`, {
-      turnNumber: state.turnNumber,
-      currentPlayerIndex: state.currentPlayerIndex,
-      currentPlayerName: this.players[this.currentPlayerIndex].name,
-      boardSize: state.board.trainOnBoard.length,
-      playerStats: players.map(p => ({ name: p.name, dominoCount: p.dominoCount })),
-      consecutivePasses: this.consecutivePasses,
-      gameState: 'STARTED'
-    });
+    console.log(`LOG  [GAME-ENGINE] 🚀 GAME_STARTED {"players":${players.length},"startingPlayer":"${this.players[this.currentPlayerIndex].name}"}`);
 
     return state;
   }
@@ -227,20 +205,8 @@ export class GameEngine {
       lastPlayerWhoPassedId: this.lastPlayerWhoPassedId ?? undefined
     };
 
-    console.log(`[GAME-ENGINE] ⏸️  PLAY_TURN`, {
-      turnNumber: payload.turnNumber,
-      currentPlayerIndex: playerIndex,
-      currentPlayerName: player.name,
-      isAI: player.isAI,
-      dominoInHand: player.hand.length,
-      playableCount: playables.length,
-      playableIndices: playables,
-      canPlay: payload.canPlay,
-      boardDominos: payload.board.trainOnBoard.length,
-      consecutivePasses: this.consecutivePasses,
-      lastPlayerWhoPassedId: this.lastPlayerWhoPassedId ?? null,
-      opponentStats: opponents.map(o => ({ name: o.name, dominos: o.dominoCount, passed: o.hasPassed }))
-    });
+    const boardStr = payload.board.trainOnBoard.map(d => `${d.domino.left}|${d.domino.right}`).join(' ← → ');
+    console.log(`LOG  [GAME-ENGINE] ⏸️  PLAY_TURN {"turn":${payload.turnNumber},"player":"${player.name}","hand":${player.hand.length},"playable":${playables.length},"board":"${boardStr || 'empty'}"}`);
 
     return payload;
   }
@@ -272,17 +238,8 @@ export class GameEngine {
       lastPlayerWhoPassedId: this.lastPlayerWhoPassedId ?? undefined
     };
 
-    console.log(`[GAME-ENGINE] 📊 TURN_UPDATED`, {
-      turnNumber: payload.turnNumber,
-      nextPlayerIndex: payload.nextPlayerIndex,
-      nextPlayerName: this.players[nextPlayerIndex].name,
-      boardDominos: payload.board.trainOnBoard.length,
-      boardLastDomino: payload.board.trainOnBoard.length > 0
-        ? `${payload.board.trainOnBoard[payload.board.trainOnBoard.length - 1].domino.left}|${payload.board.trainOnBoard[payload.board.trainOnBoard.length - 1].domino.right}`
-        : 'none',
-      playerStats: players.map(p => ({ name: p.name, dominos: p.dominoCount, passed: p.hasPassed })),
-      lastPlayerWhoPassedId: this.lastPlayerWhoPassedId ?? null
-    });
+    const boardStr2 = payload.board.trainOnBoard.map(d => `${d.domino.left}|${d.domino.right}`).join(' ← → ');
+    console.log(`LOG  [GAME-ENGINE] 📊 TURN_UPDATED {"turn":${payload.turnNumber},"nextPlayer":"${this.players[nextPlayerIndex].name}","board":"${boardStr2 || 'empty'}","playerCounts":"${players.map(p => p.name.charAt(0) + ':' + p.dominoCount).join(' ')}"}`);
 
     return payload;
   }
@@ -293,14 +250,8 @@ export class GameEngine {
       return false;
     }
 
-    console.log(`[GAME-ENGINE] 🔄 AUTO_PASS`, {
-      turnNumber: this.turnNumber,
-      playerId: playerId,
-      playerName: player.name,
-      reason: 'no_playable_dominos',
-      consecutivePasses: this.consecutivePasses + 1,
-      dominoInHand: player.hand.length
-    });
+    const boardStr3 = this.board.playedDominos.map(d => `${d.left}|${d.right}`).join(' ← → ');
+    console.log(`LOG  [GAME-ENGINE] 🔄 AUTO_PASS {"player":"${player.name}","board":"${boardStr3 || 'empty'}","passes":${this.consecutivePasses + 1}}`);
 
     player.hasPassed = true;
     this.lastPlayerWhoPassedId = playerId;
@@ -371,17 +322,8 @@ export class GameEngine {
       playerId: payload.playerId
     });
 
-    console.log(`[GAME-ENGINE] 🎯 PLAY_RESPONSE`, {
-      turnNumber: this.turnNumber,
-      playerId: payload.playerId,
-      playerName: player.name,
-      domino: `${move.domino.left}|${move.domino.right}`,
-      side: move.side,
-      knocked: move.knocked,
-      handRemaining: player.hand.length,
-      boardSize: this.board.playedDominos.length,
-      validation: 'SUCCESS'
-    });
+    const boardStr = this.board.playedDominos.map(d => `${d.left}|${d.right}`).join(' ← → ');
+    console.log(`LOG  [GAME-ENGINE] 🎯 PLAY_RESPONSE {"player":"${player.name}","domino":"${move.domino.left}|${move.domino.right}","choice":"${move.side}","handAfter":${player.hand.length},"board":"${boardStr}","validation":"SUCCESS"}`);
 
     for (const p of this.players) {
       p.hasPassed = false;
@@ -507,19 +449,7 @@ export class GameEngine {
 
     if (this.isOver) {
       const winner = this.getWinner();
-      console.log(`[GAME-ENGINE] 🏆 GAME_ENDED`, {
-        turnNumber: this.turnNumber,
-        winner: {
-          id: winner?.id,
-          name: winner?.name
-        },
-        scores: this.getPlayers().map(p => ({
-          playerId: p.id,
-          playerName: p.name,
-          score: p.score
-        })),
-        totalTurnsPlayed: this.turnNumber
-      });
+      console.log(`LOG  [GAME-ENGINE] 🏆 GAME_ENDED {"winner":"${winner?.name}","winnerId":${winner?.id},"scores":${JSON.stringify(this.getPlayers().map(p => ({name: p.name, score: p.score})))},"totalTurnsPlayed":${this.turnNumber}}`);
 
       if (adapter) {
         adapter.emit({
@@ -544,16 +474,10 @@ export class GameEngine {
     this.turnNumber++;
     const currentPlayer = this.players[this.currentPlayerIndex];
 
-    console.log(`[GAME-ENGINE] 📋 NEXT_TURN`, {
-      turnNumber: this.turnNumber,
-      nextPlayerIndex: this.currentPlayerIndex,
-      nextPlayerName: currentPlayer.name,
-      isAI: currentPlayer.isAI,
-      hasPassed: currentPlayer.hasPassed,
-      dominoCount: currentPlayer.hand.length,
-      consecutivePasses: this.consecutivePasses,
-      boardSize: this.board.playedDominos.length
-    });
+    // Séparateur visuel de tour
+    const boardStr = this.board.playedDominos.map(d => `${d.left}|${d.right}`).join(' ← → ');
+    console.log(`LOG  ════════════════════════════════════════════════════════════════════════════ TURN ${this.turnNumber} ════════════════════════════════════════════════════════════════════════════`);
+    console.log(`LOG  [GAME-ENGINE] 📋 NEXT_TURN {"nextPlayer":"${currentPlayer.name}","turnNumber":${this.turnNumber},"board":"${boardStr || 'empty'}","boardSize":${this.board.playedDominos.length},"consecutivePasses":${this.consecutivePasses}}`);
 
     if (adapter) {
       adapter.emit({

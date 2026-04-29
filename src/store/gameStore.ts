@@ -62,43 +62,24 @@ export const useGameStore = create<GameStoreState>((set, get) => ({
 
     // 4. Écouter les mises à jour
     adapter.on('GAME_STARTED', (payload: any) => {
-      console.log(`[GAME-STORE] 🚀 LISTENER_GAME_STARTED`, {
-        boardSize: payload.board?.trainOnBoard?.length || 0,
-        playerCount: payload.players?.length || 0,
-        currentPlayer: payload.players?.[payload.currentPlayerIndex]?.name
-      });
+      console.log(`LOG  [GAME-STORE] 🚀 LISTENER_GAME_STARTED {"players":${payload.players?.length},"startingPlayer":"${payload.players?.[payload.currentPlayerIndex]?.name}"}`);
       set({ turnState: payload });
     });
 
     adapter.on('PLAY_TURN', (payload: any) => {
-      console.log(`[GAME-STORE] ⏸️  LISTENER_PLAY_TURN`, {
-        turnNumber: payload.turnNumber,
-        yourName: payload.yourName,
-        dominoInHand: payload.yourDominos?.length || 0,
-        playableCount: payload.playables?.length || 0,
-        canPlay: payload.canPlay,
-        boardSize: payload.board?.trainOnBoard?.length || 0
-      });
+      console.log(`LOG  [GAME-STORE] ⏸️  LISTENER_PLAY_TURN {"player":"${payload.yourName}","hand":${payload.yourDominos?.length},"playable":${payload.playables?.length}}`);
       set({ turnState: payload });
     });
 
     adapter.on('TURN_UPDATED', (payload: any) => {
       const playerStats = payload.players?.map((p: any) => `${p.name}:${p.dominoCount}${p.hasPassed ? '🚫' : ''}`).join(' | ');
-      console.log(`[GAME-STORE] 📊 LISTENER_TURN_UPDATED`, {
-        turnNumber: payload.turnNumber,
-        nextPlayerName: payload.players?.[payload.nextPlayerIndex]?.name,
-        boardSize: payload.board?.trainOnBoard?.length || 0,
-        playerStats: playerStats
-      });
+      console.log(`LOG  [GAME-STORE] 📊 LISTENER_TURN_UPDATED {"nextPlayer":"${payload.players?.[payload.nextPlayerIndex]?.name}","players":"${playerStats}"}`);
       set({ turnState: payload });
     });
 
     adapter.on('GAME_ENDED', (payload: any) => {
-      console.log(`[GAME-STORE] 🏆 LISTENER_GAME_ENDED`, {
-        winner: payload.winner?.name,
-        winnerId: payload.winner?.id,
-        finalScores: payload.scores?.map((s: any) => ({ name: s.playerName, score: s.score }))
-      });
+      const scores = payload.scores?.map((s: any) => `${s.playerName}:${s.score}`).join(' | ');
+      console.log(`LOG  [GAME-STORE] 🏆 LISTENER_GAME_ENDED {"winner":"${payload.winner?.name}","scores":"${scores}"}`);
       set({ turnState: payload });
     });
 
