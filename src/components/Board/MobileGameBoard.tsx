@@ -109,7 +109,7 @@ export function MobileGameBoard({
   }, [dispatcher]);
 
   const handleContinue = async () => {
-    console.log(`[MOBILE-GAME-BOARD] Continuing with new game`);
+    // [COMMENTED-v1] console.log(`[MOBILE-GAME-BOARD] Continuing with new game`);
     setGameEnded(false);
     setWinner('');
     setGameEndState(null);
@@ -118,7 +118,7 @@ export function MobileGameBoard({
   };
 
   const handleLeave = () => {
-    console.log(`[MOBILE-GAME-BOARD] Leaving game`);
+    // [COMMENTED-v1] console.log(`[MOBILE-GAME-BOARD] Leaving game`);
     setGameEnded(false);
     setWinner('');
     setGameEndState(null);

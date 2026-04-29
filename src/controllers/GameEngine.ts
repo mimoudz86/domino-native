@@ -45,7 +45,7 @@ export class GameEngine {
   async startGameLoop(adapter: ILocalEventDispatcher): Promise<void> {
     // Log du premier joueur
     const firstPlayer = this.players[this.currentPlayerIndex];
-    console.log(`📍 Turn ${this.turnNumber} • ${firstPlayer.name}`);
+    // [COMMENTED-v1] console.log(`📍 Turn ${this.turnNumber} • ${firstPlayer.name}`);
 
     while (!this.isOver) {
       const currentPlayer = this.players[this.currentPlayerIndex];
@@ -83,13 +83,13 @@ export class GameEngine {
   }
 
   onPassHidden(): void {
-    console.log(`[AUTO-PASS] 📡 onPassHidden called, resolving Promise`);
+    // [COMMENTED-v1] console.log(`[AUTO-PASS] 📡 onPassHidden called, resolving Promise`);
     if (this.resolvePassHidden) {
       this.resolvePassHidden();
       this.resolvePassHidden = null;
       this.passHiddenPromise = null;
     } else {
-      console.log(`[AUTO-PASS] ⚠️ WARNING: No resolver found for PASS_HIDDEN!`);
+      // [COMMENTED-v1] console.log(`[AUTO-PASS] ⚠️ WARNING: No resolver found for PASS_HIDDEN!`);
     }
   }
 
@@ -236,14 +236,14 @@ export class GameEngine {
       return false;
     }
 
-    console.log(`[AUTO-PASS] Player ${player.name} auto-passed (no playable dominos)`);
+    // [COMMENTED-v1] console.log(`[AUTO-PASS] Player ${player.name} auto-passed (no playable dominos)`);
     player.hasPassed = true;
     this.lastPlayerWhoPassedId = playerId;
     this.consecutivePasses++;
 
     // Notifier l'UI du pass AVANT d'attendre
     if (adapter) {
-      console.log(`[AUTO-PASS] 📢 Emitting TURN_UPDATED to show badge...`);
+      // [COMMENTED-v1] console.log(`[AUTO-PASS] 📢 Emitting TURN_UPDATED to show badge...`);
       adapter.emit({
         type: 'TURN_UPDATED',
         payload: this.getTurnUpdatedState()
@@ -251,13 +251,13 @@ export class GameEngine {
     }
 
     // Attendre que le badge UI se cache
-    console.log(`[AUTO-PASS] ⏳ Waiting for PASS_HIDDEN event...`);
+    // [COMMENTED-v1] console.log(`[AUTO-PASS] ⏳ Waiting for PASS_HIDDEN event...`);
     this.passHiddenPromise = new Promise(resolve => {
       this.resolvePassHidden = resolve;
     });
 
     await this.passHiddenPromise;
-    console.log(`[AUTO-PASS] ✅ PASS_HIDDEN received, continuing...`);
+    // [COMMENTED-v1] console.log(`[AUTO-PASS] ✅ PASS_HIDDEN received, continuing...`);
     this.nextTurn(adapter);
     return true;
   }
@@ -421,7 +421,7 @@ export class GameEngine {
 
     if (this.isOver) {
       const winner = this.getWinner();
-      console.log(`🏆 Game ended! Winner: ${winner?.name}`);
+      // [COMMENTED-v1] console.log(`🏆 Game ended! Winner: ${winner?.name}`);
 
       if (adapter) {
         adapter.emit({
@@ -445,7 +445,7 @@ export class GameEngine {
     this.currentPlayerIndex = (this.currentPlayerIndex + 1) % this.players.length;
     this.turnNumber++;
     const currentPlayer = this.players[this.currentPlayerIndex];
-    console.log(`📍 Turn ${this.turnNumber} • ${currentPlayer.name}`);
+    // [COMMENTED-v1] console.log(`📍 Turn ${this.turnNumber} • ${currentPlayer.name}`);
 
     if (adapter) {
       adapter.emit({

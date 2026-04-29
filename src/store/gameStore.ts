@@ -68,13 +68,13 @@ export const useGameStore = create<GameStoreState>((set, get) => ({
 
     adapter.on('PLAY_TURN', (payload: any) => {
       const playerStats = payload.players?.map((p: any) => `${p.name}:${p.dominoCount}${p.hasPassed ? '🚫' : ''}`).join(' | ');
-      console.log(`⏸️ ${payload.yourName}'s turn | ${playerStats}`);
+      // [COMMENTED-v1] console.log(`⏸️ ${payload.yourName}'s turn | ${playerStats}`);
       set({ turnState: payload });
     });
 
     adapter.on('TURN_UPDATED', (payload: any) => {
       const playerStats = payload.players?.map((p: any) => `${p.name}:${p.dominoCount}${p.hasPassed ? '🚫' : ''}`).join(' | ');
-      console.log(`📊 ${playerStats}`);
+      // [COMMENTED-v1] console.log(`📊 ${playerStats}`);
       set({ turnState: payload });
     });
 

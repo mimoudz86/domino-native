@@ -36,7 +36,7 @@ export class EventBusAdapter implements ILocalEventDispatcher {
     });
 
     this.on('PASS_HIDDEN', (payload: any) => {
-      console.log(`[ADAPTER] 📡 PASS_HIDDEN received from UI`);
+      // [COMMENTED-v1] console.log(`[ADAPTER] 📡 PASS_HIDDEN received from UI`);
       this.engine.onPassHidden();
     });
   }

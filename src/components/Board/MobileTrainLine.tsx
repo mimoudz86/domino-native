@@ -26,7 +26,7 @@ export function MobileTrainLine({ dominos, dominoSize = 'small' }: MobileTrainLi
             <DominoView
               domino={domino}
               size={dominoSize}
-              onPress={() => console.log(`Domino ${index} pressed`)}
+              onPress={() => {} /* [COMMENTED-v1] console.log(`Domino ${index} pressed`) */}
             />
           </View>
         ))}

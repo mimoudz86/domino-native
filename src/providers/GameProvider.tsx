@@ -21,7 +21,7 @@ export function GameProvider({ children, autoInitialize = false }: GameProviderP
   useEffect(() => {
     // Initialiser une seule fois au montage si autoInitialize = true
     if (autoInitialize && !initRef.current && !isInitialized) {
-      console.log(`[GAME-PROVIDER] Initializing game`);
+      // [COMMENTED-v1] console.log(`[GAME-PROVIDER] Initializing game`);
       initRef.current = true;
       initGame();
     }
