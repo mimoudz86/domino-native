@@ -47,13 +47,6 @@ export class GameEngine {
   async startGameLoop(adapter: ILocalEventDispatcher): Promise<void> {
     const firstPlayer = this.players[this.currentPlayerIndex];
 
-    // Afficher TURN 1 + HANDS au démarrage
-    console.log(`LOG  ════════════════════════════════════════════════════════════════════════════ TURN ${this.turnNumber} ════════════════════════════════════════════════════════════════════════════`);
-    this.players.forEach(p => {
-      const dominoStr = p.hand.map(d => `${d.left}|${d.right}`).join(', ');
-      console.log(`LOG  [HANDS] ${p.name}: [${dominoStr}]`);
-    });
-
     while (!this.isOver) {
       const currentPlayer = this.players[this.currentPlayerIndex];
       const playableResult = this.board.getPlayableDominos(currentPlayer.hand);
