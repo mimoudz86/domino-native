@@ -138,10 +138,21 @@ export class Score {
   }
 
   /**
-   * Calculate player round score (pips remaining)
+   * Calculate score for a single player (sum of pips in hand)
    */
-  static calculatePlayerRoundScore(playerScore: number): number {
-    return playerScore;
+  static calculatePlayerScore(player: any): number {
+    return player.hand.reduce((sum: number, d: Domino) => sum + d.left + d.right, 0);
+  }
+
+  /**
+   * Calculate scores for all players
+   */
+  static calculateAllScores(players: any[]): Array<{ id: number; name: string; score: number }> {
+    return players.map(p => ({
+      id: p.id,
+      name: p.name,
+      score: this.calculatePlayerScore(p)
+    }));
   }
 
   /**

@@ -1,4 +1,5 @@
 import type { Domino } from '../shared/models/Domino';
+import type { Board } from './Board';
 
 export class GamePlayer {
   id: number;
@@ -29,11 +30,8 @@ export class GamePlayer {
     return false;
   }
 
-  calculateHandValue(): number {
-    return this.hand.reduce((sum, d) => sum + d.left + d.right, 0);
-  }
-
-  updateScore(): void {
-    this.score = this.calculateHandValue();
+  canPlay(board: Board): boolean {
+    const playableResult = board.getPlayableDominos(this.hand);
+    return playableResult.totalChoice > 0 && !this.hasPassed;
   }
 }
