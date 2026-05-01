@@ -40,22 +40,22 @@ export class MatchService {
       await this.storage.saveGame(gameResult);
 
       // Récupérer l'état mis à jour
-      const matchState = await this.storage.getMatchState();
+      const updatedMatchState = await this.storage.getMatchState();
 
       // Log détaillé de l'état du match
       console.log(`LOG  [MATCH-SERVICE] 📊 MATCH_STATE_UPDATED ${JSON.stringify({
         gameNumber: gameResult.gameNumber,
-        matchFinished: matchState.matchFinished,
-        scoreIndividual: matchState.scoreIndividual,
-        currentGameNumber: matchState.currentGameNumber,
-        winner: matchState.winner,
-        games: matchState.games.length
+        matchFinished: updatedMatchState.matchFinished,
+        scoreIndividual: updatedMatchState.scoreIndividual,
+        currentGameNumber: updatedMatchState.currentGameNumber,
+        winner: updatedMatchState.winner,
+        games: updatedMatchState.games.length
       })}`);
 
       // Émettre l'événement de mise à jour
-      await globalEventEmitter.emit('MATCH_UPDATED', matchState);
+      await globalEventEmitter.emit('MATCH_UPDATED', updatedMatchState);
 
-      console.log(`LOG  [MATCH-SERVICE] ✅ GAME_RECORDED {"gameNumber":${gameResult.gameNumber},"matchFinished":${matchState.matchFinished}}`);
+      console.log(`LOG  [MATCH-SERVICE] ✅ GAME_RECORDED {"gameNumber":${gameResult.gameNumber},"matchFinished":${updatedMatchState.matchFinished}}`);
     } catch (error) {
       console.error('[MATCH-SERVICE] Error recording game:', error);
     }
