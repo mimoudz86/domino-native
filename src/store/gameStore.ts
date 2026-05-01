@@ -18,8 +18,14 @@ type DraggableStatus = 'none' | 'left' | 'right' | 'both';
 import { GameEngine } from '../controllers/GameEngine';
 import { EventBusAdapter } from '../adapters/EventBusAdapter';
 import { AIPlayer } from '../controllers/AI_Strategies/AIPlayer';
+import { MatchService } from '../services/MatchService';
+import { LocalMatchStorage } from '../services/LocalMatchStorage';
+import type { ScoringMode } from '../controllers/MatchManager';
 
-type GameStoreState = IGameStore;
+type GameStoreState = IGameStore & {
+  matchService?: MatchService;
+  _isInitializing: boolean;
+};
 
 export const useGameStore = create<GameStoreState>((set, get) => ({
   // Initial state
@@ -27,13 +33,14 @@ export const useGameStore = create<GameStoreState>((set, get) => ({
   dispatcher: null,
   isInitialized: false,
   dragState: null,
+  matchService: undefined,
   _isInitializing: false,
 
   // ═══════════════════════════════════════════
   // ACTIONS
   // ═══════════════════════════════════════════
 
-  initGame: async (playerNames = ['You', 'Bot 1', 'Bot 2', 'Bot 3'], aiPlayers = [false, true, true, true]) => {
+  initGame: async (playerNames = ['You', 'Bot 1', 'Bot 2', 'Bot 3'], aiPlayers = [false, true, true, true], mode: ScoringMode = 'individual') => {
     // Guard: si déjà en train d'initialiser, retourner
     if (get()._isInitializing) {
       // console.log(`[GAME-STORE] initGame already in progress, skipping`);
@@ -43,16 +50,20 @@ export const useGameStore = create<GameStoreState>((set, get) => ({
     // console.log(`[GAME-STORE] initGame called`);
     set({ _isInitializing: true });
 
-    // 1. Créer GameEngine
+    // 1. Initialiser MatchService pour la persistance
+    const storage = new LocalMatchStorage();
+    const matchService = new MatchService(storage);
+
+    // 2. Créer GameEngine
     const engine = new GameEngine({
       playerNames,
       aiPlayers
     });
 
-    // 2. Créer EventBusAdapter (le pont)
+    // 3. Créer EventBusAdapter (le pont)
     const adapter = new EventBusAdapter(engine);
 
-    // 3. Créer les AIPlayers (pour tous les joueurs IA)
+    // 4. Créer les AIPlayers (pour tous les joueurs IA)
     const aiPlayerInstances = playerNames.map((name, idx) => {
       if (aiPlayers[idx]) {
         return new AIPlayer(idx, 'random', adapter); // Stratégie par défaut: random
@@ -60,7 +71,7 @@ export const useGameStore = create<GameStoreState>((set, get) => ({
       return null;
     }).filter(Boolean);
 
-    // 4. Écouter les mises à jour
+    // 5. Écouter les mises à jour
     adapter.on('GAME_STARTED', (payload: any) => {
       console.log(`LOG  [GAME-STORE] 🚀 LISTENER_GAME_STARTED {"players":${payload.players?.length},"startingPlayer":"${payload.players?.[payload.currentPlayerIndex]?.name}"}`);
       set({ turnState: payload });
@@ -83,23 +94,25 @@ export const useGameStore = create<GameStoreState>((set, get) => ({
       set({ turnState: payload });
     });
 
-    // 5. Initialiser le jeu
+    // 6. Initialiser le jeu
     await engine.initGame();
 
-    // 6. Initialiser l'état du store
+    // 7. Initialiser l'état du store
     set({
       dispatcher: adapter,
+      matchService,
       turnState: engine.getCurrentState(),
       isInitialized: true,
+      _isInitializing: false,
     });
 
-    // 7. Émettre GAME_STARTED
+    // 8. Émettre GAME_STARTED
     adapter.emit({
       type: 'GAME_STARTED',
       payload: engine.getGameStartedState()
     });
 
-    // 8. Démarrer la boucle de jeu (en background - pas await)
+    // 9. Démarrer la boucle de jeu (en background - pas await)
     engine.startGameLoop(adapter);
   },
 
@@ -149,6 +162,7 @@ export const useGameStore = create<GameStoreState>((set, get) => ({
     set({
       turnState: null,
       dispatcher: null,
+      matchService: undefined,
       isInitialized: false,
       dragState: null,
       _isInitializing: false,
@@ -173,5 +187,15 @@ export const useGameStore = create<GameStoreState>((set, get) => ({
 
   endDrag: () => {
     set({ dragState: null });
+  },
+
+  // Debug methods
+  debugShowAllData: async () => {
+    const matchService = get().matchService;
+    if (matchService) {
+      await matchService.debugLogAllData();
+    } else {
+      console.log('[GAME-STORE] No MatchService initialized');
+    }
   },
 }));

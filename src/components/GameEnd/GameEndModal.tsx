@@ -109,31 +109,47 @@ function getTeamViewData(gameEndState: any, thisPlayerId: number | null) {
 function getSoloViewData(gameEndState: any) {
   const defaultViewData = {
     players: [
-      { id: 0, name: '', gameScore: 0, setScore: 0, matchScore: 0 },
-      { id: 1, name: '', gameScore: 0, setScore: 0, matchScore: 0 },
-      { id: 2, name: '', gameScore: 0, setScore: 0, matchScore: 0 },
-      { id: 3, name: '', gameScore: 0, setScore: 0, matchScore: 0 }
+      { id: 0, name: '', gameScore: 0, earned: 0, matchScore: 0 },
+      { id: 1, name: '', gameScore: 0, earned: 0, matchScore: 0 },
+      { id: 2, name: '', gameScore: 0, earned: 0, matchScore: 0 },
+      { id: 3, name: '', gameScore: 0, earned: 0, matchScore: 0 }
     ],
-    winner: { id: -1, name: 'Unknown' }
+    winner: { id: -1, name: 'Unknown' },
+    winningType: 'EMPTY_HAND' as 'EMPTY_HAND' | 'BLOCKED_GAME',
+    matchState: null,
+    maxPoints: 50
   };
 
   if (!gameEndState) return defaultViewData;
 
   const winner = gameEndState.winner || { id: -1, name: 'Unknown' };
+  const winningType = gameEndState.winningType || 'EMPTY_HAND';
+  const matchState = gameEndState.matchState || null;
+  const maxPoints = matchState?.maxPoints || 50;
 
-  // Handle two possible payloads:
-  // 1. Simple payload: { winner, scores: [{ playerId, playerName, score }] }
-  // 2. Full GameEndState: { winner, teamV, teamH, setScore, matchProgress }
+  // Handle three possible payloads:
+  // 1. NEW: Enriched payload { winner, winningType, gameEnd, matchState }
+  // 2. Simple payload: { winner, scores: [{ playerId, playerName, score }] }
+  // 3. Full GameEndState: { winner, teamV, teamH, setScore, matchProgress }
 
   let players: any[] = [];
 
-  if (gameEndState.scores && Array.isArray(gameEndState.scores)) {
+  if (gameEndState.gameEnd?.individual) {
+    // NEW: Enriched payload with game/match info
+    players = gameEndState.gameEnd.individual.players.map((p: any) => ({
+      id: p.id,
+      name: p.name,
+      gameScore: p.score,
+      earned: p.earned,
+      matchScore: matchState?.scoreIndividual?.[p.id] ?? 0
+    }));
+  } else if (gameEndState.scores && Array.isArray(gameEndState.scores)) {
     // Simple payload from GameEngine
     players = gameEndState.scores.map((s: any) => ({
       id: s.playerId,
       name: s.playerName,
       gameScore: s.score,
-      setScore: 0,
+      earned: 0,
       matchScore: 0
     }));
   } else if (gameEndState.teamV && gameEndState.teamH) {
@@ -147,14 +163,17 @@ function getSoloViewData(gameEndState: any) {
       id: p.id,
       name: p.name,
       gameScore: p.score,
-      setScore: gameEndState.setScore?.teamVPoints ?? 0,
-      matchScore: gameEndState.matchProgress?.team1SetsWon ?? 0
+      earned: 0,
+      matchScore: 0
     })).sort((a, b) => a.id - b.id);
   }
 
   return {
     players: players.length > 0 ? players : defaultViewData.players,
-    winner
+    winner,
+    winningType,
+    matchState,
+    maxPoints
   };
 }
 
@@ -230,21 +249,49 @@ function TeamModeView({ gameEndState, thisPlayerId, onContinue, onLeave }: any) 
 
 function SoloModeView({ gameEndState, onContinue, onLeave }: any) {
   const viewData = getSoloViewData(gameEndState);
+  const winningReason = viewData.winningType === 'EMPTY_HAND'
+    ? '(Main vide)'
+    : '(Jeu bloqué)';
+
+  const matchProgressPercent = viewData.matchState
+    ? Math.round((viewData.matchState.scoreIndividual[viewData.winner.id] / viewData.maxPoints) * 100)
+    : 0;
 
   return (
     <View style={styles.container}>
       <View style={styles.headerSection}>
-        <Text style={styles.title}>🏆 FIN DU JEU</Text>
-        <Text style={styles.winner}>🎯 {viewData.winner.name} gagne!</Text>
+        <Text style={styles.title}>🏆 FIN DU JEU #{viewData.matchState?.currentGameNumber || 1}</Text>
+        <Text style={styles.winner}>🎯 {viewData.winner.name} gagne! {winningReason}</Text>
       </View>
+
+      {viewData.matchState && (
+        <View style={styles.matchProgressSection}>
+          <Text style={styles.progressLabel}>Progression du match:</Text>
+          {viewData.players.map((player: any) => {
+            const percent = Math.round((viewData.matchState.scoreIndividual[player.id] / viewData.maxPoints) * 100);
+            return (
+              <View key={player.id} style={styles.progressRow}>
+                <Text style={styles.playerName}>{player.name}:</Text>
+                <Text style={styles.progressScore}>
+                  {viewData.matchState.scoreIndividual[player.id]}/{viewData.maxPoints}
+                </Text>
+                <Text style={styles.progressPercent}>({percent}%)</Text>
+              </View>
+            );
+          })}
+          {viewData.matchState.matchFinished && (
+            <Text style={styles.matchWonText}>✨ {viewData.winner.name} a GAGNÉ LE MATCH! ✨</Text>
+          )}
+        </View>
+      )}
 
       <View style={styles.scoreTable}>
         <View style={styles.tableHeaderRow}>
           <Text style={[styles.tableCell, { flex: 1.2 }, styles.tableLabelCell]}>
             Joueur
           </Text>
-          <Text style={[styles.tableCell, styles.tableHeaderCell]}>Game</Text>
-          <Text style={[styles.tableCell, styles.tableHeaderCell]}>Set</Text>
+          <Text style={[styles.tableCell, styles.tableHeaderCell]}>Pips</Text>
+          <Text style={[styles.tableCell, styles.tableHeaderCell]}>Gagnés</Text>
           <Text style={[styles.tableCell, styles.tableHeaderCell]}>Match</Text>
         </View>
 
@@ -273,11 +320,11 @@ function SoloModeView({ gameEndState, onContinue, onLeave }: any) {
               style={[
                 styles.tableCell,
                 styles.tableValueCell,
-                styles.setScore,
+                styles.earnedScore,
                 player.id === viewData.winner.id && styles.winnerScore
               ]}
             >
-              {player.setScore}
+              {player.earned > 0 ? `+${player.earned}` : '0'}
             </Text>
             <Text
               style={[
@@ -295,7 +342,7 @@ function SoloModeView({ gameEndState, onContinue, onLeave }: any) {
 
       <View style={styles.buttonContainer}>
         <TouchableOpacity style={styles.button} onPress={onContinue}>
-          <Text style={styles.buttonText}>▶️ Continuer</Text>
+          <Text style={styles.buttonText}>▶️ {viewData.matchState?.matchFinished ? 'Nouvelle partie' : 'Continuer'}</Text>
         </TouchableOpacity>
         <TouchableOpacity style={[styles.button, styles.secondaryButton]} onPress={onLeave}>
           <Text style={styles.secondaryButtonText}>🏠 Quitter</Text>
@@ -386,6 +433,53 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     marginBottom: 16,
   },
+  matchProgressSection: {
+    backgroundColor: '#FFF8DC',
+    borderRadius: 8,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    marginBottom: 16,
+    borderLeftWidth: 4,
+    borderLeftColor: '#D4AF37',
+  },
+  progressLabel: {
+    fontSize: 12,
+    fontWeight: 'bold',
+    color: '#3D2817',
+    marginBottom: 8,
+  },
+  progressRow: {
+    flexDirection: 'row',
+    marginBottom: 6,
+    alignItems: 'center',
+    gap: 8,
+  },
+  playerName: {
+    flex: 1,
+    fontSize: 11,
+    color: '#3D2817',
+    fontWeight: '500',
+  },
+  progressScore: {
+    fontSize: 11,
+    fontWeight: 'bold',
+    color: '#D4AF37',
+    minWidth: 50,
+  },
+  progressPercent: {
+    fontSize: 10,
+    color: '#8B6F47',
+  },
+  matchWonText: {
+    marginTop: 8,
+    paddingTop: 8,
+    borderTopWidth: 1,
+    borderTopColor: '#D4AF37',
+    fontSize: 12,
+    fontWeight: 'bold',
+    color: '#D4AF37',
+    textAlign: 'center',
+  },
   scoreTable: {
     backgroundColor: '#fff',
     borderRadius: 8,
@@ -429,6 +523,10 @@ const styles = StyleSheet.create({
   },
   setScore: {
     color: '#D4AF37',
+  },
+  earnedScore: {
+    color: '#4CAF50',
+    fontWeight: 'bold',
   },
   matchScore: {
     color: '#8B6F47',

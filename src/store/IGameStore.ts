@@ -68,4 +68,9 @@ export interface IGameStore {
    * Terminer le drag
    */
   endDrag: () => void;
+
+  /**
+   * Debug: Afficher toutes les données de match enregistrées
+   */
+  debugShowAllData: () => Promise<void>;
 }

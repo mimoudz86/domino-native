@@ -6,6 +6,7 @@ import type { ILocalEventDispatcher } from '../core/ILocalEventDispatcher';
 import { Board } from './Board';
 import { GamePlayer } from './GamePlayer';
 import { Score } from './Score';
+import { globalEventEmitter } from '../core/EventEmitter';
 
 interface GameEngineConfig {
   playerNames: string[];
@@ -28,6 +29,7 @@ export class GameEngine {
   private resolveResponse: ((payload: PlayResponsePayload) => void) | null = null;
   private passHiddenPromise: Promise<void> | null = null;
   private resolvePassHidden: (() => void) | null = null;
+  private winningType: 'EMPTY_HAND' | 'BLOCKED_GAME' = 'EMPTY_HAND';
 
   constructor(config: GameEngineConfig) {
     this.config = config;
@@ -435,6 +437,25 @@ export class GameEngine {
       });
 
       if (adapter) {
+        // Calculer les scores finaux
+        const playerScores = Score.calculateAllScores(this.players);
+
+        // Construire l'état du jeu (mode individuel)
+        const gameEnd = Score.buildIndividualGameEndState(playerScores, winner?.id || 0, this.winningType);
+
+        // Émettre l'événement pour la persistance via MatchService
+        console.log(`LOG  [GAME-ENGINE] 📤 EMIT_GAME_ENDED event`);
+        globalEventEmitter.emit('GAME_ENDED', {
+          winner: {
+            id: winner?.id || 0,
+            name: winner?.name || ''
+          },
+          winningType: this.winningType,
+          gameEnd: {
+            individual: gameEnd
+          }
+        });
+
         adapter.emit({
           type: 'GAME_ENDED',
           payload: {
@@ -442,11 +463,15 @@ export class GameEngine {
               id: winner?.id || 0,
               name: winner?.name || ''
             },
+            winningType: this.winningType,
             scores: this.getPlayers().map(p => ({
               playerId: p.id,
               playerName: p.name,
               score: p.score
-            }))
+            })),
+            gameEnd: {
+              individual: gameEnd
+            }
           }
         });
       }
@@ -485,6 +510,7 @@ export class GameEngine {
         winnerPlayerId: emptyHand.id,
         winnerName: emptyHand.name
       });
+      this.winningType = 'EMPTY_HAND';
       this.endGame(emptyHand);
       return true;
     }
@@ -503,6 +529,7 @@ export class GameEngine {
           handValue: calculateHandValue(p)
         }))
       });
+      this.winningType = 'BLOCKED_GAME';
       this.endGame(winner);
       return true;
     }
