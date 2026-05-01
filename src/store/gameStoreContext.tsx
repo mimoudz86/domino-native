@@ -7,9 +7,15 @@
  * Futur: Ajouter ServerGameStore, configurer via context.
  */
 
-import { createContext, useContext } from 'react';
+import { createContext, useContext , ReactNode, useState } from 'react';
 import type { IGameStore } from './IGameStore';
 import { useGameStore } from './gameStore';
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// PROVIDER: GameStoreProvider
+// À ajouter au niveau de l'App
+// ═══════════════════════════════════════════════════════════════════════════════
+
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // CONTEXT (sera utilisé pour switcher à l'avenir)
@@ -39,13 +45,6 @@ export function useActiveGameStore<T>(selector?: (state: IGameStore) => T): IGam
   }
   return useGameStore() as IGameStore;
 }
-
-// ═══════════════════════════════════════════════════════════════════════════════
-// PROVIDER: GameStoreProvider
-// À ajouter au niveau de l'App
-// ═══════════════════════════════════════════════════════════════════════════════
-
-import { ReactNode, useState } from 'react';
 
 interface GameStoreProviderProps {
   children: ReactNode;

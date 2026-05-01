@@ -30,10 +30,10 @@ export interface PlayerPrivateState extends PlayerPublicState {
 }
 
 export interface BoardUpdateState {
-  trainOnBoard: Array<{
+  trainOnBoard: {
     domino: Domino;
     line?: any;
-  }>;
+  }[];
 }
 
 // ═══════════════════════════════════════════════════════════════
@@ -90,11 +90,11 @@ export interface GameEndedPayload {
     id: number;
     name: string;
   };
-  scores: Array<{
+  scores: {
     playerId: number;
     playerName: string;
     score: number;
-  }>;
+  }[];
 }
 
 export interface PassHiddenPayload {

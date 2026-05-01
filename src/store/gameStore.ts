@@ -13,8 +13,6 @@ import type { LocalGameEvent } from '../controllers/LocalGameEvent';
 import type { Domino, TurnState } from '../shared/models/GameTurnState';
 import type { IGameStore } from './IGameStore';
 import { clearSlotPositions } from '../utils/trainPositions';
-
-type DraggableStatus = 'none' | 'left' | 'right' | 'both';
 import { GameEngine } from '../controllers/GameEngine';
 import { EventBusAdapter } from '../adapters/EventBusAdapter';
 import { AIPlayer } from '../controllers/AI_Strategies/AIPlayer';
@@ -23,6 +21,8 @@ import { LocalMatchStorage } from '../services/LocalMatchStorage';
 import type { ScoringMode, MatchState } from '../controllers/MatchManager';
 import type { MatchConfig } from '../types/MatchConfig';
 import { DEFAULT_MATCH_CONFIG } from '../types/MatchConfig';
+
+type DraggableStatus = 'none' | 'left' | 'right' | 'both';
 
 type GameStoreState = IGameStore & {
   matchService?: MatchService;
@@ -58,6 +58,7 @@ export const useGameStore = create<GameStoreState>((set, get) => ({
 
     // 1. Initialiser MatchService pour la persistance
     const storage = new LocalMatchStorage(config);
+    await storage.reset(config.mode);
     const matchService = new MatchService(storage);
 
     // 2. Créer GameEngine

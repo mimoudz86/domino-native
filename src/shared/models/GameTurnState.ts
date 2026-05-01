@@ -82,20 +82,20 @@ export interface GameEndData {
     id: number;
     name: string;
   };
-  scores?: Array<{
+  scores?: {
     playerId: number;
     playerName: string;
     score: number;
-  }>;
+  }[];
   // Team-based scoring
   teamV?: {
     teamName: string;
-    players: Array<{ id: number; name: string; score: number }>;
+    players: { id: number; name: string; score: number }[];
     totalScore: number;
   };
   teamH?: {
     teamName: string;
-    players: Array<{ id: number; name: string; score: number }>;
+    players: { id: number; name: string; score: number }[];
     totalScore: number;
   };
   winningTeam?: 'V' | 'H';

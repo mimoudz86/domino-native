@@ -33,7 +33,7 @@ const wrapperHeight = dominoHeight * MAIN_LINE_MAX;
  * - Domino normal (vertical) : dominoHeight (80px pour large)
  * - Domino double (horizontal) : dominoHeight / 2 (40px pour large)
  */
-export function calculateWrapperHeight(mainLineDominos: Array<{ left: number; right: number }>) {
+export function calculateWrapperHeight(mainLineDominos: { left: number; right: number }[]) {
   const dominoHeight = DOMINO_HEIGHTS[DOMINO_SIZE];
 
   return mainLineDominos.reduce((total, domino) => {

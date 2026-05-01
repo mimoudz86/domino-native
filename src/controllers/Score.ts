@@ -25,12 +25,12 @@ export type GameEndState = {
   };
   teamV: {
     teamName: string;
-    players: Array<{ id: number; name: string; score: number }>;
+    players: { id: number; name: string; score: number }[];
     totalScore: number;
   };
   teamH: {
     teamName: string;
-    players: Array<{ id: number; name: string; score: number }>;
+    players: { id: number; name: string; score: number }[];
     totalScore: number;
   };
   winningTeam: 'V' | 'H';
@@ -53,7 +53,7 @@ export type IndividualGameEndState = {
     id: number;
     name: string;
   };
-  players: Array<{ id: number; name: string; score: number; earned: number; isWinner: boolean }>;
+  players: { id: number; name: string; score: number; earned: number; isWinner: boolean }[];
   winningType: 'EMPTY_HAND' | 'BLOCKED_GAME';
   pointsEarned: number;
 };
@@ -147,7 +147,7 @@ export class Score {
   /**
    * Calculate scores for all players
    */
-  static calculateAllScores(players: any[]): Array<{ id: number; name: string; score: number }> {
+  static calculateAllScores(players: any[]): { id: number; name: string; score: number }[] {
     return players.map(p => ({
       id: p.id,
       name: p.name,
@@ -159,7 +159,7 @@ export class Score {
    * 🎯 SCORING ÉQUIPES - Gagnant récolte points équipe adverse
    */
   static calculateTeamScores(
-    players: Array<{ id: number; name: string; score: number }>,
+    players: { id: number; name: string; score: number }[],
     winnerId: number
   ): {
     teamV: number;
@@ -192,9 +192,9 @@ export class Score {
    * 🎯 SCORING INDIVIDUEL - Gagnant récolte points autres
    */
   static calculateIndividualScores(
-    players: Array<{ id: number; name: string; score: number }>,
+    players: { id: number; name: string; score: number }[],
     winnerId: number
-  ): Array<{ id: number; name: string; score: number; earned: number; isWinner: boolean }> {
+  ): { id: number; name: string; score: number; earned: number; isWinner: boolean }[] {
     // Gagnant récolte points des autres
     const otherPlayersTotal = players
       .filter(p => p.id !== winnerId)
@@ -213,7 +213,7 @@ export class Score {
    * 🎯 Build GameEndState for TEAM scoring
    */
   static buildGameEndState(
-    players: Array<{ id: number; name: string; score: number }>,
+    players: { id: number; name: string; score: number }[],
     winnerId: number,
     matchManager?: any,
     gameScore?: [number, number],
@@ -279,7 +279,7 @@ export class Score {
    * 🎯 Build GameEndState for INDIVIDUAL scoring
    */
   static buildIndividualGameEndState(
-    players: Array<{ id: number; name: string; score: number }>,
+    players: { id: number; name: string; score: number }[],
     winnerId: number,
     winningType: 'EMPTY_HAND' | 'BLOCKED_GAME' = 'EMPTY_HAND'
   ): IndividualGameEndState {

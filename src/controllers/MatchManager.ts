@@ -50,7 +50,7 @@ export class MatchManager {
   addGameResult(
     winnerId: number,
     winnerName: string,
-    players: Array<{ id: number; name: string; score: number }>,
+    players: { id: number; name: string; score: number }[],
     winningType: 'EMPTY_HAND' | 'BLOCKED_GAME' = 'EMPTY_HAND'
   ): void {
     if (this.matchFinished) {

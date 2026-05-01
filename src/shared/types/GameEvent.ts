@@ -48,11 +48,11 @@ export interface GameEndedPayload {
         name: string;
         score?: number;
     };
-    scores?: Array<{
+    scores?: {
         playerId: number;
         playerName: string;
         score: number;
-    }>;
+    }[];
 }
 
 /**

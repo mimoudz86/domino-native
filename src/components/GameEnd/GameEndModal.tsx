@@ -5,12 +5,12 @@ type GameEndState = {
   winner: { id: number; name: string };
   teamV: {
     teamName: string;
-    players: Array<{ id: number; name: string; score: number }>;
+    players: { id: number; name: string; score: number }[];
     totalScore: number;
   };
   teamH: {
     teamName: string;
-    players: Array<{ id: number; name: string; score: number }>;
+    players: { id: number; name: string; score: number }[];
     totalScore: number;
   };
   winningTeam: 'V' | 'H';
