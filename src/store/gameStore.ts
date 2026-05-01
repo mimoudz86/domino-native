@@ -20,7 +20,9 @@ import { EventBusAdapter } from '../adapters/EventBusAdapter';
 import { AIPlayer } from '../controllers/AI_Strategies/AIPlayer';
 import { MatchService } from '../services/MatchService';
 import { LocalMatchStorage } from '../services/LocalMatchStorage';
-import type { ScoringMode } from '../controllers/MatchManager';
+import type { ScoringMode, MatchState } from '../controllers/MatchManager';
+import type { MatchConfig } from '../types/MatchConfig';
+import { DEFAULT_MATCH_CONFIG } from '../types/MatchConfig';
 
 type GameStoreState = IGameStore & {
   matchService?: MatchService;
@@ -40,7 +42,11 @@ export const useGameStore = create<GameStoreState>((set, get) => ({
   // ACTIONS
   // ═══════════════════════════════════════════
 
-  initGame: async (playerNames = ['You', 'Bot 1', 'Bot 2', 'Bot 3'], aiPlayers = [false, true, true, true], mode: ScoringMode = 'individual') => {
+  initGame: async (
+    playerNames = ['You', 'Bot 1', 'Bot 2', 'Bot 3'],
+    aiPlayers = [false, true, true, true],
+    config: MatchConfig = DEFAULT_MATCH_CONFIG
+  ) => {
     // Guard: si déjà en train d'initialiser, retourner
     if (get()._isInitializing) {
       // console.log(`[GAME-STORE] initGame already in progress, skipping`);
@@ -51,7 +57,7 @@ export const useGameStore = create<GameStoreState>((set, get) => ({
     set({ _isInitializing: true });
 
     // 1. Initialiser MatchService pour la persistance
-    const storage = new LocalMatchStorage();
+    const storage = new LocalMatchStorage(config);
     const matchService = new MatchService(storage);
 
     // 2. Créer GameEngine
@@ -187,6 +193,10 @@ export const useGameStore = create<GameStoreState>((set, get) => ({
 
   endDrag: () => {
     set({ dragState: null });
+  },
+
+  getMatchState: async (): Promise<MatchState | null> => {
+    return get().matchService?.getMatchState() ?? null;
   },
 
   // Debug methods

@@ -20,6 +20,7 @@ export type GameResult = {
 export type MatchState = {
   mode: ScoringMode;
   maxPoints: number;
+  numSets: 1 | 2 | 3;
   games: GameResult[];
   scoreIndividual: Record<number, number>; // { 0: 13, 1: 0, 2: 0, 3: 0 }
   scoreTeams: { teamV: number; teamH: number };

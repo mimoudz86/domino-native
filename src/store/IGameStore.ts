@@ -8,6 +8,8 @@
 
 import type { Domino, TurnState } from '../shared/models/GameTurnState';
 import type { ILocalEventDispatcher } from '../core/ILocalEventDispatcher';
+import type { MatchConfig } from '../types/MatchConfig';
+import type { MatchState } from '../controllers/MatchManager';
 
 type DraggableStatus = 'none' | 'left' | 'right' | 'both';
 
@@ -32,7 +34,12 @@ export interface IGameStore {
   /**
    * Initialiser une nouvelle partie
    */
-  initGame: (playerNames?: string[], aiPlayers?: boolean[]) => Promise<void>;
+  initGame: (playerNames?: string[], aiPlayers?: boolean[], config?: MatchConfig) => Promise<void>;
+
+  /**
+   * Récupérer l'état du match courant
+   */
+  getMatchState: () => Promise<MatchState | null>;
 
   /**
    * Joueur humain joue un domino

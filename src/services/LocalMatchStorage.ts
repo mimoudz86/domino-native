@@ -1,12 +1,16 @@
 import * as SQLite from 'expo-sqlite';
 import type { GameResult, MatchState, ScoringMode } from '../controllers/MatchManager';
 import type { IMatchStorage } from './IMatchStorage';
+import type { MatchConfig } from '../types/MatchConfig';
+import { DEFAULT_MATCH_CONFIG } from '../types/MatchConfig';
 
 export class LocalMatchStorage implements IMatchStorage {
   private db: SQLite.SQLiteDatabase | null = null;
   private dbPromise: Promise<SQLite.SQLiteDatabase>;
+  private matchConfig: MatchConfig;
 
-  constructor() {
+  constructor(matchConfig: MatchConfig = DEFAULT_MATCH_CONFIG) {
+    this.matchConfig = matchConfig;
     this.dbPromise = this.initDb();
   }
 
@@ -32,6 +36,7 @@ export class LocalMatchStorage implements IMatchStorage {
         id INTEGER PRIMARY KEY,
         mode TEXT NOT NULL,
         maxPoints INTEGER NOT NULL,
+        numSets INTEGER NOT NULL DEFAULT 1,
         scoreIndividual TEXT NOT NULL,
         scoreTeams TEXT NOT NULL,
         matchFinished INTEGER NOT NULL,
@@ -40,14 +45,22 @@ export class LocalMatchStorage implements IMatchStorage {
       );
     `);
 
+    // Migration: ajouter colonne numSets si elle n'existe pas
+    try {
+      await db.execAsync(`ALTER TABLE match_state ADD COLUMN numSets INTEGER NOT NULL DEFAULT 1;`);
+    } catch {
+      // Colonne existe déjà, on ignore
+    }
+
     this.db = db;
     return db;
   }
 
-  private defaultMatchState(mode: ScoringMode): MatchState {
+  private defaultMatchState(): MatchState {
     return {
-      mode,
-      maxPoints: 50,
+      mode: this.matchConfig.mode,
+      maxPoints: this.matchConfig.maxPoints,
+      numSets: this.matchConfig.numSets,
       games: [],
       scoreIndividual: { 0: 0, 1: 0, 2: 0, 3: 0 },
       scoreTeams: { teamV: 0, teamH: 0 },
@@ -114,12 +127,13 @@ export class LocalMatchStorage implements IMatchStorage {
       );
 
       if (!result) {
-        return this.defaultMatchState('individual');
+        return this.defaultMatchState();
       }
 
       return {
         mode: result.mode,
         maxPoints: result.maxPoints,
+        numSets: result.numSets || this.matchConfig.numSets,
         games: await this.getAllGames(),
         scoreIndividual: JSON.parse(result.scoreIndividual),
         scoreTeams: JSON.parse(result.scoreTeams),
@@ -129,7 +143,7 @@ export class LocalMatchStorage implements IMatchStorage {
       };
     } catch (error) {
       console.error('[STORAGE] Error loading match state:', error);
-      return this.defaultMatchState('individual');
+      return this.defaultMatchState();
     }
   }
 
@@ -163,16 +177,17 @@ export class LocalMatchStorage implements IMatchStorage {
       // Supprimer tous les games
       await db.runAsync('DELETE FROM games');
 
-      // Réinitialiser match_state
-      const defaultState = this.defaultMatchState(mode);
+      // Réinitialiser match_state (utilise la config du constructeur)
+      const defaultState = this.defaultMatchState();
 
       await db.runAsync('DELETE FROM match_state WHERE id = 1');
       await db.runAsync(
-        `INSERT INTO match_state (id, mode, maxPoints, scoreIndividual, scoreTeams, matchFinished, winner, currentGameNumber)
-         VALUES (1, ?, ?, ?, ?, ?, ?, ?)`,
+        `INSERT INTO match_state (id, mode, maxPoints, numSets, scoreIndividual, scoreTeams, matchFinished, winner, currentGameNumber)
+         VALUES (1, ?, ?, ?, ?, ?, ?, ?, ?)`,
         [
           defaultState.mode,
           defaultState.maxPoints,
+          defaultState.numSets,
           JSON.stringify(defaultState.scoreIndividual),
           JSON.stringify(defaultState.scoreTeams),
           0,
@@ -181,7 +196,7 @@ export class LocalMatchStorage implements IMatchStorage {
         ]
       );
 
-      console.log(`LOG  [STORAGE] 🔄 MATCH_RESET {"mode":"${mode}"}`);
+      console.log(`LOG  [STORAGE] 🔄 MATCH_RESET {"mode":"${defaultState.mode}","maxPoints":${defaultState.maxPoints},"numSets":${defaultState.numSets}}`);
     } catch (error) {
       console.error('[STORAGE] Error resetting match:', error);
     }

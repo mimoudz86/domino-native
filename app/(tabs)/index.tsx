@@ -9,11 +9,9 @@ export default function HomeScreenWrapper() {
   const router = useRouter();
   const { initGame } = useActiveGameStore();
 
-  const handlePlayPress = async () => {
-    console.log(`[HOME-SCREEN] Play pressed - initializing game`);
-    await initGame();
-    setIsPlaying(true);
-    router.push('/game');
+  const handlePlayPress = () => {
+    console.log(`[HOME-SCREEN] Play pressed - navigating to setup`);
+    router.push('/setup');
   };
 
   const handleBackToHome = () => {
