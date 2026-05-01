@@ -18,6 +18,7 @@ import { EventBusAdapter } from '../adapters/EventBusAdapter';
 import { AIPlayer } from '../controllers/AI_Strategies/AIPlayer';
 import { MatchService } from '../services/MatchService';
 import { LocalMatchStorage } from '../services/LocalMatchStorage';
+import { globalEventEmitter } from '../core/EventEmitter';
 import type { ScoringMode, MatchState } from '../controllers/MatchManager';
 import type { MatchConfig } from '../types/MatchConfig';
 import { DEFAULT_MATCH_CONFIG } from '../types/MatchConfig';
@@ -55,6 +56,9 @@ export const useGameStore = create<GameStoreState>((set, get) => ({
 
     // console.log(`[GAME-STORE] initGame called`);
     set({ _isInitializing: true });
+
+    // Nettoyer les anciens listeners avant de créer une nouvelle MatchService
+    globalEventEmitter.removeAllListeners('GAME_ENDED');
 
     // 1. Initialiser MatchService pour la persistance
     const storage = new LocalMatchStorage(config);

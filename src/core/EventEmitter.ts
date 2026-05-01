@@ -20,6 +20,10 @@ export class EventEmitter {
     }
   }
 
+  removeAllListeners(eventName: string): void {
+    this.listeners.delete(eventName);
+  }
+
   async emit(eventName: string, payload?: any): Promise<void> {
     const eventListeners = this.listeners.get(eventName);
     if (eventListeners) {
