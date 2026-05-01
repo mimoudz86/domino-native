@@ -23,7 +23,7 @@ export class LocalMatchStorage implements IMatchStorage {
     await db.execAsync(`
       CREATE TABLE IF NOT EXISTS games (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
-        gameNumber INTEGER NOT NULL,
+        gameNumber INTEGER NOT NULL UNIQUE,
         winnerId INTEGER NOT NULL,
         winnerName TEXT NOT NULL,
         winningType TEXT NOT NULL,

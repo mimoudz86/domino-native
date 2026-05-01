@@ -20,9 +20,10 @@ export class MatchService {
 
   async recordGameResult(payload: any): Promise<void> {
     try {
-      // Récupérer les jeux existants pour calculer le numéro du jeu
-      const existingGames = await this.storage.getAllGames();
-      const gameNumber = existingGames.length + 1;
+      // Lire currentGameNumber de la BD et l'incrémenter
+      // (plutôt que de le recalculer basé sur la longueur)
+      const matchState = await this.storage.getMatchState();
+      const gameNumber = matchState.currentGameNumber + 1;
 
       // Créer l'objet GameResult
       const gameResult: GameResult = {
