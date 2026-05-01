@@ -3,19 +3,25 @@ import type { IMatchStorage } from './IMatchStorage';
 import { globalEventEmitter } from '../core/EventEmitter';
 
 export class MatchService {
+  private gameEndedListener: (payload: any) => Promise<void>;
+
   constructor(private storage: IMatchStorage) {
     console.log(`LOG  [MATCH-SERVICE] 🚀 INITIALIZED`);
+    this.gameEndedListener = async (payload) => {
+      console.log(`LOG  [MATCH-SERVICE] 📍 GAME_ENDED_RECEIVED {"player":"${payload.winner?.name}","winningType":"${payload.winningType}"}`);
+      await this.recordGameResult(payload);
+    };
     this.setupListeners();
   }
 
   private setupListeners(): void {
     console.log(`LOG  [MATCH-SERVICE] 👂 LISTENER_SETUP for GAME_ENDED`);
-    // Écouter l'événement GAME_ENDED du GameEngine
-    globalEventEmitter.on('GAME_ENDED', async (payload) => {
-      console.log(`LOG  [MATCH-SERVICE] 📍 GAME_ENDED_RECEIVED {"player":"${payload.winner?.name}","winningType":"${payload.winningType}"}`);
+    globalEventEmitter.on('GAME_ENDED', this.gameEndedListener);
+  }
 
-      await this.recordGameResult(payload);
-    });
+  cleanup(): void {
+    console.log(`LOG  [MATCH-SERVICE] 🧹 CLEANUP - Removing listeners`);
+    globalEventEmitter.off('GAME_ENDED', this.gameEndedListener);
   }
 
   async recordGameResult(payload: any): Promise<void> {

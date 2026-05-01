@@ -56,6 +56,12 @@ export const useGameStore = create<GameStoreState>((set, get) => ({
     // console.log(`[GAME-STORE] initGame called`);
     set({ _isInitializing: true });
 
+    // Nettoyer l'ancienne instance MatchService si elle existe
+    const oldMatchService = get().matchService;
+    if (oldMatchService) {
+      oldMatchService.cleanup();
+    }
+
     // 1. Initialiser MatchService pour la persistance
     const storage = new LocalMatchStorage(config);
     await storage.reset(config.mode);
