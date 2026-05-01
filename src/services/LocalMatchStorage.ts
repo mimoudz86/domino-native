@@ -19,31 +19,41 @@ export class LocalMatchStorage implements IMatchStorage {
 
     const db = await SQLite.openDatabaseAsync('domino_match.db');
 
-    // Créer les tables si elles n'existent pas
-    await db.execAsync(`
-      CREATE TABLE IF NOT EXISTS games (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        gameNumber INTEGER NOT NULL UNIQUE,
-        winnerId INTEGER NOT NULL,
-        winnerName TEXT NOT NULL,
-        winningType TEXT NOT NULL,
-        individual TEXT,
-        teams TEXT,
-        timestamp INTEGER NOT NULL
-      );
+    // Créer les tables si elles n'existent pas (séparément)
+    try {
+      await db.execAsync(`
+        CREATE TABLE IF NOT EXISTS games (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          gameNumber INTEGER NOT NULL UNIQUE,
+          winnerId INTEGER NOT NULL,
+          winnerName TEXT NOT NULL,
+          winningType TEXT NOT NULL,
+          individual TEXT,
+          teams TEXT,
+          timestamp INTEGER NOT NULL
+        );
+      `);
+    } catch (error) {
+      console.error('[STORAGE] Error creating games table:', error);
+    }
 
-      CREATE TABLE IF NOT EXISTS match_state (
-        id INTEGER PRIMARY KEY,
-        mode TEXT NOT NULL,
-        maxPoints INTEGER NOT NULL,
-        numSets INTEGER NOT NULL DEFAULT 1,
-        scoreIndividual TEXT NOT NULL,
-        scoreTeams TEXT NOT NULL,
-        matchFinished INTEGER NOT NULL,
-        winner TEXT,
-        currentGameNumber INTEGER NOT NULL
-      );
-    `);
+    try {
+      await db.execAsync(`
+        CREATE TABLE IF NOT EXISTS match_state (
+          id INTEGER PRIMARY KEY,
+          mode TEXT NOT NULL,
+          maxPoints INTEGER NOT NULL,
+          numSets INTEGER NOT NULL DEFAULT 1,
+          scoreIndividual TEXT NOT NULL,
+          scoreTeams TEXT NOT NULL,
+          matchFinished INTEGER NOT NULL,
+          winner TEXT,
+          currentGameNumber INTEGER NOT NULL
+        );
+      `);
+    } catch (error) {
+      console.error('[STORAGE] Error creating match_state table:', error);
+    }
 
     // Migration: ajouter colonne numSets si elle n'existe pas
     try {
