@@ -1,10 +1,17 @@
 import type { GameResult, MatchState, ScoringMode } from '../controllers/MatchManager';
 import type { IMatchStorage } from './IMatchStorage';
+import type { RawGame } from '../shared/scoring/scoreCalculator';
+import { isMatchFinished, getMatchWinner } from '../shared/scoring/scoreCalculator';
 import { globalEventEmitter } from '../core/EventEmitter';
 
 export class MatchService {
-  constructor(private storage: IMatchStorage) {
-    console.log(`LOG  [MATCH-SERVICE] 🚀 INITIALIZED`);
+  private matchId: string;
+  private gameIndex: number = 0;
+  private serverUrl = 'http://192.168.1.151:3000'; // Backend server
+
+  constructor(private storage: IMatchStorage, matchId: string) {
+    this.matchId = matchId;
+    console.log(`LOG  [MATCH-SERVICE] 🚀 INITIALIZED {"matchId":"${matchId}"}`);
     this.setupListeners();
   }
 
@@ -18,42 +25,61 @@ export class MatchService {
 
   async recordGameResult(payload: any): Promise<void> {
     try {
-      // Lire currentGameNumber de la BD et l'incrémenter
-      // (plutôt que de le recalculer basé sur la longueur)
-      const matchState = await this.storage.getMatchState();
-      const gameNumber = matchState.currentGameNumber + 1;
+      // Vérifier que matchId existe (le mode legacy est désactivé)
+      if (!this.matchId) {
+        throw new Error('[MATCH-SERVICE] matchId is required. Call startNewMatch() before initGame().');
+      }
 
-      // Créer l'objet GameResult
-      const gameResult: GameResult = {
-        gameNumber,
-        winnerId: payload.winner.id,
-        winnerName: payload.winner.name,
-        winningType: payload.winningType,
-        individual: payload.gameEnd?.individual,
-        teams: payload.gameEnd?.teams,
-        timestamp: Date.now(),
+      // Mode nouveau: utiliser rawScores
+      this.gameIndex++;
+      const gameId = `LOCAL_G_${this.matchId}_${this.gameIndex}`;
+
+      // Construire RawGame from payload
+      const rawGame: RawGame = {
+        p0_score: payload.rawScores.p0,
+        p1_score: payload.rawScores.p1,
+        p2_score: payload.rawScores.p2,
+        p3_score: payload.rawScores.p3,
+        p0_name: payload.gameEnd?.individual?.players?.[0]?.name || 'Player 0',
+        p1_name: payload.gameEnd?.individual?.players?.[1]?.name || 'Player 1',
+        p2_name: payload.gameEnd?.individual?.players?.[2]?.name || 'Player 2',
+        p3_name: payload.gameEnd?.individual?.players?.[3]?.name || 'Player 3',
+        p0_type: 'human', // TODO: from config
+        p1_type: 'human',
+        p2_type: 'human',
+        p3_type: 'human',
+        winner_id: payload.winner.id,
+        winner_name: payload.winner.name,
+        winning_type: payload.winningType
       };
 
-      // Persister le game
-      await this.storage.saveGame(gameResult);
+      // Sauvegarder le game avec données brutes
+      await this.storage.saveGame(gameId, this.matchId, this.gameIndex, rawGame);
 
-      // Récupérer l'état mis à jour
-      const updatedMatchState = await this.storage.getMatchState();
+      // Envoyer au serveur de validation (optionnel, ne bloque pas)
+      await this.sendGameToServer(rawGame, gameId);
 
-      // Log détaillé de l'état du match
-      console.log(`LOG  [MATCH-SERVICE] 📊 MATCH_STATE_UPDATED ${JSON.stringify({
-        gameNumber: gameResult.gameNumber,
-        matchFinished: updatedMatchState.matchFinished,
-        scoreIndividual: updatedMatchState.scoreIndividual,
-        currentGameNumber: updatedMatchState.currentGameNumber,
-        winner: updatedMatchState.winner,
-        games: updatedMatchState.games.length
-      })}`);
+      // Récupérer tous les games du match pour recalculer les scores
+      const games = await this.storage.getGamesForMatch(this.matchId);
+
+      // Obtenir la config du match
+      const activeMatch = await this.storage.getActiveMatch();
+      if (!activeMatch) throw new Error('Match not found');
+
+      // Vérifier si le match est fini
+      const matchFinished = isMatchFinished(games, activeMatch.config.mode, activeMatch.config.maxPoints);
+
+      if (matchFinished) {
+        const winner = getMatchWinner(games, activeMatch.config.mode, activeMatch.config.maxPoints);
+        await this.storage.finishMatch(this.matchId, winner);
+        console.log(`LOG  [MATCH-SERVICE] 🏆 MATCH_FINISHED {"winner":${JSON.stringify(winner)}}`);
+      }
+
+      console.log(`LOG  [MATCH-SERVICE] ✅ GAME_RECORDED {"gameId":"${gameId}","gameIndex":${this.gameIndex},"matchFinished":${matchFinished}}`);
 
       // Émettre l'événement de mise à jour
+      const updatedMatchState = await this.storage.getMatchState();
       await globalEventEmitter.emit('MATCH_UPDATED', updatedMatchState);
-
-      console.log(`LOG  [MATCH-SERVICE] ✅ GAME_RECORDED {"gameNumber":${gameResult.gameNumber},"matchFinished":${updatedMatchState.matchFinished}}`);
     } catch (error) {
       console.error('[MATCH-SERVICE] Error recording game:', error);
     }
@@ -107,5 +133,58 @@ export class MatchService {
   async debugLogAllData(): Promise<void> {
     const data = await this.getFullMatchData();
     console.log(`LOG  [MATCH-SERVICE] 🔍 DEBUG_FULL_DATA ${JSON.stringify(data, null, 2)}`);
+  }
+
+  async exportDatabase(): Promise<string> {
+    try {
+      const matchId = this.matchId || 'LEGACY_MATCH';
+      const games = await this.storage.getGamesForMatch(matchId);
+      const data = {
+        matchId,
+        gamesCount: games.length,
+        games,
+        timestamp: new Date().toISOString()
+      };
+
+      return JSON.stringify(data, null, 2);
+    } catch (error) {
+      console.error('[MATCH-SERVICE] Error exporting database:', error);
+      return '{}';
+    }
+  }
+
+  private async sendGameToServer(rawGame: RawGame, gameId: string): Promise<void> {
+    try {
+      console.log(`[MATCH-SERVICE] 🔵 ENTERING_SEND_GAME_TO_SERVER gameId=${gameId}`);
+      console.log(`[MATCH-SERVICE] 🔵 SERVER_URL=${this.serverUrl}`);
+      const payload = {
+        game_id: gameId,
+        match_id: this.matchId,
+        ...rawGame
+      };
+      console.log(`[MATCH-SERVICE] 🔵 PAYLOAD_CREATED, making fetch call to ${this.serverUrl}/api/games`);
+
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 3000);
+
+      const response = await fetch(`${this.serverUrl}/api/games`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+        signal: controller.signal
+      });
+
+      clearTimeout(timeoutId);
+
+      if (!response.ok) {
+        console.warn(`[MATCH-SERVICE] Server responded with ${response.status}`);
+        return;
+      }
+
+      const data = await response.json();
+      console.log(`LOG  [MATCH-SERVICE] 📤 SENT_TO_SERVER {"gameId":"${gameId}","serverResponse":"${data.message}"}`);
+    } catch (error) {
+      console.warn('[MATCH-SERVICE] Could not reach server (this is ok for testing):', error);
+    }
   }
 }

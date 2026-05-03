@@ -26,10 +26,17 @@ import { DEFAULT_MATCH_CONFIG } from '../types/MatchConfig';
 type DraggableStatus = 'none' | 'left' | 'right' | 'both';
 
 type GameStoreState = IGameStore & {
+  currentMatchId: string | null;
   matchService?: MatchService;
   _isInitializing: boolean;
   _dbInitialized: boolean;
 };
+
+function generateMatchId(): string {
+  const timestamp = Date.now();
+  const random = Math.random().toString(36).substr(2, 9);
+  return `LOCAL_M_${timestamp}_${random}`;
+}
 
 export const useGameStore = create<GameStoreState>((set, get) => ({
   // Initial state
@@ -37,6 +44,7 @@ export const useGameStore = create<GameStoreState>((set, get) => ({
   dispatcher: null,
   isInitialized: false,
   dragState: null,
+  currentMatchId: null,
   matchService: undefined,
   _isInitializing: false,
   _dbInitialized: false,
@@ -45,6 +53,32 @@ export const useGameStore = create<GameStoreState>((set, get) => ({
   // ACTIONS
   // ═══════════════════════════════════════════
 
+  startNewMatch: async (config: MatchConfig = DEFAULT_MATCH_CONFIG) => {
+    // Initialiser la BD une seule fois
+    if (!get()._dbInitialized) {
+      console.log(`[GAME-STORE] 🗄️  Initializing database...`);
+      await LocalMatchStorage.initializeDatabase();
+      set({ _dbInitialized: true });
+    }
+
+    // Nettoyer les anciens listeners AVANT de créer une nouvelle MatchService
+    globalEventEmitter.removeAllListeners('GAME_ENDED');
+
+    // Générer un nouveau matchId
+    const matchId = generateMatchId();
+    console.log(`[GAME-STORE] 🆕 MATCH_CREATED {"matchId":"${matchId}","mode":"${config.mode}","maxPoints":${config.maxPoints}}`);
+
+    // Créer le match dans la BD
+    const storage = new LocalMatchStorage(config);
+    await storage.createMatch(matchId, config);
+
+    // Créer le MatchService avec le matchId (enregistre le listener GAME_ENDED)
+    const matchService = new MatchService(storage, matchId);
+
+    // Mettre à jour l'état du store
+    set({ currentMatchId: matchId, matchService });
+  },
+
   initGame: async (
     playerNames = ['You', 'Bot 1', 'Bot 2', 'Bot 3'],
     aiPlayers = [false, true, true, true],
@@ -52,28 +86,20 @@ export const useGameStore = create<GameStoreState>((set, get) => ({
   ) => {
     // Guard: si déjà en train d'initialiser, retourner
     if (get()._isInitializing) {
-      // console.log(`[GAME-STORE] initGame already in progress, skipping`);
       return;
     }
 
-    // console.log(`[GAME-STORE] initGame called`);
     set({ _isInitializing: true });
 
-    // Initialiser la BD une seule fois au démarrage
-    if (!get()._dbInitialized) {
-      console.log(`[GAME-STORE] 🗄️  Initializing database...`);
-      await LocalMatchStorage.initializeDatabase();
-      set({ _dbInitialized: true });
+    // Vérifier que startNewMatch() a été appelé
+    const matchService = get().matchService;
+    if (!matchService) {
+      console.error('[GAME-STORE] ❌ startNewMatch() must be called before initGame()');
+      set({ _isInitializing: false });
+      return;
     }
 
-    // Nettoyer les anciens listeners avant de créer une nouvelle MatchService
-    globalEventEmitter.removeAllListeners('GAME_ENDED');
-
-    // 1. Initialiser MatchService pour la persistance
-    const storage = new LocalMatchStorage(config);
-    const matchService = new MatchService(storage);
-
-    // 2. Créer GameEngine
+    // Créer GameEngine
     const engine = new GameEngine({
       playerNames,
       aiPlayers
@@ -182,6 +208,7 @@ export const useGameStore = create<GameStoreState>((set, get) => ({
       turnState: null,
       dispatcher: null,
       matchService: undefined,
+      currentMatchId: null,
       isInitialized: false,
       dragState: null,
       _isInitializing: false,
@@ -219,6 +246,18 @@ export const useGameStore = create<GameStoreState>((set, get) => ({
       await matchService.debugLogAllData();
     } else {
       console.log('[GAME-STORE] No MatchService initialized');
+    }
+  },
+
+  debugExportDatabase: async () => {
+    const matchService = get().matchService;
+    if (matchService) {
+      const json = await matchService.exportDatabase();
+      console.log('[GAME-STORE] Database exported. Copy from debugger console.');
+      return json;
+    } else {
+      console.log('[GAME-STORE] No MatchService initialized');
+      return '{}';
     }
   },
 }));

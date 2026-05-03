@@ -3,6 +3,13 @@ import type { GameResult, MatchState, ScoringMode } from '../controllers/MatchMa
 import type { IMatchStorage } from './IMatchStorage';
 import type { MatchConfig } from '../types/MatchConfig';
 import { DEFAULT_MATCH_CONFIG } from '../types/MatchConfig';
+import type { RawGame, MatchWinner } from '../shared/scoring/scoreCalculator';
+import {
+  calcIndividualScores,
+  calcTeamScores,
+  isMatchFinished,
+  getMatchWinner
+} from '../shared/scoring/scoreCalculator';
 
 export class LocalMatchStorage implements IMatchStorage {
   private static sharedDb: SQLite.SQLiteDatabase | null = null;
@@ -33,48 +40,62 @@ export class LocalMatchStorage implements IMatchStorage {
   private static async createDatabase(): Promise<SQLite.SQLiteDatabase> {
     const db = await SQLite.openDatabaseAsync('domino_match.db');
 
-    // Créer les tables (même structure que le serveur React)
+    // Table matches — configuration du match
     try {
       await db.execAsync(`
         CREATE TABLE IF NOT EXISTS matches (
           match_id TEXT PRIMARY KEY,
           mode TEXT NOT NULL,
-          maxPoints INTEGER NOT NULL,
-          numSets INTEGER NOT NULL DEFAULT 1,
+          max_points INTEGER NOT NULL,
+          num_sets INTEGER NOT NULL DEFAULT 1,
+          current_set INTEGER NOT NULL DEFAULT 1,
           started_at INTEGER NOT NULL,
           ended_at INTEGER,
-          matchFinished INTEGER NOT NULL DEFAULT 0,
+          match_finished INTEGER NOT NULL DEFAULT 0,
           winner TEXT,
           created_at DATETIME DEFAULT CURRENT_TIMESTAMP
         );
       `);
-      console.log(`LOG  [STORAGE] ✅ Matches table created/verified`);
+      console.log(`LOG  [STORAGE] ✅ matches table created/verified`);
     } catch (error) {
       console.error('[STORAGE] Error creating matches table:', error);
     }
 
+    // Table games — données BRUTES (pips restants, pas les pips gagnés)
     try {
       await db.execAsync(`
         CREATE TABLE IF NOT EXISTS games (
           game_id TEXT PRIMARY KEY,
           match_id TEXT NOT NULL,
-          gameNumber INTEGER NOT NULL,
+          game_index INTEGER NOT NULL,
+          p0_score INTEGER NOT NULL DEFAULT 0,
+          p1_score INTEGER NOT NULL DEFAULT 0,
+          p2_score INTEGER NOT NULL DEFAULT 0,
+          p3_score INTEGER NOT NULL DEFAULT 0,
+          p0_name TEXT,
+          p1_name TEXT,
+          p2_name TEXT,
+          p3_name TEXT,
+          p0_type TEXT,
+          p1_type TEXT,
+          p2_type TEXT,
+          p3_type TEXT,
           winner_id INTEGER NOT NULL,
           winner_name TEXT NOT NULL,
           winning_type TEXT NOT NULL,
-          individual TEXT,
-          teams TEXT,
-          started_at INTEGER NOT NULL,
+          set_number INTEGER,
+          started_at INTEGER,
           ended_at INTEGER,
           created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
           FOREIGN KEY(match_id) REFERENCES matches(match_id)
         );
       `);
-      console.log(`LOG  [STORAGE] ✅ Games table created/verified`);
+      console.log(`LOG  [STORAGE] ✅ games table created/verified`);
     } catch (error) {
       console.error('[STORAGE] Error creating games table:', error);
     }
 
+    // Table turns — détail des coups joués
     try {
       await db.execAsync(`
         CREATE TABLE IF NOT EXISTS turns (
@@ -84,12 +105,15 @@ export class LocalMatchStorage implements IMatchStorage {
           player_id INTEGER NOT NULL,
           player_name TEXT,
           action TEXT NOT NULL,
+          domino_left INTEGER,
+          domino_right INTEGER,
+          side TEXT,
           timestamp INTEGER NOT NULL,
           created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
           FOREIGN KEY(game_id) REFERENCES games(game_id)
         );
       `);
-      console.log(`LOG  [STORAGE] ✅ Turns table created/verified`);
+      console.log(`LOG  [STORAGE] ✅ turns table created/verified`);
     } catch (error) {
       console.error('[STORAGE] Error creating turns table:', error);
     }
@@ -98,10 +122,11 @@ export class LocalMatchStorage implements IMatchStorage {
     try {
       await db.execAsync(`
         CREATE INDEX IF NOT EXISTS idx_games_match ON games(match_id);
+        CREATE INDEX IF NOT EXISTS idx_games_set ON games(match_id, set_number);
         CREATE INDEX IF NOT EXISTS idx_turns_game ON turns(game_id);
       `);
     } catch {
-      // Index peut déjà exister
+      // Index peuvent déjà exister
     }
 
     return db;
@@ -114,187 +139,303 @@ export class LocalMatchStorage implements IMatchStorage {
     return LocalMatchStorage.sharedDb;
   }
 
-  private defaultMatchState(): MatchState {
-    return {
-      mode: this.matchConfig.mode,
-      maxPoints: this.matchConfig.maxPoints,
-      numSets: this.matchConfig.numSets,
-      games: [],
-      scoreIndividual: { 0: 0, 1: 0, 2: 0, 3: 0 },
-      scoreTeams: { teamV: 0, teamH: 0 },
-      matchFinished: false,
-      winner: null,
-      currentGameNumber: 0,
-    };
-  }
-
-  async saveGame(game: GameResult): Promise<void> {
+  // Créer un nouveau match en BD
+  async createMatch(matchId: string, config: MatchConfig): Promise<void> {
     try {
       const db = await this.getDb();
+      const now = Date.now();
 
-      // Insérer le game
       await db.runAsync(
-        `INSERT INTO games (gameNumber, winnerId, winnerName, winningType, individual, teams, timestamp)
-         VALUES (?, ?, ?, ?, ?, ?, ?)`,
+        `INSERT INTO matches (match_id, mode, max_points, num_sets, started_at, match_finished)
+         VALUES (?, ?, ?, ?, ?, ?)`,
+        [matchId, config.mode, config.maxPoints, config.numSets, now, 0]
+      );
+
+      console.log(`LOG  [STORAGE] 🆕 MATCH_CREATED {"match_id":"${matchId}","mode":"${config.mode}","maxPoints":${config.maxPoints}}`);
+    } catch (error) {
+      console.error('[STORAGE] Error creating match:', error);
+    }
+  }
+
+  // LEGACY: Sauvegarder un game (ancienne signature pour compatibilité)
+  async saveGameLegacy(game: GameResult): Promise<void> {
+    try {
+      const db = await this.getDb();
+      const gameId = `LEGACY_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+
+      await db.runAsync(
+        `INSERT INTO games (game_id, match_id, game_index, p0_score, p1_score, p2_score, p3_score, winner_id, winner_name, winning_type, started_at, ended_at)
+         VALUES (?, ?, ?, 0, 0, 0, 0, ?, ?, ?, ?, ?)`,
         [
+          gameId,
+          'LEGACY_MATCH',
           game.gameNumber,
           game.winnerId,
           game.winnerName,
           game.winningType,
-          game.individual ? JSON.stringify(game.individual) : null,
-          game.teams ? JSON.stringify(game.teams) : null,
-          game.timestamp
+          Date.now(),
+          Date.now()
         ]
       );
 
-      // Mettre à jour l'état du match
-      const matchState = await this.getMatchState();
-      this.updateMatchState(matchState, game);
+      console.log(`LOG  [STORAGE] 💾 GAME_SAVED_LEGACY {"gameNumber":${game.gameNumber},"winner":"${game.winnerName}"}`);
+    } catch (error) {
+      console.error('[STORAGE] Error saving game (legacy):', error);
+    }
+  }
 
-      // Sauvegarder l'état
-      await db.runAsync(
-        `DELETE FROM match_state WHERE id = 1`
-      );
+  // Sauvegarder un game avec les données BRUTES
+  async saveGame(
+    gameId: string,
+    matchId: string,
+    gameIndex: number,
+    rawGame: RawGame,
+    setNumber?: number
+  ): Promise<void> {
+    try {
+      const db = await this.getDb();
 
       await db.runAsync(
-        `INSERT INTO match_state (id, mode, maxPoints, scoreIndividual, scoreTeams, matchFinished, winner, currentGameNumber)
-         VALUES (1, ?, ?, ?, ?, ?, ?, ?)`,
+        `INSERT INTO games (
+          game_id, match_id, game_index,
+          p0_score, p1_score, p2_score, p3_score,
+          p0_name, p1_name, p2_name, p3_name,
+          p0_type, p1_type, p2_type, p3_type,
+          winner_id, winner_name, winning_type, set_number, started_at, ended_at
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
         [
-          matchState.mode,
-          matchState.maxPoints,
-          JSON.stringify(matchState.scoreIndividual),
-          JSON.stringify(matchState.scoreTeams),
-          matchState.matchFinished ? 1 : 0,
-          matchState.winner ? JSON.stringify(matchState.winner) : null,
-          matchState.currentGameNumber
+          gameId,
+          matchId,
+          gameIndex,
+          rawGame.p0_score,
+          rawGame.p1_score,
+          rawGame.p2_score,
+          rawGame.p3_score,
+          rawGame.p0_name,
+          rawGame.p1_name,
+          rawGame.p2_name,
+          rawGame.p3_name,
+          rawGame.p0_type,
+          rawGame.p1_type,
+          rawGame.p2_type,
+          rawGame.p3_type,
+          rawGame.winner_id,
+          rawGame.winner_name,
+          rawGame.winning_type,
+          setNumber,
+          Date.now(),
+          Date.now()
         ]
       );
 
-      console.log(`LOG  [STORAGE] 💾 GAME_SAVED {"gameNumber":${game.gameNumber},"winner":"${game.winnerName}"}`);
+      console.log(`LOG  [STORAGE] 💾 GAME_SAVED {"gameId":"${gameId}","winner":"${rawGame.winner_name}","p0":${rawGame.p0_score},"p1":${rawGame.p1_score},"p2":${rawGame.p2_score},"p3":${rawGame.p3_score}}`);
     } catch (error) {
       console.error('[STORAGE] Error saving game:', error);
     }
   }
 
-  async getMatchState(): Promise<MatchState> {
+  // Sauvegarder un turn
+  async saveTurn(
+    gameId: string,
+    turnNumber: number,
+    playerId: number,
+    playerName: string,
+    action: 'PLAY' | 'PASS',
+    dominoLeft?: number,
+    dominoRight?: number,
+    side?: 'left' | 'right'
+  ): Promise<void> {
     try {
       const db = await this.getDb();
 
-      const result = await db.getFirstAsync<any>(
-        'SELECT * FROM match_state WHERE id = 1'
+      await db.runAsync(
+        `INSERT INTO turns (game_id, turn_number, player_id, player_name, action, domino_left, domino_right, side, timestamp)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        [gameId, turnNumber, playerId, playerName, action, dominoLeft, dominoRight, side, Date.now()]
       );
-
-      if (!result) {
-        return this.defaultMatchState();
-      }
-
-      return {
-        mode: result.mode,
-        maxPoints: result.maxPoints,
-        numSets: result.numSets || this.matchConfig.numSets,
-        games: await this.getAllGames(),
-        scoreIndividual: JSON.parse(result.scoreIndividual),
-        scoreTeams: JSON.parse(result.scoreTeams),
-        matchFinished: result.matchFinished === 1,
-        winner: result.winner ? JSON.parse(result.winner) : null,
-        currentGameNumber: result.currentGameNumber,
-      };
     } catch (error) {
-      console.error('[STORAGE] Error loading match state:', error);
-      return this.defaultMatchState();
+      console.error('[STORAGE] Error saving turn:', error);
     }
   }
 
-  async getAllGames(): Promise<GameResult[]> {
+  // Obtenir tous les games d'un match
+  async getGamesForMatch(matchId: string): Promise<RawGame[]> {
     try {
       const db = await this.getDb();
 
       const games = await db.getAllAsync<any>(
-        'SELECT * FROM games ORDER BY gameNumber ASC'
+        'SELECT * FROM games WHERE match_id = ? ORDER BY game_index ASC',
+        [matchId]
       );
 
-      return games.map((g: any) => ({
-        gameNumber: g.gameNumber,
-        winnerId: g.winnerId,
-        winnerName: g.winnerName,
-        winningType: g.winningType,
-        individual: g.individual ? JSON.parse(g.individual) : undefined,
-        teams: g.teams ? JSON.parse(g.teams) : undefined,
-        timestamp: g.timestamp,
-      }));
+      return games.map(g => ({
+        p0_score: g.p0_score,
+        p1_score: g.p1_score,
+        p2_score: g.p2_score,
+        p3_score: g.p3_score,
+        p0_name: g.p0_name,
+        p1_name: g.p1_name,
+        p2_name: g.p2_name,
+        p3_name: g.p3_name,
+        p0_type: g.p0_type,
+        p1_type: g.p1_type,
+        p2_type: g.p2_type,
+        p3_type: g.p3_type,
+        winner_id: g.winner_id,
+        winner_name: g.winner_name,
+        winning_type: g.winning_type,
+        set_number: g.set_number
+      } as RawGame));
     } catch (error) {
       console.error('[STORAGE] Error loading games:', error);
       return [];
     }
   }
 
+  // Obtenir le dernier match actif (non terminé)
+  async getActiveMatch(): Promise<{ matchId: string; config: MatchConfig } | null> {
+    try {
+      const db = await this.getDb();
+
+      const match = await db.getFirstAsync<any>(
+        'SELECT * FROM matches WHERE match_finished = 0 ORDER BY started_at DESC LIMIT 1'
+      );
+
+      if (!match) return null;
+
+      return {
+        matchId: match.match_id,
+        config: {
+          mode: match.mode as ScoringMode,
+          maxPoints: match.max_points,
+          numSets: match.num_sets
+        }
+      };
+    } catch (error) {
+      console.error('[STORAGE] Error loading active match:', error);
+      return null;
+    }
+  }
+
+  // Obtenir les scores calculés d'un match
+  async getMatchScore(matchId: string, mode: ScoringMode): Promise<Record<number, number> | { teamV: number; teamH: number } | null> {
+    try {
+      const games = await this.getGamesForMatch(matchId);
+      if (games.length === 0) return null;
+
+      if (mode === 'individual') {
+        return calcIndividualScores(games);
+      }
+      return calcTeamScores(games);
+    } catch (error) {
+      console.error('[STORAGE] Error calculating match score:', error);
+      return null;
+    }
+  }
+
+  // Marquer un match comme terminé
+  async finishMatch(matchId: string, winner: MatchWinner): Promise<void> {
+    try {
+      const db = await this.getDb();
+
+      await db.runAsync(
+        `UPDATE matches SET match_finished = 1, winner = ?, ended_at = ? WHERE match_id = ?`,
+        [winner ? JSON.stringify(winner) : null, Date.now(), matchId]
+      );
+
+      console.log(`LOG  [STORAGE] 🏆 MATCH_FINISHED {"match_id":"${matchId}","winner":${JSON.stringify(winner)}}`);
+    } catch (error) {
+      console.error('[STORAGE] Error finishing match:', error);
+    }
+  }
+
+  // LEGACY: Récupérer l'état du match (pour compatibilité avec ancien code)
+  async getMatchState(): Promise<MatchState> {
+    try {
+      const activeMatch = await this.getActiveMatch();
+      if (!activeMatch) {
+        return {
+          mode: this.matchConfig.mode,
+          maxPoints: this.matchConfig.maxPoints,
+          numSets: this.matchConfig.numSets,
+          games: [],
+          scoreIndividual: { 0: 0, 1: 0, 2: 0, 3: 0 },
+          scoreTeams: { teamV: 0, teamH: 0 },
+          matchFinished: false,
+          winner: null,
+          currentGameNumber: 0
+        };
+      }
+
+      const games = await this.getGamesForMatch(activeMatch.matchId);
+      const scores = activeMatch.config.mode === 'individual'
+        ? calcIndividualScores(games)
+        : { ...calcTeamScores(games) };
+
+      const finished = isMatchFinished(games, activeMatch.config.mode, activeMatch.config.maxPoints);
+      const matchWinner = finished ? getMatchWinner(games, activeMatch.config.mode, activeMatch.config.maxPoints) : null;
+
+      return {
+        mode: activeMatch.config.mode,
+        maxPoints: activeMatch.config.maxPoints,
+        numSets: activeMatch.config.numSets,
+        games: [], // Legacy: pas utilisé, les games sont dans la BD
+        scoreIndividual: activeMatch.config.mode === 'individual' ? (scores as Record<number, number>) : { 0: 0, 1: 0, 2: 0, 3: 0 },
+        scoreTeams: activeMatch.config.mode === 'teams' ? (scores as { teamV: number; teamH: number }) : { teamV: 0, teamH: 0 },
+        matchFinished: finished,
+        winner: matchWinner,
+        currentGameNumber: games.length
+      };
+    } catch (error) {
+      console.error('[STORAGE] Error loading match state:', error);
+      return {
+        mode: this.matchConfig.mode,
+        maxPoints: this.matchConfig.maxPoints,
+        numSets: this.matchConfig.numSets,
+        games: [],
+        scoreIndividual: { 0: 0, 1: 0, 2: 0, 3: 0 },
+        scoreTeams: { teamV: 0, teamH: 0 },
+        matchFinished: false,
+        winner: null,
+        currentGameNumber: 0
+      };
+    }
+  }
+
+  // LEGACY: Récupérer tous les games (pour compatibilité)
+  async getAllGames(): Promise<GameResult[]> {
+    try {
+      const db = await this.getDb();
+
+      const games = await db.getAllAsync<any>(
+        'SELECT * FROM games ORDER BY game_index ASC'
+      );
+
+      return games.map(g => ({
+        gameNumber: g.game_index,
+        winnerId: g.winner_id,
+        winnerName: g.winner_name,
+        winningType: g.winning_type,
+        timestamp: g.started_at
+      } as GameResult));
+    } catch (error) {
+      console.error('[STORAGE] Error loading games:', error);
+      return [];
+    }
+  }
+
+  // LEGACY: Réinitialiser le match (pour compatibilité)
   async reset(mode: ScoringMode): Promise<void> {
     try {
       const db = await this.getDb();
 
       // Supprimer tous les games
+      await db.runAsync('DELETE FROM turns');
       await db.runAsync('DELETE FROM games');
 
-      // Réinitialiser match_state (utilise la config du constructeur)
-      const defaultState = this.defaultMatchState();
-
-      await db.runAsync('DELETE FROM match_state WHERE id = 1');
-      await db.runAsync(
-        `INSERT INTO match_state (id, mode, maxPoints, numSets, scoreIndividual, scoreTeams, matchFinished, winner, currentGameNumber)
-         VALUES (1, ?, ?, ?, ?, ?, ?, ?, ?)`,
-        [
-          defaultState.mode,
-          defaultState.maxPoints,
-          defaultState.numSets,
-          JSON.stringify(defaultState.scoreIndividual),
-          JSON.stringify(defaultState.scoreTeams),
-          0,
-          null,
-          0
-        ]
-      );
-
-      console.log(`LOG  [STORAGE] 🔄 MATCH_RESET {"mode":"${defaultState.mode}","maxPoints":${defaultState.maxPoints},"numSets":${defaultState.numSets}}`);
+      console.log(`LOG  [STORAGE] 🔄 MATCH_RESET {"mode":"${mode}"}`);
     } catch (error) {
       console.error('[STORAGE] Error resetting match:', error);
-    }
-  }
-
-  private updateMatchState(matchState: MatchState, game: GameResult): void {
-    // Mettre à jour le numéro du game courant
-    matchState.currentGameNumber = game.gameNumber;
-
-    // Mettre à jour les scores selon le mode
-    if (matchState.mode === 'individual' && game.individual) {
-      game.individual.players.forEach(p => {
-        matchState.scoreIndividual[p.id] = (matchState.scoreIndividual[p.id] || 0) + p.earned;
-      });
-
-      // Vérifier si le match est fini
-      const winners = Object.entries(matchState.scoreIndividual)
-        .filter(([_, score]) => score >= matchState.maxPoints)
-        .sort(([_, a], [__, b]) => b - a);
-
-      if (winners.length > 0) {
-        const [winnerId, score] = winners[0];
-        matchState.matchFinished = true;
-        matchState.winner = {
-          id: parseInt(winnerId),
-          name: game.individual.players.find(p => p.id === parseInt(winnerId))?.name || `Player ${winnerId}`,
-        };
-      }
-    } else if (matchState.mode === 'teams' && game.teams) {
-      matchState.scoreTeams.teamV += game.teams.teamV.totalScore;
-      matchState.scoreTeams.teamH += game.teams.teamH.totalScore;
-
-      // Vérifier si le match est fini
-      if (matchState.scoreTeams.teamV >= matchState.maxPoints) {
-        matchState.matchFinished = true;
-        matchState.winner = { team: 'V', name: 'Team V' };
-      } else if (matchState.scoreTeams.teamH >= matchState.maxPoints) {
-        matchState.matchFinished = true;
-        matchState.winner = { team: 'H', name: 'Team H' };
-      }
     }
   }
 }

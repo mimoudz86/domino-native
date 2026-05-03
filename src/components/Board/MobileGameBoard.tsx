@@ -85,7 +85,7 @@ export function MobileGameBoard({
   const [gameEnded, setGameEnded] = useState(false);
   const [winner, setWinner] = useState('');
   const [gameEndState, setGameEndState] = useState<any | null>(null);
-  const { resetGame, dispatcher, initGame } = useActiveGameStore();
+  const { resetGame, dispatcher, initGame, startNewMatch } = useActiveGameStore();
 
   const toggleExpand = () => setIsExpanded(prev => !prev);
 
@@ -114,6 +114,7 @@ export function MobileGameBoard({
     setWinner('');
     setGameEndState(null);
     resetGame();
+    await startNewMatch();
     await initGame();
   };
 

@@ -443,6 +443,14 @@ export class GameEngine {
         // Construire l'état du jeu (mode individuel)
         const gameEnd = Score.buildIndividualGameEndState(playerScores, winner?.id || 0, this.winningType);
 
+        // Préparer les données BRUTES (pips restants de chaque joueur)
+        const rawScores = {
+          p0: this.players[0].getRemainingPips(),
+          p1: this.players[1].getRemainingPips(),
+          p2: this.players[2].getRemainingPips(),
+          p3: this.players[3].getRemainingPips()
+        };
+
         // Émettre l'événement pour la persistance via MatchService
         console.log(`LOG  [GAME-ENGINE] 📤 EMIT_GAME_ENDED event`);
         globalEventEmitter.emit('GAME_ENDED', {
@@ -451,6 +459,7 @@ export class GameEngine {
             name: winner?.name || ''
           },
           winningType: this.winningType,
+          rawScores,
           gameEnd: {
             individual: gameEnd
           }
@@ -464,6 +473,7 @@ export class GameEngine {
               name: winner?.name || ''
             },
             winningType: this.winningType,
+            rawScores,
             scores: this.getPlayers().map(p => ({
               playerId: p.id,
               playerName: p.name,

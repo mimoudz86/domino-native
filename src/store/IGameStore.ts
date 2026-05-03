@@ -32,6 +32,11 @@ export interface IGameStore {
   // ═══════════════════════════════════════════
 
   /**
+   * Créer un nouveau match (génère matchId, crée dans BD)
+   */
+  startNewMatch: (config?: MatchConfig) => Promise<void>;
+
+  /**
    * Initialiser une nouvelle partie
    */
   initGame: (playerNames?: string[], aiPlayers?: boolean[], config?: MatchConfig) => Promise<void>;

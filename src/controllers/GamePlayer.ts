@@ -34,4 +34,8 @@ export class GamePlayer {
     const playableResult = board.getPlayableDominos(this.hand);
     return playableResult.totalChoice > 0 && !this.hasPassed;
   }
+
+  getRemainingPips(): number {
+    return this.hand.reduce((sum, domino) => sum + domino.left + domino.right, 0);
+  }
 }
