@@ -28,6 +28,7 @@ type DraggableStatus = 'none' | 'left' | 'right' | 'both';
 type GameStoreState = IGameStore & {
   matchService?: MatchService;
   _isInitializing: boolean;
+  _dbInitialized: boolean;
 };
 
 export const useGameStore = create<GameStoreState>((set, get) => ({
@@ -38,6 +39,7 @@ export const useGameStore = create<GameStoreState>((set, get) => ({
   dragState: null,
   matchService: undefined,
   _isInitializing: false,
+  _dbInitialized: false,
 
   // ═══════════════════════════════════════════
   // ACTIONS
@@ -56,6 +58,13 @@ export const useGameStore = create<GameStoreState>((set, get) => ({
 
     // console.log(`[GAME-STORE] initGame called`);
     set({ _isInitializing: true });
+
+    // Initialiser la BD une seule fois au démarrage
+    if (!get()._dbInitialized) {
+      console.log(`[GAME-STORE] 🗄️  Initializing database...`);
+      await LocalMatchStorage.initializeDatabase();
+      set({ _dbInitialized: true });
+    }
 
     // Nettoyer les anciens listeners avant de créer une nouvelle MatchService
     globalEventEmitter.removeAllListeners('GAME_ENDED');

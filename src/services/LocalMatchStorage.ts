@@ -5,18 +5,32 @@ import type { MatchConfig } from '../types/MatchConfig';
 import { DEFAULT_MATCH_CONFIG } from '../types/MatchConfig';
 
 export class LocalMatchStorage implements IMatchStorage {
-  private db: SQLite.SQLiteDatabase | null = null;
-  private dbPromise: Promise<SQLite.SQLiteDatabase>;
+  private static sharedDb: SQLite.SQLiteDatabase | null = null;
+  private static initPromise: Promise<SQLite.SQLiteDatabase> | null = null;
   private matchConfig: MatchConfig;
 
   constructor(matchConfig: MatchConfig = DEFAULT_MATCH_CONFIG) {
     this.matchConfig = matchConfig;
-    this.dbPromise = this.initDb();
   }
 
-  private async initDb(): Promise<SQLite.SQLiteDatabase> {
-    if (this.db) return this.db;
+  // Initialiser la BD une seule fois au démarrage de l'app
+  static async initializeDatabase(): Promise<void> {
+    if (LocalMatchStorage.sharedDb) {
+      console.log(`LOG  [STORAGE] ℹ️  Database already initialized`);
+      return;
+    }
 
+    if (LocalMatchStorage.initPromise) {
+      await LocalMatchStorage.initPromise;
+      return;
+    }
+
+    LocalMatchStorage.initPromise = LocalMatchStorage.createDatabase();
+    LocalMatchStorage.sharedDb = await LocalMatchStorage.initPromise;
+    console.log(`LOG  [STORAGE] 🗄️  Database initialized successfully`);
+  }
+
+  private static async createDatabase(): Promise<SQLite.SQLiteDatabase> {
     const db = await SQLite.openDatabaseAsync('domino_match.db');
 
     // Créer les tables si elles n'existent pas (séparément)
@@ -33,6 +47,7 @@ export class LocalMatchStorage implements IMatchStorage {
           timestamp INTEGER NOT NULL
         );
       `);
+      console.log(`LOG  [STORAGE] ✅ Games table created/verified`);
     } catch (error) {
       console.error('[STORAGE] Error creating games table:', error);
     }
@@ -51,6 +66,7 @@ export class LocalMatchStorage implements IMatchStorage {
           currentGameNumber INTEGER NOT NULL
         );
       `);
+      console.log(`LOG  [STORAGE] ✅ Match_state table created/verified`);
     } catch (error) {
       console.error('[STORAGE] Error creating match_state table:', error);
     }
@@ -62,8 +78,14 @@ export class LocalMatchStorage implements IMatchStorage {
       // Colonne existe déjà, on ignore
     }
 
-    this.db = db;
     return db;
+  }
+
+  private async getDb(): Promise<SQLite.SQLiteDatabase> {
+    if (!LocalMatchStorage.sharedDb) {
+      throw new Error('Database not initialized. Call LocalMatchStorage.initializeDatabase() first.');
+    }
+    return LocalMatchStorage.sharedDb;
   }
 
   private defaultMatchState(): MatchState {
@@ -82,7 +104,7 @@ export class LocalMatchStorage implements IMatchStorage {
 
   async saveGame(game: GameResult): Promise<void> {
     try {
-      const db = await this.dbPromise;
+      const db = await this.getDb();
 
       // Insérer le game
       await db.runAsync(
@@ -130,7 +152,7 @@ export class LocalMatchStorage implements IMatchStorage {
 
   async getMatchState(): Promise<MatchState> {
     try {
-      const db = await this.dbPromise;
+      const db = await this.getDb();
 
       const result = await db.getFirstAsync<any>(
         'SELECT * FROM match_state WHERE id = 1'
@@ -159,7 +181,7 @@ export class LocalMatchStorage implements IMatchStorage {
 
   async getAllGames(): Promise<GameResult[]> {
     try {
-      const db = await this.dbPromise;
+      const db = await this.getDb();
 
       const games = await db.getAllAsync<any>(
         'SELECT * FROM games ORDER BY gameNumber ASC'
@@ -182,7 +204,7 @@ export class LocalMatchStorage implements IMatchStorage {
 
   async reset(mode: ScoringMode): Promise<void> {
     try {
-      const db = await this.dbPromise;
+      const db = await this.getDb();
 
       // Supprimer tous les games
       await db.runAsync('DELETE FROM games');
