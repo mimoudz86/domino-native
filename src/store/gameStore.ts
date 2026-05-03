@@ -38,6 +38,44 @@ function generateMatchId(): string {
   return `LOCAL_M_${timestamp}_${random}`;
 }
 
+async function sendMatchToServer(matchId: string, config: MatchConfig): Promise<void> {
+  try {
+    const serverUrl = 'http://192.168.1.151:3000';
+    const payload = {
+      match_id: matchId,
+      mode: config.mode,
+      max_points: config.maxPoints,
+      num_sets: config.numSets,
+      current_set: 1,
+      games_count: 0,
+      match_finished: 0,
+      scores: {},
+      created_at: new Date().toISOString()
+    };
+
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 3000);
+
+    const response = await fetch(`${serverUrl}/api/matches`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+      signal: controller.signal
+    });
+
+    clearTimeout(timeoutId);
+
+    if (!response.ok) {
+      console.warn(`[GAME-STORE] Match creation failed on server: ${response.status}`);
+      return;
+    }
+
+    console.log(`LOG  [GAME-STORE] 📤 MATCH_SENT_TO_SERVER {"matchId":"${matchId}"}`);
+  } catch (error) {
+    console.warn('[GAME-STORE] Could not reach server for match creation:', error);
+  }
+}
+
 export const useGameStore = create<GameStoreState>((set, get) => ({
   // Initial state
   turnState: null,
@@ -71,6 +109,9 @@ export const useGameStore = create<GameStoreState>((set, get) => ({
     // Créer le match dans la BD
     const storage = new LocalMatchStorage(config);
     await storage.createMatch(matchId, config);
+
+    // Envoyer le match au serveur
+    await sendMatchToServer(matchId, config);
 
     // Créer le MatchService avec le matchId (enregistre le listener GAME_ENDED)
     const matchService = new MatchService(storage, matchId);

@@ -40,15 +40,27 @@ export class LocalMatchStorage implements IMatchStorage {
   private static async createDatabase(): Promise<SQLite.SQLiteDatabase> {
     const db = await SQLite.openDatabaseAsync('domino_match.db');
 
+    // Clean slate: drop tables if they exist, then recreate
+    try {
+      await db.execAsync(`
+        DROP TABLE IF EXISTS turns;
+        DROP TABLE IF EXISTS games;
+        DROP TABLE IF EXISTS sets;
+        DROP TABLE IF EXISTS matches;
+      `);
+      console.log(`LOG  [STORAGE] 🧹 Existing tables dropped`);
+    } catch (error) {
+      // Ignore errors if tables don't exist
+    }
+
     // Table matches — configuration du match
     try {
       await db.execAsync(`
-        CREATE TABLE IF NOT EXISTS matches (
+        CREATE TABLE matches (
           match_id TEXT PRIMARY KEY,
           mode TEXT NOT NULL,
           max_points INTEGER NOT NULL,
           num_sets INTEGER NOT NULL DEFAULT 1,
-          current_set INTEGER NOT NULL DEFAULT 1,
           started_at INTEGER NOT NULL,
           ended_at INTEGER,
           match_finished INTEGER NOT NULL DEFAULT 0,
@@ -56,17 +68,38 @@ export class LocalMatchStorage implements IMatchStorage {
           created_at DATETIME DEFAULT CURRENT_TIMESTAMP
         );
       `);
-      console.log(`LOG  [STORAGE] ✅ matches table created/verified`);
+      console.log(`LOG  [STORAGE] ✅ matches table created`);
     } catch (error) {
       console.error('[STORAGE] Error creating matches table:', error);
+    }
+
+    // Table sets — représente chaque set d'un match
+    try {
+      await db.execAsync(`
+        CREATE TABLE sets (
+          set_id TEXT PRIMARY KEY,
+          match_id TEXT NOT NULL,
+          set_number INTEGER NOT NULL,
+          started_at INTEGER NOT NULL,
+          ended_at INTEGER,
+          set_finished INTEGER NOT NULL DEFAULT 0,
+          winner TEXT,
+          created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+          FOREIGN KEY(match_id) REFERENCES matches(match_id)
+        );
+      `);
+      console.log(`LOG  [STORAGE] ✅ sets table created`);
+    } catch (error) {
+      console.error('[STORAGE] Error creating sets table:', error);
     }
 
     // Table games — données BRUTES (pips restants, pas les pips gagnés)
     try {
       await db.execAsync(`
-        CREATE TABLE IF NOT EXISTS games (
+        CREATE TABLE games (
           game_id TEXT PRIMARY KEY,
           match_id TEXT NOT NULL,
+          set_id TEXT NOT NULL,
           game_index INTEGER NOT NULL,
           p0_score INTEGER NOT NULL DEFAULT 0,
           p1_score INTEGER NOT NULL DEFAULT 0,
@@ -83,14 +116,14 @@ export class LocalMatchStorage implements IMatchStorage {
           winner_id INTEGER NOT NULL,
           winner_name TEXT NOT NULL,
           winning_type TEXT NOT NULL,
-          set_number INTEGER,
           started_at INTEGER,
           ended_at INTEGER,
           created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-          FOREIGN KEY(match_id) REFERENCES matches(match_id)
+          FOREIGN KEY(match_id) REFERENCES matches(match_id),
+          FOREIGN KEY(set_id) REFERENCES sets(set_id)
         );
       `);
-      console.log(`LOG  [STORAGE] ✅ games table created/verified`);
+      console.log(`LOG  [STORAGE] ✅ games table created`);
     } catch (error) {
       console.error('[STORAGE] Error creating games table:', error);
     }
@@ -98,7 +131,7 @@ export class LocalMatchStorage implements IMatchStorage {
     // Table turns — détail des coups joués
     try {
       await db.execAsync(`
-        CREATE TABLE IF NOT EXISTS turns (
+        CREATE TABLE turns (
           id INTEGER PRIMARY KEY AUTOINCREMENT,
           game_id TEXT NOT NULL,
           turn_number INTEGER NOT NULL,
@@ -113,7 +146,7 @@ export class LocalMatchStorage implements IMatchStorage {
           FOREIGN KEY(game_id) REFERENCES games(game_id)
         );
       `);
-      console.log(`LOG  [STORAGE] ✅ turns table created/verified`);
+      console.log(`LOG  [STORAGE] ✅ turns table created`);
     } catch (error) {
       console.error('[STORAGE] Error creating turns table:', error);
     }
@@ -145,13 +178,23 @@ export class LocalMatchStorage implements IMatchStorage {
       const db = await this.getDb();
       const now = Date.now();
 
+      // Créer le match
       await db.runAsync(
         `INSERT INTO matches (match_id, mode, max_points, num_sets, started_at, match_finished)
          VALUES (?, ?, ?, ?, ?, ?)`,
         [matchId, config.mode, config.maxPoints, config.numSets, now, 0]
       );
 
+      // Créer le premier set
+      const setId = `LOCAL_S_${matchId}_1`;
+      await db.runAsync(
+        `INSERT INTO sets (set_id, match_id, set_number, started_at, set_finished)
+         VALUES (?, ?, ?, ?, ?)`,
+        [setId, matchId, 1, now, 0]
+      );
+
       console.log(`LOG  [STORAGE] 🆕 MATCH_CREATED {"match_id":"${matchId}","mode":"${config.mode}","maxPoints":${config.maxPoints}}`);
+      console.log(`LOG  [STORAGE] 🆕 SET_CREATED {"set_id":"${setId}","set_number":1}`);
     } catch (error) {
       console.error('[STORAGE] Error creating match:', error);
     }
@@ -190,22 +233,23 @@ export class LocalMatchStorage implements IMatchStorage {
     matchId: string,
     gameIndex: number,
     rawGame: RawGame,
-    setNumber?: number
+    setId: string
   ): Promise<void> {
     try {
       const db = await this.getDb();
 
       await db.runAsync(
         `INSERT INTO games (
-          game_id, match_id, game_index,
+          game_id, match_id, set_id, game_index,
           p0_score, p1_score, p2_score, p3_score,
           p0_name, p1_name, p2_name, p3_name,
           p0_type, p1_type, p2_type, p3_type,
-          winner_id, winner_name, winning_type, set_number, started_at, ended_at
+          winner_id, winner_name, winning_type, started_at, ended_at
         ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
         [
           gameId,
           matchId,
+          setId,
           gameIndex,
           rawGame.p0_score,
           rawGame.p1_score,
@@ -222,7 +266,6 @@ export class LocalMatchStorage implements IMatchStorage {
           rawGame.winner_id,
           rawGame.winner_name,
           rawGame.winning_type,
-          setNumber,
           Date.now(),
           Date.now()
         ]
