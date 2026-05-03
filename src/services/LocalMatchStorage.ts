@@ -259,6 +259,16 @@ export class LocalMatchStorage implements IMatchStorage {
   }
 
   // Obtenir tous les games d'un match
+  async getLastGameIndex(matchId: string): Promise<number> {
+    try {
+      const games = await this.getGamesForMatch(matchId);
+      return games.length > 0 ? Math.max(...games.map((_, i) => i + 1)) : 0;
+    } catch (error) {
+      console.error('[STORAGE] Error getting last game index:', error);
+      return 0;
+    }
+  }
+
   async getGamesForMatch(matchId: string): Promise<RawGame[]> {
     try {
       const db = await this.getDb();
@@ -293,7 +303,7 @@ export class LocalMatchStorage implements IMatchStorage {
   }
 
   // Obtenir le dernier match actif (non terminé)
-  async getActiveMatch(): Promise<{ matchId: string; config: MatchConfig } | null> {
+  async getActiveMatch(): Promise<{ matchId: string; config: MatchConfig; currentSet: number } | null> {
     try {
       const db = await this.getDb();
 
@@ -363,7 +373,8 @@ export class LocalMatchStorage implements IMatchStorage {
           scoreTeams: { teamV: 0, teamH: 0 },
           matchFinished: false,
           winner: null,
-          currentGameNumber: 0
+          currentGameNumber: 0,
+          currentSetNumber: 1
         };
       }
 
@@ -398,7 +409,8 @@ export class LocalMatchStorage implements IMatchStorage {
         scoreTeams: { teamV: 0, teamH: 0 },
         matchFinished: false,
         winner: null,
-        currentGameNumber: 0
+        currentGameNumber: 0,
+          currentSetNumber: 1
       };
     }
   }
@@ -439,6 +451,7 @@ export class LocalMatchStorage implements IMatchStorage {
       console.error('[STORAGE] Error resetting match:', error);
     }
   }
+
   async nextSet(matchId: string): Promise<void> {
     try {
       const db = await this.getDb();
@@ -451,9 +464,7 @@ export class LocalMatchStorage implements IMatchStorage {
       console.error('[STORAGE] Error incrementing set:', error);
     }
   }
-}
 
-  // Récupérer l'état du match par ID spécifique
   async getMatchStateById(matchId: string): Promise<MatchState | null> {
     try {
       const db = await this.getDb();
@@ -461,16 +472,8 @@ export class LocalMatchStorage implements IMatchStorage {
       if (!match) return null;
 
       const games = await this.getGamesForMatch(matchId);
-      const config = {
-        mode: match.mode as ScoringMode,
-        maxPoints: match.max_points,
-        numSets: match.num_sets
-      };
-
-      const scores = config.mode === 'individual'
-        ? calcIndividualScores(games)
-        : { ...calcTeamScores(games) };
-
+      const config = { mode: match.mode as ScoringMode, maxPoints: match.max_points, numSets: match.num_sets };
+      const scores = config.mode === 'individual' ? calcIndividualScores(games) : { ...calcTeamScores(games) };
       const finished = isMatchFinished(games, config.mode, config.maxPoints);
       const matchWinner = finished ? getMatchWinner(games, config.mode, config.maxPoints) : null;
 
@@ -491,3 +494,4 @@ export class LocalMatchStorage implements IMatchStorage {
       return null;
     }
   }
+}
