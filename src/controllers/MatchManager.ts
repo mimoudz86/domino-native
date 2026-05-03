@@ -25,4 +25,5 @@ export type MatchState = {
   matchFinished: boolean;
   winner: null | { id?: number; team?: 'V' | 'H'; name: string };
   currentGameNumber: number;
+  currentSetNumber: number;
 };

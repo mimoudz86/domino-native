@@ -31,7 +31,7 @@ export default function MatchSetupScreenWrapper() {
     console.log(`[MATCH-SETUP] Starting new match:`, config);
     resetGame();
     await startNewMatch(config);
-    await initGame(undefined, undefined, config);
+    await initGame(['AI 1', 'AI 2', 'AI 3', 'AI 4'], [true, true, true, true], config);
     router.push('/game');
   };
 
@@ -39,7 +39,7 @@ export default function MatchSetupScreenWrapper() {
     console.log(`[MATCH-SETUP] Continuing match`);
     resetGame();
     await startNewMatch(matchConfig);
-    await initGame(undefined, undefined, matchConfig);
+    await initGame(['AI 1', 'AI 2', 'AI 3', 'AI 4'], [true, true, true, true], matchConfig);
     router.push('/game');
   };
 

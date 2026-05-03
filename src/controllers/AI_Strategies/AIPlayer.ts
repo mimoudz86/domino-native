@@ -54,7 +54,7 @@ export class AIPlayer {
     // console.log(`[AIPlayer ${this.playerId}] My turn - starting decision (${this.strategy})`);
 
     // ⏱️ Simuler la réflexion (2000ms)
-    setTimeout(() => this.decideAndPlay(state), 2000);
+    setTimeout(() => this.decideAndPlay(state), 300);
   }
 
   /**

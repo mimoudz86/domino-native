@@ -79,6 +79,42 @@ export const useGameStore = create<GameStoreState>((set, get) => ({
     set({ currentMatchId: matchId, matchService });
   },
 
+  continueOrNewMatch: async (config: MatchConfig = DEFAULT_MATCH_CONFIG) => {
+    const currentMatchId = get().currentMatchId;
+
+    if (!currentMatchId) {
+      console.error('[GAME-STORE] ❌ No currentMatchId found, creating new match instead');
+      get().resetGame();
+      await get().startNewMatch(config);
+      return;
+    }
+
+    // Récupérer l'état du match SPÉCIFIQUE par son ID (pas le dernier actif)
+    const storage = new LocalMatchStorage(config);
+    const matchState = await storage.getMatchStateById(currentMatchId);
+
+    if (matchState?.matchFinished) {
+      // Match terminé → créer un nouveau match
+      console.log(`[GAME-STORE] 🔄 MATCH_FINISHED detected, creating NEW match`);
+      get().resetGame();
+      await get().startNewMatch(config);
+    } else {
+      // Match continue → recréer MatchService avec le même matchId
+      console.log(`[GAME-STORE] ➡️  CONTINUING match ${currentMatchId}`);
+      get().resetGame();
+
+      // Recréer MatchService pour le même match
+      globalEventEmitter.removeAllListeners('GAME_ENDED');
+
+      // Récupérer le dernier gameIndex du match pour ne pas créer de doublon
+      const lastGameIndex = await storage.getLastGameIndex(currentMatchId);
+      console.log(`[GAME-STORE] 🔢 LAST_GAME_INDEX=${lastGameIndex}`);
+
+      const matchService = new MatchService(storage, currentMatchId, lastGameIndex);
+      set({ matchService });
+    }
+  },
+
   initGame: async (
     playerNames = ['You', 'Bot 1', 'Bot 2', 'Bot 3'],
     aiPlayers = [false, true, true, true],
@@ -207,8 +243,8 @@ export const useGameStore = create<GameStoreState>((set, get) => ({
     set({
       turnState: null,
       dispatcher: null,
-      matchService: undefined,
-      currentMatchId: null,
+      // Garder matchService et currentMatchId pour continuer le match
+      // Ils ne seront réinitialisés que via startNewMatch() ou continueOrNewMatch()
       isInitialized: false,
       dragState: null,
       _isInitializing: false,

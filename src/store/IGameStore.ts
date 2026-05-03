@@ -37,6 +37,11 @@ export interface IGameStore {
   startNewMatch: (config?: MatchConfig) => Promise<void>;
 
   /**
+   * Continuer match existant ou créer nouveau si terminé
+   */
+  continueOrNewMatch: (config?: MatchConfig) => Promise<void>;
+
+  /**
    * Initialiser une nouvelle partie
    */
   initGame: (playerNames?: string[], aiPlayers?: boolean[], config?: MatchConfig) => Promise<void>;

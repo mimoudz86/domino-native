@@ -26,7 +26,7 @@ export function GameProvider({ children, autoInitialize = false }: GameProviderP
       initRef.current = true;
       (async () => {
         await startNewMatch(DEFAULT_MATCH_CONFIG);
-        await initGame();
+        await initGame(['AI 1', 'AI 2', 'AI 3', 'AI 4'], [true, true, true, true]);
       })();
     }
   }, [autoInitialize, isInitialized, startNewMatch, initGame]);

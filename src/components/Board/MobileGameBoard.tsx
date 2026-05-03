@@ -11,6 +11,9 @@ import { ScoreSlot } from './ScoreSlot';
 import { GameEndModal } from '../GameEnd/GameEndModal';
 import { PassNotificationBadge } from '../Player/PassNotificationBadge';
 import { useActiveGameStore } from '../../store/gameStoreContext';
+import { LocalMatchStorage } from '../../services/LocalMatchStorage';
+import { MatchService } from '../../services/MatchService';
+import { DEFAULT_MATCH_CONFIG } from '../../types/MatchConfig';
 
 interface MobileGameBoardProps {
   players?: PlayerTurnState[];
@@ -85,7 +88,7 @@ export function MobileGameBoard({
   const [gameEnded, setGameEnded] = useState(false);
   const [winner, setWinner] = useState('');
   const [gameEndState, setGameEndState] = useState<any | null>(null);
-  const { resetGame, dispatcher, initGame, startNewMatch } = useActiveGameStore();
+  const { resetGame, dispatcher, initGame, startNewMatch, getMatchState, currentMatchId, continueOrNewMatch } = useActiveGameStore();
 
   const toggleExpand = () => setIsExpanded(prev => !prev);
 
@@ -109,13 +112,11 @@ export function MobileGameBoard({
   }, [dispatcher]);
 
   const handleContinue = async () => {
-    // [COMMENTED-v1] console.log(`[MOBILE-GAME-BOARD] Continuing with new game`);
     setGameEnded(false);
     setWinner('');
     setGameEndState(null);
-    resetGame();
-    await startNewMatch();
-    await initGame();
+    await continueOrNewMatch();
+    await initGame(['AI 1', 'AI 2', 'AI 3', 'AI 4'], [true, true, true, true]);
   };
 
   const handleLeave = () => {

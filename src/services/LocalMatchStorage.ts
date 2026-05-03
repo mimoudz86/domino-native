@@ -384,7 +384,8 @@ export class LocalMatchStorage implements IMatchStorage {
         scoreTeams: activeMatch.config.mode === 'teams' ? (scores as { teamV: number; teamH: number }) : { teamV: 0, teamH: 0 },
         matchFinished: finished,
         winner: matchWinner,
-        currentGameNumber: games.length
+        currentGameNumber: games.length,
+        currentSetNumber: activeMatch.currentSet || 1
       };
     } catch (error) {
       console.error('[STORAGE] Error loading match state:', error);
@@ -438,4 +439,55 @@ export class LocalMatchStorage implements IMatchStorage {
       console.error('[STORAGE] Error resetting match:', error);
     }
   }
+  async nextSet(matchId: string): Promise<void> {
+    try {
+      const db = await this.getDb();
+      await db.execAsync(
+        'UPDATE matches SET current_set = current_set + 1 WHERE match_id = ?',
+        [matchId]
+      );
+      console.log(`LOG  [STORAGE] 📈 SET_INCREMENTED {"matchId":"${matchId}"}`);
+    } catch (error) {
+      console.error('[STORAGE] Error incrementing set:', error);
+    }
+  }
 }
+
+  // Récupérer l'état du match par ID spécifique
+  async getMatchStateById(matchId: string): Promise<MatchState | null> {
+    try {
+      const db = await this.getDb();
+      const match = await db.getFirstAsync<any>('SELECT * FROM matches WHERE match_id = ?', [matchId]);
+      if (!match) return null;
+
+      const games = await this.getGamesForMatch(matchId);
+      const config = {
+        mode: match.mode as ScoringMode,
+        maxPoints: match.max_points,
+        numSets: match.num_sets
+      };
+
+      const scores = config.mode === 'individual'
+        ? calcIndividualScores(games)
+        : { ...calcTeamScores(games) };
+
+      const finished = isMatchFinished(games, config.mode, config.maxPoints);
+      const matchWinner = finished ? getMatchWinner(games, config.mode, config.maxPoints) : null;
+
+      return {
+        mode: config.mode,
+        maxPoints: config.maxPoints,
+        numSets: config.numSets,
+        games: [],
+        scoreIndividual: config.mode === 'individual' ? (scores as Record<number, number>) : { 0: 0, 1: 0, 2: 0, 3: 0 },
+        scoreTeams: config.mode === 'teams' ? (scores as { teamV: number; teamH: number }) : { teamV: 0, teamH: 0 },
+        matchFinished: finished,
+        winner: matchWinner,
+        currentGameNumber: games.length,
+        currentSetNumber: match.current_set
+      };
+    } catch (error) {
+      console.error('[STORAGE] Error loading match state by ID:', error);
+      return null;
+    }
+  }
