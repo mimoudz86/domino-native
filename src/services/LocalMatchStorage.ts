@@ -33,18 +33,41 @@ export class LocalMatchStorage implements IMatchStorage {
   private static async createDatabase(): Promise<SQLite.SQLiteDatabase> {
     const db = await SQLite.openDatabaseAsync('domino_match.db');
 
-    // Créer les tables si elles n'existent pas (séparément)
+    // Créer les tables (même structure que le serveur React)
+    try {
+      await db.execAsync(`
+        CREATE TABLE IF NOT EXISTS matches (
+          match_id TEXT PRIMARY KEY,
+          mode TEXT NOT NULL,
+          maxPoints INTEGER NOT NULL,
+          numSets INTEGER NOT NULL DEFAULT 1,
+          started_at INTEGER NOT NULL,
+          ended_at INTEGER,
+          matchFinished INTEGER NOT NULL DEFAULT 0,
+          winner TEXT,
+          created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+        );
+      `);
+      console.log(`LOG  [STORAGE] ✅ Matches table created/verified`);
+    } catch (error) {
+      console.error('[STORAGE] Error creating matches table:', error);
+    }
+
     try {
       await db.execAsync(`
         CREATE TABLE IF NOT EXISTS games (
-          id INTEGER PRIMARY KEY AUTOINCREMENT,
-          gameNumber INTEGER NOT NULL UNIQUE,
-          winnerId INTEGER NOT NULL,
-          winnerName TEXT NOT NULL,
-          winningType TEXT NOT NULL,
+          game_id TEXT PRIMARY KEY,
+          match_id TEXT NOT NULL,
+          gameNumber INTEGER NOT NULL,
+          winner_id INTEGER NOT NULL,
+          winner_name TEXT NOT NULL,
+          winning_type TEXT NOT NULL,
           individual TEXT,
           teams TEXT,
-          timestamp INTEGER NOT NULL
+          started_at INTEGER NOT NULL,
+          ended_at INTEGER,
+          created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+          FOREIGN KEY(match_id) REFERENCES matches(match_id)
         );
       `);
       console.log(`LOG  [STORAGE] ✅ Games table created/verified`);
@@ -54,28 +77,31 @@ export class LocalMatchStorage implements IMatchStorage {
 
     try {
       await db.execAsync(`
-        CREATE TABLE IF NOT EXISTS match_state (
-          id INTEGER PRIMARY KEY,
-          mode TEXT NOT NULL,
-          maxPoints INTEGER NOT NULL,
-          numSets INTEGER NOT NULL DEFAULT 1,
-          scoreIndividual TEXT NOT NULL,
-          scoreTeams TEXT NOT NULL,
-          matchFinished INTEGER NOT NULL,
-          winner TEXT,
-          currentGameNumber INTEGER NOT NULL
+        CREATE TABLE IF NOT EXISTS turns (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          game_id TEXT NOT NULL,
+          turn_number INTEGER NOT NULL,
+          player_id INTEGER NOT NULL,
+          player_name TEXT,
+          action TEXT NOT NULL,
+          timestamp INTEGER NOT NULL,
+          created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+          FOREIGN KEY(game_id) REFERENCES games(game_id)
         );
       `);
-      console.log(`LOG  [STORAGE] ✅ Match_state table created/verified`);
+      console.log(`LOG  [STORAGE] ✅ Turns table created/verified`);
     } catch (error) {
-      console.error('[STORAGE] Error creating match_state table:', error);
+      console.error('[STORAGE] Error creating turns table:', error);
     }
 
-    // Migration: ajouter colonne numSets si elle n'existe pas
+    // Créer les index
     try {
-      await db.execAsync(`ALTER TABLE match_state ADD COLUMN numSets INTEGER NOT NULL DEFAULT 1;`);
+      await db.execAsync(`
+        CREATE INDEX IF NOT EXISTS idx_games_match ON games(match_id);
+        CREATE INDEX IF NOT EXISTS idx_turns_game ON turns(game_id);
+      `);
     } catch {
-      // Colonne existe déjà, on ignore
+      // Index peut déjà exister
     }
 
     return db;

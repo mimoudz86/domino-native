@@ -71,7 +71,6 @@ export const useGameStore = create<GameStoreState>((set, get) => ({
 
     // 1. Initialiser MatchService pour la persistance
     const storage = new LocalMatchStorage(config);
-    await storage.reset(config.mode);
     const matchService = new MatchService(storage);
 
     // 2. Créer GameEngine
