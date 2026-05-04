@@ -35,6 +35,56 @@ export class LocalMatchStorage implements IMatchStorage {
     LocalMatchStorage.initPromise = LocalMatchStorage.createDatabase();
     LocalMatchStorage.sharedDb = await LocalMatchStorage.initPromise;
     console.log(`LOG  [STORAGE] 🗄️  Database initialized successfully`);
+
+    // Cleanup des matches incomplets au démarrage
+    await LocalMatchStorage.cleanupIncompleteMatches();
+  }
+
+  // Cleanup des matches incomplets (avec un set actif = pas terminé proprement)
+  private static async cleanupIncompleteMatches(): Promise<void> {
+    try {
+      if (!LocalMatchStorage.sharedDb) return;
+
+      const db = LocalMatchStorage.sharedDb;
+
+      // Trouver tous les matches non terminés qui ont un set actif
+      const incompleteMatches = await db.getAllAsync<any>(
+        `SELECT DISTINCT m.match_id FROM matches m
+         INNER JOIN sets s ON m.match_id = s.match_id
+         WHERE m.match_finished = 0 AND s.is_active = 1`
+      );
+
+      if (incompleteMatches.length === 0) {
+        console.log(`LOG  [STORAGE] 🧹 CLEANUP: No incomplete matches found`);
+        return;
+      }
+
+      // Supprimer chaque match incomplet et ses données associées
+      for (const { match_id } of incompleteMatches) {
+        // Supprimer les turns de ce match
+        await db.runAsync(
+          `DELETE FROM turns WHERE game_id IN (
+            SELECT game_id FROM games WHERE match_id = ?
+          )`,
+          [match_id]
+        );
+
+        // Supprimer les games de ce match
+        await db.runAsync('DELETE FROM games WHERE match_id = ?', [match_id]);
+
+        // Supprimer les sets de ce match
+        await db.runAsync('DELETE FROM sets WHERE match_id = ?', [match_id]);
+
+        // Supprimer le match
+        await db.runAsync('DELETE FROM matches WHERE match_id = ?', [match_id]);
+
+        console.log(`LOG  [STORAGE] 🧹 CLEANUP: Deleted incomplete match "${match_id}"`);
+      }
+
+      console.log(`LOG  [STORAGE] 🧹 CLEANUP: Removed ${incompleteMatches.length} incomplete match(es)`);
+    } catch (error) {
+      console.error('[STORAGE] Error during cleanup:', error);
+    }
   }
 
   private static async createDatabase(): Promise<SQLite.SQLiteDatabase> {
