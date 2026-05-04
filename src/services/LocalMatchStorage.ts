@@ -89,6 +89,7 @@ export class LocalMatchStorage implements IMatchStorage {
           started_at INTEGER NOT NULL,
           ended_at INTEGER,
           set_finished INTEGER NOT NULL DEFAULT 0,
+          is_active INTEGER NOT NULL DEFAULT 0,
           winner TEXT,
           created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
           FOREIGN KEY(match_id) REFERENCES matches(match_id)
@@ -178,7 +179,7 @@ export class LocalMatchStorage implements IMatchStorage {
     return LocalMatchStorage.sharedDb;
   }
 
-  // Créer un nouveau match en BD
+  // Créer un nouveau match en BD avec TOUS les sets d'avance
   async createMatch(matchId: string, config: MatchConfig): Promise<void> {
     try {
       const db = await this.getDb();
@@ -191,16 +192,21 @@ export class LocalMatchStorage implements IMatchStorage {
         [matchId, config.mode, config.maxPoints, config.numSets, now, 0]
       );
 
-      // Créer le premier set
-      const setId = `LOCAL_S_${matchId}_1`;
-      await db.runAsync(
-        `INSERT INTO sets (set_id, match_id, set_number, started_at, set_finished)
-         VALUES (?, ?, ?, ?, ?)`,
-        [setId, matchId, 1, now, 0]
-      );
+      // Créer TOUS les sets d'avance
+      for (let i = 1; i <= config.numSets; i++) {
+        const setId = `LOCAL_S_${matchId}_${i}`;
+        const isActive = i === 1 ? 1 : 0;  // Seul le premier set est actif au départ
 
-      console.log(`LOG  [STORAGE] 🆕 MATCH_CREATED {"match_id":"${matchId}","mode":"${config.mode}","maxPoints":${config.maxPoints}}`);
-      console.log(`LOG  [STORAGE] 🆕 SET_CREATED {"set_id":"${setId}","set_number":1}`);
+        await db.runAsync(
+          `INSERT INTO sets (set_id, match_id, set_number, started_at, set_finished, is_active)
+           VALUES (?, ?, ?, ?, ?, ?)`,
+          [setId, matchId, i, now, 0, isActive]
+        );
+
+        console.log(`LOG  [STORAGE] 🆕 SET_CREATED {"set_id":"${setId}","set_number":${i},"is_active":${isActive}}`);
+      }
+
+      console.log(`LOG  [STORAGE] 🆕 MATCH_CREATED {"match_id":"${matchId}","mode":"${config.mode}","maxPoints":${config.maxPoints},"numSets":${config.numSets}}`);
     } catch (error) {
       console.error('[STORAGE] Error creating match:', error);
     }
@@ -366,9 +372,9 @@ export class LocalMatchStorage implements IMatchStorage {
 
       if (!match) return null;
 
-      // Récupérer le dernier set (le set actuel)
+      // Récupérer le set ACTIF (is_active=1)
       const activeSet = await db.getFirstAsync<any>(
-        'SELECT set_number FROM sets WHERE match_id = ? ORDER BY set_number DESC LIMIT 1',
+        'SELECT set_number FROM sets WHERE match_id = ? AND is_active = 1',
         [match.match_id]
       );
 
@@ -580,7 +586,7 @@ export class LocalMatchStorage implements IMatchStorage {
     try {
       const db = await this.getDb();
       const set = await db.getFirstAsync<any>(
-        'SELECT set_id FROM sets WHERE match_id = ? ORDER BY set_number DESC LIMIT 1',
+        'SELECT set_id FROM sets WHERE match_id = ? AND is_active = 1',
         [matchId]
       );
       return set?.set_id || null;
@@ -593,34 +599,42 @@ export class LocalMatchStorage implements IMatchStorage {
   async nextSet(matchId: string): Promise<void> {
     try {
       const db = await this.getDb();
+      const now = Date.now();
 
-      // Récupérer le dernier set
-      const lastSet = await db.getFirstAsync<any>(
-        'SELECT set_number FROM sets WHERE match_id = ? ORDER BY set_number DESC LIMIT 1',
+      // Récupérer le set actif (actuellement ACTIVE)
+      const activeSet = await db.getFirstAsync<any>(
+        'SELECT set_number FROM sets WHERE match_id = ? AND is_active = 1',
         [matchId]
       );
 
-      if (!lastSet) return;
+      if (!activeSet) return;
 
-      const newSetNumber = lastSet.set_number + 1;
-      const newSetId = `LOCAL_S_${matchId}_${newSetNumber}`;
-      const now = Date.now();
+      const currentSetNumber = activeSet.set_number;
+      const nextSetNumber = currentSetNumber + 1;
 
-      // Finir le set précédent
+      // Désactiver le set courant et le marquer comme fini
       await db.runAsync(
-        'UPDATE sets SET set_finished = 1, ended_at = ? WHERE match_id = ? AND set_number = ?',
-        [now, matchId, lastSet.set_number]
+        'UPDATE sets SET set_finished = 1, is_active = 0, ended_at = ? WHERE match_id = ? AND set_number = ?',
+        [now, matchId, currentSetNumber]
       );
 
-      // Créer le nouveau set
-      await db.runAsync(
-        'INSERT INTO sets (set_id, match_id, set_number, started_at, set_finished) VALUES (?, ?, ?, ?, ?)',
-        [newSetId, matchId, newSetNumber, now, 0]
+      // Activer le set suivant (qui doit déjà exister)
+      const nextSetExists = await db.getFirstAsync<any>(
+        'SELECT set_id FROM sets WHERE match_id = ? AND set_number = ?',
+        [matchId, nextSetNumber]
       );
 
-      console.log(`LOG  [STORAGE] 📈 SET_COMPLETED_AND_NEW_SET_STARTED {"matchId":"${matchId}","newSetNumber":${newSetNumber}}`);
+      if (nextSetExists) {
+        await db.runAsync(
+          'UPDATE sets SET is_active = 1, started_at = ? WHERE match_id = ? AND set_number = ?',
+          [now, matchId, nextSetNumber]
+        );
+        console.log(`LOG  [STORAGE] 📈 SET_TRANSITION {"matchId":"${matchId}","previousSet":${currentSetNumber},"nextSet":${nextSetNumber}}`);
+      } else {
+        console.error(`[STORAGE] ❌ Next set ${nextSetNumber} does not exist for match ${matchId}`);
+      }
     } catch (error) {
-      console.error('[STORAGE] Error creating next set:', error);
+      console.error('[STORAGE] Error transitioning to next set:', error);
     }
   }
 

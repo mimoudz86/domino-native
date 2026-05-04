@@ -84,19 +84,21 @@ export class MatchService {
       let matchFinished = false;
       let currentSetForServer = activeMatch.currentSet;
 
-      if (setFinished) {
-        if (isLastSet) {
-          // Dernier set: vérifier si le match est aussi fini (scores cumulés across tous les sets)
-          matchFinished = isMatchFinished(allGames, activeMatch.config.mode, activeMatch.config.maxPoints);
-          console.log(`LOG  [MATCH-SERVICE] 📊 LAST_SET_COMPLETE {"matchFinished":${matchFinished}}`);
-          if (matchFinished) {
-            const winner = getMatchWinner(allGames, activeMatch.config.mode, activeMatch.config.maxPoints);
-            await this.storage.finishMatch(this.matchId, winner);
-            console.log(`LOG  [MATCH-SERVICE] 🏆 MATCH_FINISHED {"winner":${JSON.stringify(winner)}}`);
-          }
-        } else {
+      // LOGIQUE CLAIRE: Si c'est le dernier set, toujours vérifier si le match est fini
+      if (isLastSet) {
+        matchFinished = isMatchFinished(allGames, activeMatch.config.mode, activeMatch.config.maxPoints);
+        console.log(`LOG  [MATCH-SERVICE] 📊 LAST_SET_CHECK {"setFinished":${setFinished},"matchFinished":${matchFinished}}`);
+
+        if (matchFinished) {
+          const winner = getMatchWinner(allGames, activeMatch.config.mode, activeMatch.config.maxPoints);
+          await this.storage.finishMatch(this.matchId, winner);
+          console.log(`LOG  [MATCH-SERVICE] 🏆 MATCH_FINISHED {"winner":${JSON.stringify(winner)}}`);
+        }
+      } else {
+        // Pas le dernier set: vérifier si le set courant est fini pour passer au suivant
+        if (setFinished) {
           await this.storage.nextSet(this.matchId);
-          // Récupérer le nouveau currentSet après création du set suivant
+          // Récupérer le nouveau currentSet après activation du set suivant
           const updatedMatch = await this.storage.getActiveMatch();
           currentSetForServer = updatedMatch?.currentSet || activeMatch.currentSet;
           console.log(`LOG  [MATCH-SERVICE] 📈 SET_COMPLETED {"previousSet":${activeMatch.currentSet},"newSet":${currentSetForServer}}`);
