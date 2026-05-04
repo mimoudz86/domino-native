@@ -116,6 +116,15 @@ export const useGameStore = create<GameStoreState>((set, get) => ({
     // Créer le MatchService avec le matchId (enregistre le listener GAME_ENDED)
     const matchService = new MatchService(storage, matchId);
 
+    // Listener pour création auto du nouveau match après que le match se termine
+    globalEventEmitter.once('MATCH_COMPLETED', async (event: any) => {
+      console.log(`[GAME-STORE] 🔄 MATCH_COMPLETED_AUTO_CREATE {"matchId":"${event.matchId}","winner":"${event.winner?.name || 'N/A'}"}`);
+      // Créer un nouveau match avec la même config
+      await get().startNewMatch(event.config);
+      // Auto-initialiser le jeu avec 4 IA pour continuer
+      await get().initGame(['You', 'Bot 1', 'Bot 2', 'Bot 3'], [false, true, true, true], event.config);
+    });
+
     // Mettre à jour l'état du store
     set({ currentMatchId: matchId, matchService });
   },

@@ -93,6 +93,13 @@ export class MatchService {
           const winner = getMatchWinner(allGames, activeMatch.config.mode, activeMatch.config.maxPoints);
           await this.storage.finishMatch(this.matchId, winner);
           console.log(`LOG  [MATCH-SERVICE] 🏆 MATCH_FINISHED {"winner":${JSON.stringify(winner)}}`);
+
+          // Émettre événement pour que le store crée automatiquement un nouveau match
+          await globalEventEmitter.emit('MATCH_COMPLETED', {
+            matchId: this.matchId,
+            winner,
+            config: activeMatch.config
+          });
         }
       } else {
         // Pas le dernier set: vérifier si le set courant est fini pour passer au suivant

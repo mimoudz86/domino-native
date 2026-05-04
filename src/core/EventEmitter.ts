@@ -10,6 +10,14 @@ export class EventEmitter {
     this.listeners.get(eventName)!.push(listener);
   }
 
+  once(eventName: string, listener: EventListener): void {
+    const onceWrapper: EventListener = async (payload: any) => {
+      await listener(payload);
+      this.off(eventName, onceWrapper);
+    };
+    this.on(eventName, onceWrapper);
+  }
+
   off(eventName: string, listener: EventListener): void {
     const eventListeners = this.listeners.get(eventName);
     if (eventListeners) {
