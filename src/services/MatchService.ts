@@ -82,6 +82,7 @@ export class MatchService {
       console.log(`LOG  [MATCH-SERVICE] 🔍 SET_FINISHED_CHECK {"setFinished":${setFinished},"currentSet":${activeMatch.currentSet},"isLastSet":${isLastSet},"gamesInSet":${currentSetGames.length}}`);
 
       let matchFinished = false;
+      let currentSetForServer = activeMatch.currentSet;
 
       if (setFinished) {
         if (isLastSet) {
@@ -95,14 +96,17 @@ export class MatchService {
           }
         } else {
           await this.storage.nextSet(this.matchId);
-          console.log(`LOG  [MATCH-SERVICE] 📈 SET_COMPLETED {"currentSet":${activeMatch.currentSet},"nextSet":${activeMatch.currentSet + 1}}`);
+          // Récupérer le nouveau currentSet après création du set suivant
+          const updatedMatch = await this.storage.getActiveMatch();
+          currentSetForServer = updatedMatch?.currentSet || activeMatch.currentSet;
+          console.log(`LOG  [MATCH-SERVICE] 📈 SET_COMPLETED {"previousSet":${activeMatch.currentSet},"newSet":${currentSetForServer}}`);
         }
       }
 
       console.log(`LOG  [MATCH-SERVICE] ✅ GAME_RECORDED {"gameId":"${gameId}","gameIndex":${this.gameIndex},"setFinished":${setFinished},"matchFinished":${matchFinished}}`)
 
       // Envoyer la mise à jour du match au serveur
-      await this.sendMatchUpdateToServer(activeMatch.config, allGames.length, activeMatch.currentSet, matchFinished);
+      await this.sendMatchUpdateToServer(activeMatch.config, allGames.length, currentSetForServer, matchFinished);
 
       // Émettre l'événement de mise à jour
       const updatedMatchState = await this.storage.getMatchState();
