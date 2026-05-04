@@ -294,7 +294,7 @@ export class LocalMatchStorage implements IMatchStorage {
       await db.runAsync(
         `INSERT INTO turns (game_id, turn_number, player_id, player_name, action, domino_left, domino_right, side, timestamp)
          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-        [gameId, turnNumber, playerId, playerName, action, dominoLeft, dominoRight, side, Date.now()]
+        [gameId, turnNumber, playerId, playerName, action, dominoLeft ?? null, dominoRight ?? null, side ?? null, Date.now()]
       );
     } catch (error) {
       console.error('[STORAGE] Error saving turn:', error);
@@ -317,7 +317,11 @@ export class LocalMatchStorage implements IMatchStorage {
       const db = await this.getDb();
 
       const games = await db.getAllAsync<any>(
-        'SELECT * FROM games WHERE match_id = ? ORDER BY game_index ASC',
+        `SELECT g.*, s.set_number
+         FROM games g
+         LEFT JOIN sets s ON g.set_id = s.set_id
+         WHERE g.match_id = ?
+         ORDER BY g.game_index ASC`,
         [matchId]
       );
 
@@ -356,13 +360,22 @@ export class LocalMatchStorage implements IMatchStorage {
 
       if (!match) return null;
 
+      // Récupérer le dernier set (le set actuel)
+      const activeSet = await db.getFirstAsync<any>(
+        'SELECT set_number FROM sets WHERE match_id = ? ORDER BY set_number DESC LIMIT 1',
+        [match.match_id]
+      );
+
+      const currentSet = activeSet?.set_number || 1;
+
       return {
         matchId: match.match_id,
         config: {
           mode: match.mode as ScoringMode,
           maxPoints: match.max_points,
           numSets: match.num_sets
-        }
+        },
+        currentSet
       };
     } catch (error) {
       console.error('[STORAGE] Error loading active match:', error);
@@ -495,16 +508,51 @@ export class LocalMatchStorage implements IMatchStorage {
     }
   }
 
+  async getActiveSetId(matchId: string): Promise<string | null> {
+    try {
+      const db = await this.getDb();
+      const set = await db.getFirstAsync<any>(
+        'SELECT set_id FROM sets WHERE match_id = ? ORDER BY set_number DESC LIMIT 1',
+        [matchId]
+      );
+      return set?.set_id || null;
+    } catch (error) {
+      console.error('[STORAGE] Error getting active set:', error);
+      return null;
+    }
+  }
+
   async nextSet(matchId: string): Promise<void> {
     try {
       const db = await this.getDb();
-      await db.execAsync(
-        'UPDATE matches SET current_set = current_set + 1 WHERE match_id = ?',
+
+      // Récupérer le dernier set
+      const lastSet = await db.getFirstAsync<any>(
+        'SELECT set_number FROM sets WHERE match_id = ? ORDER BY set_number DESC LIMIT 1',
         [matchId]
       );
-      console.log(`LOG  [STORAGE] 📈 SET_INCREMENTED {"matchId":"${matchId}"}`);
+
+      if (!lastSet) return;
+
+      const newSetNumber = lastSet.set_number + 1;
+      const newSetId = `LOCAL_S_${matchId}_${newSetNumber}`;
+      const now = Date.now();
+
+      // Finir le set précédent
+      await db.runAsync(
+        'UPDATE sets SET set_finished = 1, ended_at = ? WHERE match_id = ? AND set_number = ?',
+        [now, matchId, lastSet.set_number]
+      );
+
+      // Créer le nouveau set
+      await db.runAsync(
+        'INSERT INTO sets (set_id, match_id, set_number, started_at, set_finished) VALUES (?, ?, ?, ?, ?)',
+        [newSetId, matchId, newSetNumber, now, 0]
+      );
+
+      console.log(`LOG  [STORAGE] 📈 SET_COMPLETED_AND_NEW_SET_STARTED {"matchId":"${matchId}","newSetNumber":${newSetNumber}}`);
     } catch (error) {
-      console.error('[STORAGE] Error incrementing set:', error);
+      console.error('[STORAGE] Error creating next set:', error);
     }
   }
 

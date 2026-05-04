@@ -1,7 +1,7 @@
 import type { GameResult, MatchState, ScoringMode } from '../controllers/MatchManager';
 import type { IMatchStorage } from './IMatchStorage';
 import type { RawGame } from '../shared/scoring/scoreCalculator';
-import { isMatchFinished, getMatchWinner } from '../shared/scoring/scoreCalculator';
+import { isSetFinished, isMatchFinished, getMatchWinner } from '../shared/scoring/scoreCalculator';
 import { globalEventEmitter } from '../core/EventEmitter';
 
 export class MatchService {
@@ -31,14 +31,16 @@ export class MatchService {
         throw new Error('[MATCH-SERVICE] matchId is required. Call startNewMatch() before initGame().');
       }
 
-      // Obtenir la config et le currentSetNumber AVANT d'enregistrer le game
+      // Obtenir le match actif et le setId
       const activeMatch = await this.storage.getActiveMatch();
       if (!activeMatch) throw new Error('Match not found');
-      const currentSetNumber = (await this.storage.getMatchStateById(this.matchId))?.currentSetNumber || 1;
+
+      const setId = await this.storage.getActiveSetId(this.matchId);
+      if (!setId) throw new Error('Active set not found');
 
       // Mode nouveau: utiliser rawScores
       this.gameIndex++;
-      const gameId = `LOCAL_G_${this.matchId}_${this.gameIndex}`;
+      const gameId = `LOCAL_G_${setId}_${this.gameIndex}`;
 
       // Construire RawGame from payload
       const rawGame: RawGame = {
@@ -57,38 +59,47 @@ export class MatchService {
         winner_id: payload.winner.id,
         winner_name: payload.winner.name,
         winning_type: payload.winningType,
-        set_number: currentSetNumber
+        set_number: activeMatch.currentSet
       };
 
-      // Sauvegarder le game avec set_number
-      await this.storage.saveGame(gameId, this.matchId, this.gameIndex, rawGame, currentSetNumber);
+      // Sauvegarder le game avec setId
+      await this.storage.saveGame(gameId, this.matchId, this.gameIndex, rawGame, setId);
 
       // Envoyer au serveur de validation (optionnel, ne bloque pas)
       await this.sendGameToServer(rawGame, gameId);
 
       // Récupérer SEULEMENT les games du set actuel pour vérifier si le set est terminé
       const allGames = await this.storage.getGamesForMatch(this.matchId);
-      const currentSetGames = allGames.filter(g => (g.set_number || 1) === currentSetNumber);
+      const currentSetGames = allGames.filter(g => (g.set_number || 1) === activeMatch.currentSet);
 
       // Vérifier si le set actuel est fini (basé SEULEMENT sur les games du set)
-      const setFinished = isMatchFinished(currentSetGames, activeMatch.config.mode, activeMatch.config.maxPoints);
-      const isLastSet = currentSetNumber >= activeMatch.config.numSets;
+      const setFinished = isSetFinished(currentSetGames, activeMatch.config.mode, activeMatch.config.maxPoints);
+      const isLastSet = activeMatch.currentSet >= activeMatch.config.numSets;
+
+      console.log(`LOG  [MATCH-SERVICE] 🔍 SET_FINISHED_CHECK {"setFinished":${setFinished},"currentSet":${activeMatch.currentSet},"isLastSet":${isLastSet},"gamesInSet":${currentSetGames.length}}`);
+
+      let matchFinished = false;
 
       if (setFinished) {
         if (isLastSet) {
-          const winner = getMatchWinner(currentSetGames, activeMatch.config.mode, activeMatch.config.maxPoints);
-          await this.storage.finishMatch(this.matchId, winner);
-          console.log(`LOG  [MATCH-SERVICE] 🏆 MATCH_FINISHED {"winner":${JSON.stringify(winner)}}`);
+          // Dernier set: vérifier si le match est aussi fini (scores cumulés across tous les sets)
+          matchFinished = isMatchFinished(allGames, activeMatch.config.mode, activeMatch.config.maxPoints);
+          console.log(`LOG  [MATCH-SERVICE] 📊 LAST_SET_COMPLETE {"matchFinished":${matchFinished}}`);
+          if (matchFinished) {
+            const winner = getMatchWinner(allGames, activeMatch.config.mode, activeMatch.config.maxPoints);
+            await this.storage.finishMatch(this.matchId, winner);
+            console.log(`LOG  [MATCH-SERVICE] 🏆 MATCH_FINISHED {"winner":${JSON.stringify(winner)}}`);
+          }
         } else {
           await this.storage.nextSet(this.matchId);
-          console.log(`LOG  [MATCH-SERVICE] 📈 SET_COMPLETED {"currentSet":${currentSetNumber},"nextSet":${currentSetNumber + 1}}`);
+          console.log(`LOG  [MATCH-SERVICE] 📈 SET_COMPLETED {"currentSet":${activeMatch.currentSet},"nextSet":${activeMatch.currentSet + 1}}`);
         }
       }
 
-      console.log(`LOG  [MATCH-SERVICE] ✅ GAME_RECORDED {"gameId":"${gameId}","gameIndex":${this.gameIndex},"setFinished":${setFinished},"isLastSet":${isLastSet}}`)
+      console.log(`LOG  [MATCH-SERVICE] ✅ GAME_RECORDED {"gameId":"${gameId}","gameIndex":${this.gameIndex},"setFinished":${setFinished},"matchFinished":${matchFinished}}`)
 
       // Envoyer la mise à jour du match au serveur
-      await this.sendMatchUpdateToServer(activeMatch.config, allGames.length, currentSetNumber, setFinished && isLastSet);
+      await this.sendMatchUpdateToServer(activeMatch.config, allGames.length, activeMatch.currentSet, matchFinished);
 
       // Émettre l'événement de mise à jour
       const updatedMatchState = await this.storage.getMatchState();

@@ -21,6 +21,7 @@ export interface IGameStore {
   turnState: TurnState | null;
   dispatcher: ILocalEventDispatcher | null;
   isInitialized: boolean;
+  currentMatchId: string | null;
   dragState: {
     isDragging: boolean;
     domino: Domino | null;
