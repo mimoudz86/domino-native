@@ -6,6 +6,7 @@ export interface IMatchStorage {
   // Match management
   createMatch(matchId: string, config: MatchConfig): Promise<void>;
   saveGame(gameId: string, matchId: string, gameIndex: number, rawGame: RawGame, setId: string): Promise<void>;
+  updateMatchScoreTotals(matchId: string, mode: ScoringMode): Promise<void>;
   finishMatch(matchId: string, winner: MatchWinner): Promise<void>;
   nextSet(matchId: string): Promise<void>;
   getActiveSetId(matchId: string): Promise<string | null>;
@@ -18,6 +19,7 @@ export interface IMatchStorage {
   getLastGameIndex(matchId: string): Promise<number>;
   getAllGames(): Promise<GameResult[]>;
   getMatchScore(matchId: string, mode: ScoringMode): Promise<Record<number, number> | { teamV: number; teamH: number } | null>;
+  getMatchTotals(matchId: string): Promise<{ p0_total: number; p1_total: number; p2_total: number; p3_total: number; teamV_total: number; teamH_total: number } | null>;
 
   // Utilities
   reset(mode: ScoringMode): Promise<void>;

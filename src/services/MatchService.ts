@@ -65,6 +65,9 @@ export class MatchService {
       // Sauvegarder le game avec setId
       await this.storage.saveGame(gameId, this.matchId, this.gameIndex, rawGame, setId);
 
+      // Mettre à jour les totaux de points du match
+      await this.storage.updateMatchScoreTotals(this.matchId, activeMatch.config.mode);
+
       // Envoyer au serveur de validation (optionnel, ne bloque pas)
       await this.sendGameToServer(rawGame, gameId);
 
@@ -221,6 +224,9 @@ export class MatchService {
           .reduce((acc: any, [pid, score]: any) => ({ ...acc, [pid]: score }), {})
         : await this.storage.getMatchScore(this.matchId, config.mode);
 
+      // Récupérer les totaux depuis la table matches
+      const totals = await this.storage.getMatchTotals(this.matchId);
+
       const payload = {
         match_id: this.matchId,
         mode: config.mode,
@@ -230,6 +236,12 @@ export class MatchService {
         games_count: gamesCount,
         match_finished: matchFinished ? 1 : 0,
         scores: scores || {},
+        p0_total_points: totals?.p0_total || 0,
+        p1_total_points: totals?.p1_total || 0,
+        p2_total_points: totals?.p2_total || 0,
+        p3_total_points: totals?.p3_total || 0,
+        teamV_total_points: totals?.teamV_total || 0,
+        teamH_total_points: totals?.teamH_total || 0,
         updated_at: new Date().toISOString()
       };
 

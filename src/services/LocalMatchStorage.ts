@@ -65,6 +65,12 @@ export class LocalMatchStorage implements IMatchStorage {
           ended_at INTEGER,
           match_finished INTEGER NOT NULL DEFAULT 0,
           winner TEXT,
+          p0_total_points INTEGER NOT NULL DEFAULT 0,
+          p1_total_points INTEGER NOT NULL DEFAULT 0,
+          p2_total_points INTEGER NOT NULL DEFAULT 0,
+          p3_total_points INTEGER NOT NULL DEFAULT 0,
+          teamV_total_points INTEGER NOT NULL DEFAULT 0,
+          teamH_total_points INTEGER NOT NULL DEFAULT 0,
           created_at DATETIME DEFAULT CURRENT_TIMESTAMP
         );
       `);
@@ -396,6 +402,68 @@ export class LocalMatchStorage implements IMatchStorage {
     } catch (error) {
       console.error('[STORAGE] Error calculating match score:', error);
       return null;
+    }
+  }
+
+  // Récupérer les totaux de points pour un match
+  async getMatchTotals(matchId: string): Promise<{
+    p0_total: number;
+    p1_total: number;
+    p2_total: number;
+    p3_total: number;
+    teamV_total: number;
+    teamH_total: number;
+  } | null> {
+    try {
+      const db = await this.getDb();
+      const match = await db.getFirstAsync<any>(
+        'SELECT p0_total_points, p1_total_points, p2_total_points, p3_total_points, teamV_total_points, teamH_total_points FROM matches WHERE match_id = ?',
+        [matchId]
+      );
+
+      if (!match) return null;
+
+      return {
+        p0_total: match.p0_total_points || 0,
+        p1_total: match.p1_total_points || 0,
+        p2_total: match.p2_total_points || 0,
+        p3_total: match.p3_total_points || 0,
+        teamV_total: match.teamV_total_points || 0,
+        teamH_total: match.teamH_total_points || 0
+      };
+    } catch (error) {
+      console.error('[STORAGE] Error getting match totals:', error);
+      return null;
+    }
+  }
+
+  // Mettre à jour les totaux de points dans la table matches
+  async updateMatchScoreTotals(matchId: string, mode: ScoringMode): Promise<void> {
+    try {
+      const db = await this.getDb();
+      const games = await this.getGamesForMatch(matchId);
+
+      if (mode === 'individual') {
+        const scores = calcIndividualScores(games);
+        await db.runAsync(
+          `UPDATE matches SET p0_total_points = ?, p1_total_points = ?, p2_total_points = ?, p3_total_points = ? WHERE match_id = ?`,
+          [
+            scores[0] || 0,
+            scores[1] || 0,
+            scores[2] || 0,
+            scores[3] || 0,
+            matchId
+          ]
+        );
+      } else {
+        const { teamV, teamH } = calcTeamScores(games);
+        await db.runAsync(
+          `UPDATE matches SET teamV_total_points = ?, teamH_total_points = ? WHERE match_id = ?`,
+          [teamV, teamH, matchId]
+        );
+      }
+    } catch (error) {
+      console.error('[STORAGE] Error updating match score totals:', error);
     }
   }
 
