@@ -350,4 +350,26 @@ export const useGameStore = create<GameStoreState>((set, get) => ({
       return '{}';
     }
   },
+
+  // Stats methods
+  getStatsData: async (): Promise<string> => {
+    const matchService = get().matchService;
+    if (matchService) {
+      const json = await matchService.exportDatabase();
+      return json;
+    } else {
+      return JSON.stringify({ error: 'No MatchService initialized' }, null, 2);
+    }
+  },
+
+  removeAllData: async (): Promise<void> => {
+    const matchService = get().matchService;
+    if (matchService) {
+      const storage = new LocalMatchStorage();
+      await storage.cleanupDatabase();
+      console.log('[GAME-STORE] Database cleaned up - all data removed');
+    } else {
+      console.log('[GAME-STORE] No MatchService initialized');
+    }
+  },
 }));

@@ -14,6 +14,11 @@ export default function HomeScreenWrapper() {
     router.push('/setup');
   };
 
+  const handleStatsPress = () => {
+    console.log(`[HOME-SCREEN] Stats pressed - navigating to stats`);
+    router.push('/stats');
+  };
+
   const handleBackToHome = () => {
     setIsPlaying(false);
     router.back();
@@ -23,5 +28,5 @@ export default function HomeScreenWrapper() {
     return <GameScreen onBackToHome={handleBackToHome} />;
   }
 
-  return <HomeScreen onPlayPress={handlePlayPress} />;
+  return <HomeScreen onPlayPress={handlePlayPress} onStatsPress={handleStatsPress} />;
 }

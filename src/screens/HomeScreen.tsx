@@ -9,9 +9,10 @@ import { View, TouchableOpacity, Text, StyleSheet } from 'react-native';
 interface HomeScreenProps {
   onPlayPress: () => void;
   onTestBoard?: () => void;
+  onStatsPress?: () => void;
 }
 
-export function HomeScreen({ onPlayPress, onTestBoard }: HomeScreenProps) {
+export function HomeScreen({ onPlayPress, onTestBoard, onStatsPress }: HomeScreenProps) {
   return (
     <View style={styles.container}>
       <View style={styles.centerContainer}>
@@ -34,6 +35,16 @@ export function HomeScreen({ onPlayPress, onTestBoard }: HomeScreenProps) {
             activeOpacity={0.7}
           >
             <Text style={styles.testButtonText}>Test Board</Text>
+          </TouchableOpacity>
+        )}
+
+        {onStatsPress && (
+          <TouchableOpacity
+            style={styles.statsButton}
+            onPress={onStatsPress}
+            activeOpacity={0.7}
+          >
+            <Text style={styles.statsButtonText}>📊 Stats</Text>
           </TouchableOpacity>
         )}
       </View>
@@ -85,6 +96,18 @@ const styles = StyleSheet.create({
   },
   testButtonText: {
     fontSize: 12,
+    fontWeight: '600',
+    color: '#fff',
+  },
+  statsButton: {
+    paddingHorizontal: 30,
+    paddingVertical: 12,
+    backgroundColor: '#555',
+    borderRadius: 8,
+    marginTop: 12,
+  },
+  statsButtonText: {
+    fontSize: 14,
     fontWeight: '600',
     color: '#fff',
   },

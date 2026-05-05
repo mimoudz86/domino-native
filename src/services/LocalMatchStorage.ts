@@ -661,6 +661,24 @@ export class LocalMatchStorage implements IMatchStorage {
     }
   }
 
+  // Nettoyer complètement la base de données
+  async cleanupDatabase(): Promise<void> {
+    try {
+      const db = await this.getDb();
+
+      // Supprimer toutes les données dans l'ordre inverse des dépendances
+      await db.runAsync('DELETE FROM turns');
+      await db.runAsync('DELETE FROM games');
+      await db.runAsync('DELETE FROM sets');
+      await db.runAsync('DELETE FROM matches');
+
+      console.log(`LOG  [STORAGE] 🧹 DATABASE_CLEANUP_COMPLETE - All tables cleared`);
+    } catch (error) {
+      console.error('[STORAGE] Error cleaning up database:', error);
+      throw error;
+    }
+  }
+
   // Récupérer les données complètes de tous les sets d'un match
   async getAllSetsData(matchId: string): Promise<any[]> {
     try {

@@ -91,4 +91,14 @@ export interface IGameStore {
    * Debug: Afficher toutes les données de match enregistrées
    */
   debugShowAllData: () => Promise<void>;
+
+  /**
+   * Récupérer les données de stats (JSON formaté)
+   */
+  getStatsData: () => Promise<string>;
+
+  /**
+   * Supprimer toutes les données de la DB
+   */
+  removeAllData: () => Promise<void>;
 }
