@@ -10,14 +10,18 @@ interface MatchSetupScreenProps {
 }
 
 export function MatchSetupScreen({ onStartNewMatch, onContinueMatch, existingMatch }: MatchSetupScreenProps) {
-  const [mode, setMode] = useState<'individual' | 'teams'>('individual');
-  const [maxPoints, setMaxPoints] = useState<50 | 100>(50);
-  const [numSets, setNumSets] = useState<1 | 2 | 3>(1);
+  const [mode, setMode] = useState<'individual' | 'teams' | null>(null);
+  const [maxPoints, setMaxPoints] = useState<50 | 100 | null>(null);
+  const [numSets, setNumSets] = useState<1 | 2 | 3 | null>(null);
 
   const canContinue = existingMatch && !existingMatch.matchFinished;
 
   const handleStartNewMatch = () => {
-    onStartNewMatch({ mode, maxPoints, numSets });
+    if (!mode || !maxPoints || !numSets) {
+      alert('Please select all options (Mode, Points, Sets)');
+      return;
+    }
+    onStartNewMatch({ mode: mode as 'individual' | 'teams', maxPoints: maxPoints as 50 | 100, numSets: numSets as 1 | 2 | 3 });
   };
 
   return (
