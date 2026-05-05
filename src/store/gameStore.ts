@@ -40,7 +40,7 @@ function generateMatchId(): string {
 
 async function sendMatchToServer(matchId: string, config: MatchConfig): Promise<void> {
   try {
-    const serverUrl = 'http://192.168.1.151:3000';
+    const serverUrl = 'http://192.168.117.186:3000';
     const payload = {
       match_id: matchId,
       mode: config.mode,

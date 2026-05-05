@@ -7,5 +7,5 @@ export type MatchConfig = {
 export const DEFAULT_MATCH_CONFIG: MatchConfig = {
   mode: 'individual',
   maxPoints: 50,
-  numSets: 3,
+  numSets: 1,
 };

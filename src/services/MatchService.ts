@@ -7,7 +7,7 @@ import { globalEventEmitter } from '../core/EventEmitter';
 export class MatchService {
   private matchId: string;
   private gameIndex: number = 0;
-  private serverUrl = 'http://192.168.1.151:3000'; // Backend server
+  private serverUrl = 'http://192.168.117.186:3000'; // Backend server
 
   constructor(private storage: IMatchStorage, matchId: string, startGameIndex: number = 0) {
     this.matchId = matchId;
