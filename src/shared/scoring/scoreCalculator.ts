@@ -154,13 +154,17 @@ export function getMatchWinner(
     if (winners.length > 0) {
       const [winnerId] = winners[0];
       const id = parseInt(winnerId);
-      const playerName = games
-        .find(g => g.winner_id === id)
-        ?.p0_name; // Trouvera le nom du gagnant
+
+      // Récupérer le nom du joueur basé sur son ID (pas toujours p0_name!)
+      const firstGame = games[0];
+      if (!firstGame) return null;
+
+      const playerNames = [firstGame.p0_name, firstGame.p1_name, firstGame.p2_name, firstGame.p3_name];
+      const playerName = playerNames[id] || `Player ${id}`;
 
       return {
         id,
-        name: playerName || `Player ${id}`,
+        name: playerName,
         type: 'individual'
       };
     }
