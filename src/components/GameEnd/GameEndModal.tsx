@@ -1,5 +1,8 @@
 import React from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, Modal, ScrollView } from 'react-native';
+import { TeamsTable } from './TeamsTable';
+import { SoloTable } from './SoloTable';
+import type { MatchConfig } from '../../types/MatchConfig';
 
 type GameEndState = {
   winner: { id: number; name: string };
@@ -35,6 +38,7 @@ interface GameEndModalProps {
   gameEndState?: GameEndState | null;
   thisPlayerId?: number | null;
   mode?: GameMode;
+  selectedConfig?: MatchConfig;
   onContinue: () => void;
   onLeave: () => void;
   // Backwards compatibility
@@ -177,13 +181,23 @@ function getSoloViewData(gameEndState: any) {
   };
 }
 
-function TeamModeView({ gameEndState, thisPlayerId, onContinue, onLeave }: any) {
+function TeamModeView({ gameEndState, thisPlayerId, selectedConfig, onContinue, onLeave }: any) {
   const viewData = getTeamViewData(gameEndState, thisPlayerId);
   const myTeamNames = `${viewData.myTeam.players[0].name} & ${viewData.myTeam.players[1].name}`;
   const theirTeamNames = `${viewData.theirTeam.players[0].name} & ${viewData.theirTeam.players[1].name}`;
 
   return (
     <View style={styles.container}>
+      {selectedConfig && (
+        <View style={styles.configSection}>
+          <Text style={styles.configText}>
+            Mode: <Text style={styles.configValue}>{selectedConfig.mode}</Text>
+            {' '} | Points: <Text style={styles.configValue}>{selectedConfig.maxPoints}</Text>
+            {' '} | Sets: <Text style={styles.configValue}>{selectedConfig.numSets}</Text>
+          </Text>
+        </View>
+      )}
+
       <View style={styles.headerSection}>
         <Text style={styles.title}>
           🏆 {viewData.didClientTeamWin ? 'NOUS GAGNONS!' : 'EUX GAGNENT!'}
@@ -197,43 +211,7 @@ function TeamModeView({ gameEndState, thisPlayerId, onContinue, onLeave }: any) 
         {myTeamNames} VS {theirTeamNames}
       </Text>
 
-      <View style={styles.scoreTable}>
-        <View style={styles.tableHeaderRow}>
-          <Text style={[styles.tableCell, styles.tableLabelCell]}>Type</Text>
-          <Text style={[styles.tableCell, styles.tableHeaderCell]}>NOUS</Text>
-          <Text style={[styles.tableCell, styles.tableHeaderCell]}>EUX</Text>
-        </View>
-
-        <View style={styles.tableRow}>
-          <Text style={[styles.tableCell, styles.tableLabelCell]}>Game</Text>
-          <Text style={[styles.tableCell, styles.tableValueCell]}>
-            {viewData.myGameScore}
-          </Text>
-          <Text style={[styles.tableCell, styles.tableValueCell]}>
-            {viewData.theirGameScore}
-          </Text>
-        </View>
-
-        <View style={styles.tableRow}>
-          <Text style={[styles.tableCell, styles.tableLabelCell]}>Set</Text>
-          <Text style={[styles.tableCell, styles.tableValueCell, styles.setScore]}>
-            {viewData.mySetScore}
-          </Text>
-          <Text style={[styles.tableCell, styles.tableValueCell, styles.setScore]}>
-            {viewData.theirSetScore}
-          </Text>
-        </View>
-
-        <View style={styles.tableRow}>
-          <Text style={[styles.tableCell, styles.tableLabelCell]}>Match</Text>
-          <Text style={[styles.tableCell, styles.tableValueCell, styles.matchScore]}>
-            {viewData.myMatchScore}
-          </Text>
-          <Text style={[styles.tableCell, styles.tableValueCell, styles.matchScore]}>
-            {viewData.theirMatchScore}
-          </Text>
-        </View>
-      </View>
+      <TeamsTable viewData={viewData} />
 
       <View style={styles.buttonContainer}>
         <TouchableOpacity style={styles.button} onPress={onContinue}>
@@ -247,18 +225,24 @@ function TeamModeView({ gameEndState, thisPlayerId, onContinue, onLeave }: any) 
   );
 }
 
-function SoloModeView({ gameEndState, onContinue, onLeave }: any) {
+function SoloModeView({ gameEndState, selectedConfig, onContinue, onLeave }: any) {
   const viewData = getSoloViewData(gameEndState);
   const winningReason = viewData.winningType === 'EMPTY_HAND'
     ? '(Main vide)'
     : '(Jeu bloqué)';
 
-  const matchProgressPercent = viewData.matchState
-    ? Math.round((viewData.matchState.scoreIndividual[viewData.winner.id] / viewData.maxPoints) * 100)
-    : 0;
-
   return (
     <View style={styles.container}>
+      {selectedConfig && (
+        <View style={styles.configSection}>
+          <Text style={styles.configText}>
+            Mode: <Text style={styles.configValue}>{selectedConfig.mode}</Text>
+            {' '} | Points: <Text style={styles.configValue}>{selectedConfig.maxPoints}</Text>
+            {' '} | Sets: <Text style={styles.configValue}>{selectedConfig.numSets}</Text>
+          </Text>
+        </View>
+      )}
+
       <View style={styles.headerSection}>
         <Text style={styles.title}>🏆 FIN DU JEU #{viewData.matchState?.currentGameNumber || 1}</Text>
         <Text style={styles.winner}>🎯 {viewData.winner.name} gagne! {winningReason}</Text>
@@ -285,60 +269,7 @@ function SoloModeView({ gameEndState, onContinue, onLeave }: any) {
         </View>
       )}
 
-      <View style={styles.scoreTable}>
-        <View style={styles.tableHeaderRow}>
-          <Text style={[styles.tableCell, { flex: 1.2 }, styles.tableLabelCell]}>
-            Joueur
-          </Text>
-          <Text style={[styles.tableCell, styles.tableHeaderCell]}>Pips</Text>
-          <Text style={[styles.tableCell, styles.tableHeaderCell]}>Gagnés</Text>
-          <Text style={[styles.tableCell, styles.tableHeaderCell]}>Match</Text>
-        </View>
-
-        {viewData.players.map((player: any) => (
-          <View key={player.id} style={styles.tableRow}>
-            <Text
-              style={[
-                styles.tableCell,
-                { flex: 1.2 },
-                styles.tableLabelCell,
-                player.id === viewData.winner.id && styles.winnerRow
-              ]}
-            >
-              {player.name}
-            </Text>
-            <Text
-              style={[
-                styles.tableCell,
-                styles.tableValueCell,
-                player.id === viewData.winner.id && styles.winnerScore
-              ]}
-            >
-              {player.gameScore}
-            </Text>
-            <Text
-              style={[
-                styles.tableCell,
-                styles.tableValueCell,
-                styles.earnedScore,
-                player.id === viewData.winner.id && styles.winnerScore
-              ]}
-            >
-              {player.earned > 0 ? `+${player.earned}` : '0'}
-            </Text>
-            <Text
-              style={[
-                styles.tableCell,
-                styles.tableValueCell,
-                styles.matchScore,
-                player.id === viewData.winner.id && styles.winnerScore
-              ]}
-            >
-              {player.matchScore}
-            </Text>
-          </View>
-        ))}
-      </View>
+      <SoloTable viewData={viewData} />
 
       <View style={styles.buttonContainer}>
         <TouchableOpacity style={styles.button} onPress={onContinue}>
@@ -357,6 +288,7 @@ export function GameEndModal({
   gameEndState = null,
   thisPlayerId = null,
   mode = 'solo',
+  selectedConfig,
   onContinue,
   onLeave,
   winnerName = 'Unknown'
@@ -369,12 +301,14 @@ export function GameEndModal({
             <TeamModeView
               gameEndState={gameEndState}
               thisPlayerId={thisPlayerId}
+              selectedConfig={selectedConfig}
               onContinue={onContinue}
               onLeave={onLeave}
             />
           ) : (
             <SoloModeView
               gameEndState={gameEndState}
+              selectedConfig={selectedConfig}
               onContinue={onContinue}
               onLeave={onLeave}
             />
@@ -411,6 +345,25 @@ const styles = StyleSheet.create({
     borderColor: '#D4AF37',
     width: '90%',
     maxWidth: 400,
+  },
+  configSection: {
+    backgroundColor: '#E8D7C3',
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 8,
+    marginBottom: 16,
+    borderWidth: 1,
+    borderColor: '#D4AF37',
+  },
+  configText: {
+    fontSize: 12,
+    color: '#3D2817',
+    textAlign: 'center',
+    fontWeight: '500',
+  },
+  configValue: {
+    fontWeight: 'bold',
+    color: '#8B4513',
   },
   headerSection: {
     alignItems: 'center',
