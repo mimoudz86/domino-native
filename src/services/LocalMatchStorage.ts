@@ -87,6 +87,34 @@ export class LocalMatchStorage implements IMatchStorage {
     }
   }
 
+  // Nettoyer les matchs incomplets AVANT de créer un nouveau match
+  async cleanupIncompleteMatchesBeforeNew(): Promise<void> {
+    try {
+      const db = await this.getDb();
+
+      const incompleteMatches = await db.getAllAsync<any>(
+        `SELECT DISTINCT m.match_id FROM matches m
+         INNER JOIN sets s ON m.match_id = s.match_id
+         WHERE m.match_finished = 0 AND s.is_active = 1`
+      );
+
+      for (const { match_id } of incompleteMatches) {
+        await db.runAsync(
+          `DELETE FROM turns WHERE game_id IN (
+            SELECT game_id FROM games WHERE match_id = ?
+          )`,
+          [match_id]
+        );
+        await db.runAsync('DELETE FROM games WHERE match_id = ?', [match_id]);
+        await db.runAsync('DELETE FROM sets WHERE match_id = ?', [match_id]);
+        await db.runAsync('DELETE FROM matches WHERE match_id = ?', [match_id]);
+        console.log(`LOG  [STORAGE] 🧹 CLEANUP_BEFORE_NEW: Deleted incomplete match "${match_id}"`);
+      }
+    } catch (error) {
+      console.error('[STORAGE] Error during cleanup before new:', error);
+    }
+  }
+
   private static async createDatabase(): Promise<SQLite.SQLiteDatabase> {
     const db = await SQLite.openDatabaseAsync('domino_match.db');
 

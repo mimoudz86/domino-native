@@ -102,12 +102,15 @@ export const useGameStore = create<GameStoreState>((set, get) => ({
     // Nettoyer les anciens listeners AVANT de créer une nouvelle MatchService
     globalEventEmitter.removeAllListeners('GAME_ENDED');
 
+    // Nettoyer les matchs "in progress" AVANT de créer un nouveau
+    const storage = new LocalMatchStorage(config);
+    await storage.cleanupIncompleteMatchesBeforeNew();
+
     // Générer un nouveau matchId
     const matchId = generateMatchId();
     console.log(`[GAME-STORE] 🆕 MATCH_CREATED {"matchId":"${matchId}","mode":"${config.mode}","maxPoints":${config.maxPoints},"numSets":${config.numSets}}`);
 
     // Créer le match dans la BD
-    const storage = new LocalMatchStorage(config);
     await storage.createMatch(matchId, config);
 
     // Envoyer le match au serveur
