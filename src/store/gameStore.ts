@@ -355,14 +355,25 @@ export const useGameStore = create<GameStoreState>((set, get) => ({
   getStatsData: async (): Promise<string> => {
     try {
       const storage = new LocalMatchStorage();
-      const games = await storage.getAllGames();
-      const matchState = await storage.getMatchState();
+      const matches = await storage.getAllMatchesStats();
+      const totalGames = matches.reduce((sum, m) => sum + m.games_count, 0);
 
       const data = {
         timestamp: new Date().toISOString(),
-        matchState,
-        totalGames: games.length,
-        games,
+        summary: {
+          total_matches: matches.length,
+          total_games: totalGames,
+          finished_matches: matches.filter(m => m.match_finished === 'Finished').length,
+          in_progress_matches: matches.filter(m => m.match_finished === 'In Progress').length,
+        },
+        matches: matches.map(m => ({
+          'Match ID': m.match_id.substring(0, 16) + '...',
+          'Games': m.games_count,
+          'Winner': m.winner?.name || m.winner?.team || 'N/A',
+          'Status': m.match_finished,
+          'Mode': m.mode,
+          'Created': new Date(m.created_at).toLocaleDateString(),
+        })),
       };
 
       console.log('[GAME-STORE] Stats data retrieved successfully');

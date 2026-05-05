@@ -679,6 +679,46 @@ export class LocalMatchStorage implements IMatchStorage {
     }
   }
 
+  // Récupérer tous les matches avec leurs détails pour les stats
+  async getAllMatchesStats(): Promise<any[]> {
+    try {
+      const db = await this.getDb();
+      const matches = await db.getAllAsync<any>(
+        'SELECT * FROM matches ORDER BY created_at DESC'
+      );
+
+      if (!matches || matches.length === 0) {
+        return [];
+      }
+
+      // Pour chaque match, récupérer le nombre de games
+      const matchesWithDetails = await Promise.all(
+        matches.map(async (match) => {
+          const gameCount = await db.getFirstAsync<any>(
+            'SELECT COUNT(*) as count FROM games WHERE match_id = ?',
+            [match.match_id]
+          );
+
+          return {
+            match_id: match.match_id,
+            mode: match.mode,
+            max_points: match.max_points,
+            num_sets: match.num_sets,
+            games_count: gameCount?.count || 0,
+            match_finished: match.match_finished === 1 ? 'Finished' : 'In Progress',
+            winner: match.winner ? JSON.parse(match.winner) : null,
+            created_at: new Date(match.created_at).toISOString(),
+          };
+        })
+      );
+
+      return matchesWithDetails;
+    } catch (error) {
+      console.error('[STORAGE] Error getting match stats:', error);
+      return [];
+    }
+  }
+
   // Récupérer les données complètes de tous les sets d'un match
   async getAllSetsData(matchId: string): Promise<any[]> {
     try {
