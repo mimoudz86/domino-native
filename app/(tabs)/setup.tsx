@@ -8,7 +8,7 @@ import { DEFAULT_MATCH_CONFIG } from '@/types/MatchConfig';
 
 export default function MatchSetupScreenWrapper() {
   const router = useRouter();
-  const { startNewMatch, initGame, resetGame, getMatchState } = useActiveGameStore();
+  const { startNewMatch, continueOrNewMatch, initGame, resetGame, getMatchState } = useActiveGameStore();
   const [existingMatch, setExistingMatch] = useState<MatchState | null>(null);
   const [matchConfig, setMatchConfig] = useState<MatchConfig>(DEFAULT_MATCH_CONFIG);
 
@@ -38,7 +38,7 @@ export default function MatchSetupScreenWrapper() {
   const handleContinueMatch = async () => {
     console.log(`[MATCH-SETUP] Continuing match`);
     resetGame();
-    await startNewMatch(matchConfig);
+    await continueOrNewMatch(matchConfig);
     await initGame(['AI 1', 'AI 2', 'AI 3', 'AI 4'], [true, true, true, true], matchConfig);
     router.push('/game');
   };

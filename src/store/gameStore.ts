@@ -117,17 +117,17 @@ export const useGameStore = create<GameStoreState>((set, get) => ({
     const matchService = new MatchService(storage, matchId);
     console.log(`LOG  [GAME-STORE] 📋 MATCH_SERVICE_CREATED {"matchId":"${matchId}"}`);
 
-    // Listener pour création auto du nouveau match après que le match se termine
-    console.log(`LOG  [GAME-STORE] 🔗 REGISTERING_MATCH_COMPLETED_LISTENER {"matchId":"${matchId}"}`);
-    globalEventEmitter.once('MATCH_COMPLETED', async (event: any) => {
-      console.log(`LOG  [GAME-STORE] 🔄 MATCH_COMPLETED_LISTENER_FIRED {"previousMatchId":"${event.matchId}","winner":"${event.winner?.name || 'N/A'}","numSets":${event.config.numSets}}`);
-      console.log(`LOG  [GAME-STORE] 🚀 AUTO_CREATING_NEW_MATCH {"config":${JSON.stringify(event.config)}}`);
-      // Créer un nouveau match avec la même config
-      await get().startNewMatch(event.config);
-      // Auto-initialiser le jeu avec 4 IA pour continuer
-      console.log(`LOG  [GAME-STORE] 🎮 AUTO_INITIALIZING_GAME`);
-      await get().initGame(['You', 'Bot 1', 'Bot 2', 'Bot 3'], [false, true, true, true], event.config);
-    });
+    // DISABLED: Listener pour création auto du nouveau match après que le match se termine
+    // Causa création automatique de matchs vides "in progress"
+    // L'utilisateur doit choisir explicitement de continuer via l'UI
+    // console.log(`LOG  [GAME-STORE] 🔗 REGISTERING_MATCH_COMPLETED_LISTENER {"matchId":"${matchId}"}`);
+    // globalEventEmitter.once('MATCH_COMPLETED', async (event: any) => {
+    //   console.log(`LOG  [GAME-STORE] 🔄 MATCH_COMPLETED_LISTENER_FIRED {"previousMatchId":"${event.matchId}","winner":"${event.winner?.name || 'N/A'}","numSets":${event.config.numSets}}`);
+    //   console.log(`LOG  [GAME-STORE] 🚀 AUTO_CREATING_NEW_MATCH {"config":${JSON.stringify(event.config)}}`);
+    //   await get().startNewMatch(event.config);
+    //   console.log(`LOG  [GAME-STORE] 🎮 AUTO_INITIALIZING_GAME`);
+    //   await get().initGame(['You', 'Bot 1', 'Bot 2', 'Bot 3'], [false, true, true, true], event.config);
+    // });
 
     // Mettre à jour l'état du store
     set({ currentMatchId: matchId, matchService });
