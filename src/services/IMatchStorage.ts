@@ -27,5 +27,6 @@ export interface IMatchStorage {
   // Utilities
   reset(mode: ScoringMode): Promise<void>;
   cleanupDatabase(): Promise<void>;
+  getAllMatchesWithIndex(): Promise<any[]>;
   getAllMatchesStats(): Promise<any[]>;
 }

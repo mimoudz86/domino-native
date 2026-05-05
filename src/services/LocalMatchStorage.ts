@@ -679,35 +679,62 @@ export class LocalMatchStorage implements IMatchStorage {
     }
   }
 
-  // Récupérer tous les matches avec leurs détails pour les stats
-  async getAllMatchesStats(): Promise<any[]> {
+  // Récupérer tous les matches avec index (1, 2, 3... N) trié chronologiquement
+  async getAllMatchesWithIndex(): Promise<any[]> {
     try {
       const db = await this.getDb();
+      // Trier par created_at ASC pour avoir le plus ancien en premier = index 1
       const matches = await db.getAllAsync<any>(
-        'SELECT * FROM matches ORDER BY created_at DESC'
+        'SELECT * FROM matches ORDER BY created_at ASC'
       );
 
       if (!matches || matches.length === 0) {
         return [];
       }
 
+      // Assigner un index à chaque match (1-based)
+      return matches.map((match, index) => ({
+        index: index + 1,
+        match_id: match.match_id,
+        mode: match.mode,
+        max_points: match.max_points,
+        num_sets: match.num_sets,
+        match_finished: match.match_finished === 1 ? 'Finished' : 'In Progress',
+        winner: match.winner ? JSON.parse(match.winner) : null,
+        created_at: new Date(match.created_at).toISOString(),
+      }));
+    } catch (error) {
+      console.error('[STORAGE] Error getting matches with index:', error);
+      return [];
+    }
+  }
+
+  // Récupérer tous les matches avec leurs détails pour les stats (avec index)
+  async getAllMatchesStats(): Promise<any[]> {
+    try {
+      const db = await this.getDb();
+      const matchesWithIndex = await this.getAllMatchesWithIndex();
+
+      if (matchesWithIndex.length === 0) {
+        return [];
+      }
+
       // Pour chaque match, récupérer le nombre de games
       const matchesWithDetails = await Promise.all(
-        matches.map(async (match) => {
+        matchesWithIndex.map(async (match) => {
           const gameCount = await db.getFirstAsync<any>(
             'SELECT COUNT(*) as count FROM games WHERE match_id = ?',
             [match.match_id]
           );
 
           return {
-            match_id: match.match_id,
-            mode: match.mode,
-            max_points: match.max_points,
+            index: match.index,
             num_sets: match.num_sets,
             games_count: gameCount?.count || 0,
-            match_finished: match.match_finished === 1 ? 'Finished' : 'In Progress',
-            winner: match.winner ? JSON.parse(match.winner) : null,
-            created_at: new Date(match.created_at).toISOString(),
+            match_finished: match.match_finished,
+            winner: match.winner?.name || match.winner?.team || 'N/A',
+            mode: match.mode,
+            created_at: match.created_at,
           };
         })
       );

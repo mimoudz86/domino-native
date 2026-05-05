@@ -367,12 +367,13 @@ export const useGameStore = create<GameStoreState>((set, get) => ({
           in_progress_matches: matches.filter(m => m.match_finished === 'In Progress').length,
         },
         matches: matches.map(m => ({
-          'Match ID': m.match_id.substring(0, 16) + '...',
+          '#': m.index,
           'Games': m.games_count,
-          'Winner': m.winner?.name || m.winner?.team || 'N/A',
+          'Sets': m.num_sets,
+          'Winner': m.winner,
           'Status': m.match_finished,
           'Mode': m.mode,
-          'Created': new Date(m.created_at).toLocaleDateString(),
+          'Created': m.created_at.substring(0, 10),
         })),
       };
 
