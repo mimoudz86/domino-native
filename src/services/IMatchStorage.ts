@@ -14,12 +14,15 @@ export interface IMatchStorage {
   // Queries
   getMatchState(): Promise<MatchState>;
   getMatchStateById(matchId: string): Promise<MatchState | null>;
-  getActiveMatch(): Promise<{ matchId: string; config: MatchConfig; currentSet: number } | null>;
+  getActiveMatch(matchId?: string): Promise<{ matchId: string; config: MatchConfig; currentSet: number } | null>;
   getGamesForMatch(matchId: string): Promise<RawGame[]>;
   getLastGameIndex(matchId: string): Promise<number>;
   getAllGames(): Promise<GameResult[]>;
   getMatchScore(matchId: string, mode: ScoringMode): Promise<Record<number, number> | { teamV: number; teamH: number } | null>;
   getMatchTotals(matchId: string): Promise<{ p0_total: number; p1_total: number; p2_total: number; p3_total: number; teamV_total: number; teamH_total: number } | null>;
+  getAllSetsData(matchId: string): Promise<any[]>;
+  countFinishedSets(matchId: string): Promise<number>;
+  finishSet(setNumber: number, matchId: string): Promise<void>;
 
   // Utilities
   reset(mode: ScoringMode): Promise<void>;

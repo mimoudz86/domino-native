@@ -104,7 +104,7 @@ export const useGameStore = create<GameStoreState>((set, get) => ({
 
     // Générer un nouveau matchId
     const matchId = generateMatchId();
-    console.log(`[GAME-STORE] 🆕 MATCH_CREATED {"matchId":"${matchId}","mode":"${config.mode}","maxPoints":${config.maxPoints}}`);
+    console.log(`[GAME-STORE] 🆕 MATCH_CREATED {"matchId":"${matchId}","mode":"${config.mode}","maxPoints":${config.maxPoints},"numSets":${config.numSets}}`);
 
     // Créer le match dans la BD
     const storage = new LocalMatchStorage(config);
@@ -115,13 +115,17 @@ export const useGameStore = create<GameStoreState>((set, get) => ({
 
     // Créer le MatchService avec le matchId (enregistre le listener GAME_ENDED)
     const matchService = new MatchService(storage, matchId);
+    console.log(`LOG  [GAME-STORE] 📋 MATCH_SERVICE_CREATED {"matchId":"${matchId}"}`);
 
     // Listener pour création auto du nouveau match après que le match se termine
+    console.log(`LOG  [GAME-STORE] 🔗 REGISTERING_MATCH_COMPLETED_LISTENER {"matchId":"${matchId}"}`);
     globalEventEmitter.once('MATCH_COMPLETED', async (event: any) => {
-      console.log(`[GAME-STORE] 🔄 MATCH_COMPLETED_AUTO_CREATE {"matchId":"${event.matchId}","winner":"${event.winner?.name || 'N/A'}"}`);
+      console.log(`LOG  [GAME-STORE] 🔄 MATCH_COMPLETED_LISTENER_FIRED {"previousMatchId":"${event.matchId}","winner":"${event.winner?.name || 'N/A'}","numSets":${event.config.numSets}}`);
+      console.log(`LOG  [GAME-STORE] 🚀 AUTO_CREATING_NEW_MATCH {"config":${JSON.stringify(event.config)}}`);
       // Créer un nouveau match avec la même config
       await get().startNewMatch(event.config);
       // Auto-initialiser le jeu avec 4 IA pour continuer
+      console.log(`LOG  [GAME-STORE] 🎮 AUTO_INITIALIZING_GAME`);
       await get().initGame(['You', 'Bot 1', 'Bot 2', 'Bot 3'], [false, true, true, true], event.config);
     });
 

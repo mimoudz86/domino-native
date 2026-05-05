@@ -131,19 +131,12 @@ export function isSetFinished(
   return teamV >= maxPoints || teamH >= maxPoints;
 }
 
-// Détection de fin de match selon le mode et maxPoints
+// Détection de fin de match : tous les sets sont terminés
 export function isMatchFinished(
-  games: RawGame[],
-  mode: 'individual' | 'teams',
-  maxPoints: number
+  numSetsFinished: number,
+  numSets: number
 ): boolean {
-  if (mode === 'individual') {
-    const scores = calcIndividualScores(games);
-    return Object.values(scores).some(s => s >= maxPoints);
-  }
-
-  const { teamV, teamH } = calcTeamScores(games);
-  return teamV >= maxPoints || teamH >= maxPoints;
+  return numSetsFinished === numSets;
 }
 
 // Déterminer le gagnant du match (si match est terminé)

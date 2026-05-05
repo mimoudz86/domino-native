@@ -103,7 +103,7 @@ export class LocalMatchStorage implements IMatchStorage {
       // Ignore errors if tables don't exist
     }
 
-    // Table matches — configuration du match
+    // Table matches — configuration du match + comptage des sets gagnés
     try {
       await db.execAsync(`
         CREATE TABLE matches (
@@ -121,6 +121,12 @@ export class LocalMatchStorage implements IMatchStorage {
           p3_total_points INTEGER NOT NULL DEFAULT 0,
           teamV_total_points INTEGER NOT NULL DEFAULT 0,
           teamH_total_points INTEGER NOT NULL DEFAULT 0,
+          p0_sets_won INTEGER NOT NULL DEFAULT 0,
+          p1_sets_won INTEGER NOT NULL DEFAULT 0,
+          p2_sets_won INTEGER NOT NULL DEFAULT 0,
+          p3_sets_won INTEGER NOT NULL DEFAULT 0,
+          teamV_sets_won INTEGER NOT NULL DEFAULT 0,
+          teamH_sets_won INTEGER NOT NULL DEFAULT 0,
           created_at DATETIME DEFAULT CURRENT_TIMESTAMP
         );
       `);
@@ -129,7 +135,7 @@ export class LocalMatchStorage implements IMatchStorage {
       console.error('[STORAGE] Error creating matches table:', error);
     }
 
-    // Table sets — représente chaque set d'un match
+    // Table sets — représente chaque set d'un match + scores finaux du set
     try {
       await db.execAsync(`
         CREATE TABLE sets (
@@ -140,7 +146,14 @@ export class LocalMatchStorage implements IMatchStorage {
           ended_at INTEGER,
           set_finished INTEGER NOT NULL DEFAULT 0,
           is_active INTEGER NOT NULL DEFAULT 0,
-          winner TEXT,
+          winner_id INTEGER,
+          winner_name TEXT,
+          p0_score INTEGER NOT NULL DEFAULT 0,
+          p1_score INTEGER NOT NULL DEFAULT 0,
+          p2_score INTEGER NOT NULL DEFAULT 0,
+          p3_score INTEGER NOT NULL DEFAULT 0,
+          teamV_score INTEGER NOT NULL DEFAULT 0,
+          teamH_score INTEGER NOT NULL DEFAULT 0,
           created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
           FOREIGN KEY(match_id) REFERENCES matches(match_id)
         );
@@ -212,7 +225,7 @@ export class LocalMatchStorage implements IMatchStorage {
     try {
       await db.execAsync(`
         CREATE INDEX IF NOT EXISTS idx_games_match ON games(match_id);
-        CREATE INDEX IF NOT EXISTS idx_games_set ON games(match_id, set_number);
+        CREATE INDEX IF NOT EXISTS idx_games_set ON games(match_id, set_id);
         CREATE INDEX IF NOT EXISTS idx_turns_game ON turns(game_id);
       `);
     } catch {
@@ -412,15 +425,28 @@ export class LocalMatchStorage implements IMatchStorage {
   }
 
   // Obtenir le dernier match actif (non terminé)
-  async getActiveMatch(): Promise<{ matchId: string; config: MatchConfig; currentSet: number } | null> {
+  async getActiveMatch(matchId?: string): Promise<{ matchId: string; config: MatchConfig; currentSet: number } | null> {
     try {
       const db = await this.getDb();
 
-      const match = await db.getFirstAsync<any>(
-        'SELECT * FROM matches WHERE match_finished = 0 ORDER BY started_at DESC LIMIT 1'
-      );
+      let match;
+      if (matchId) {
+        // Si matchId fourni, récupérer ce match spécifique
+        match = await db.getFirstAsync<any>(
+          'SELECT * FROM matches WHERE match_id = ?',
+          [matchId]
+        );
+      } else {
+        // Sinon, récupérer le dernier match non terminé
+        match = await db.getFirstAsync<any>(
+          'SELECT * FROM matches WHERE match_finished = 0 ORDER BY started_at DESC LIMIT 1'
+        );
+      }
 
-      if (!match) return null;
+      if (!match) {
+        console.log(`LOG  [STORAGE] 🔍 GET_ACTIVE_MATCH_RESULT {"matchFound":false,"result":null}`);
+        return null;
+      }
 
       // Récupérer le set ACTIF (is_active=1)
       const activeSet = await db.getFirstAsync<any>(
@@ -429,6 +455,8 @@ export class LocalMatchStorage implements IMatchStorage {
       );
 
       const currentSet = activeSet?.set_number || 1;
+
+      console.log(`LOG  [STORAGE] 🔍 GET_ACTIVE_MATCH_RESULT {"matchId":"${match.match_id}","currentSet":${currentSet},"numSets":${match.num_sets},"mode":"${match.mode}","maxPoints":${match.max_points}}`);
 
       return {
         matchId: match.match_id,
@@ -563,7 +591,8 @@ export class LocalMatchStorage implements IMatchStorage {
         ? calcIndividualScores(games)
         : { ...calcTeamScores(games) };
 
-      const finished = isMatchFinished(games, activeMatch.config.mode, activeMatch.config.maxPoints);
+      const numSetsFinished = await this.countFinishedSets(activeMatch.matchId);
+      const finished = isMatchFinished(numSetsFinished, activeMatch.config.numSets);
       const matchWinner = finished ? getMatchWinner(games, activeMatch.config.mode, activeMatch.config.maxPoints) : null;
 
       return {
@@ -632,6 +661,21 @@ export class LocalMatchStorage implements IMatchStorage {
     }
   }
 
+  // Récupérer les données complètes de tous les sets d'un match
+  async getAllSetsData(matchId: string): Promise<any[]> {
+    try {
+      const db = await this.getDb();
+      const sets = await db.getAllAsync<any>(
+        'SELECT set_number, p0_score, p1_score, p2_score, p3_score, teamV_score, teamH_score, winner_name, set_finished FROM sets WHERE match_id = ? ORDER BY set_number',
+        [matchId]
+      );
+      return sets || [];
+    } catch (error) {
+      console.error('[STORAGE] Error getting all sets data:', error);
+      return [];
+    }
+  }
+
   async getActiveSetId(matchId: string): Promise<string | null> {
     try {
       const db = await this.getDb();
@@ -688,6 +732,83 @@ export class LocalMatchStorage implements IMatchStorage {
     }
   }
 
+  // Helper: sauvegarder les scores finaux d'un set
+  private async updateSetScores(matchId: string, setNumber: number, mode: string, scores: any): Promise<void> {
+    const db = await this.getDb();
+    const now = Date.now();
+
+    if (mode === 'individual') {
+      await db.runAsync(
+        'UPDATE sets SET set_finished = 1, ended_at = ?, p0_score = ?, p1_score = ?, p2_score = ?, p3_score = ? WHERE match_id = ? AND set_number = ?',
+        [now, scores[0] || 0, scores[1] || 0, scores[2] || 0, scores[3] || 0, matchId, setNumber]
+      );
+    } else {
+      await db.runAsync(
+        'UPDATE sets SET set_finished = 1, ended_at = ?, teamV_score = ?, teamH_score = ? WHERE match_id = ? AND set_number = ?',
+        [now, scores.teamV || 0, scores.teamH || 0, matchId, setNumber]
+      );
+    }
+  }
+
+  // Helper: incrémenter le compteur de sets gagnés
+  private async incrementSetWins(matchId: string, mode: string, scores: any): Promise<void> {
+    const db = await this.getDb();
+
+    if (mode === 'individual') {
+      const winners = Object.entries(scores).filter(([_, s]: any) => s > 0).sort(([_, a]: any, [__, b]: any) => b - a);
+      if (winners.length > 0) {
+        const winnerId = parseInt(winners[0][0]);
+        await db.runAsync(`UPDATE matches SET p${winnerId}_sets_won = p${winnerId}_sets_won + 1 WHERE match_id = ?`, [matchId]);
+      }
+    } else {
+      if ((scores.teamV || 0) > (scores.teamH || 0)) {
+        await db.runAsync('UPDATE matches SET teamV_sets_won = teamV_sets_won + 1 WHERE match_id = ?', [matchId]);
+      } else if ((scores.teamH || 0) > (scores.teamV || 0)) {
+        await db.runAsync('UPDATE matches SET teamH_sets_won = teamH_sets_won + 1 WHERE match_id = ?', [matchId]);
+      }
+    }
+  }
+
+  // Marquer un set comme terminé + calculer scores + mettre à jour compteurs
+  async finishSet(setNumber: number, matchId: string): Promise<void> {
+    try {
+      const db = await this.getDb();
+      const match = await db.getFirstAsync<any>('SELECT mode FROM matches WHERE match_id = ?', [matchId]);
+      const set = await db.getFirstAsync<any>('SELECT set_id FROM sets WHERE match_id = ? AND set_number = ?', [matchId, setNumber]);
+      const gamesInSet = await db.getAllAsync<any>(
+        'SELECT * FROM games WHERE set_id = ?',
+        [set?.set_id]
+      );
+
+      const mode = match?.mode || 'individual';
+      const scores = mode === 'individual' ? calcIndividualScores(gamesInSet) : calcTeamScores(gamesInSet);
+
+      await this.updateSetScores(matchId, setNumber, mode, scores);
+      await this.incrementSetWins(matchId, mode, scores);
+
+      console.log(`LOG  [STORAGE] ✅ FINISH_SET {"setNumber":${setNumber},"matchId":"${matchId},"mode":"${mode}","scores":${JSON.stringify(scores)}}`);
+    } catch (error) {
+      console.error('[STORAGE] Error finishing set:', error);
+    }
+  }
+
+  // Compter combien de sets sont terminés (set_finished = 1) pour un match
+  async countFinishedSets(matchId: string): Promise<number> {
+    try {
+      const db = await this.getDb();
+      const result = await db.getFirstAsync<any>(
+        'SELECT COUNT(*) as count FROM sets WHERE match_id = ? AND set_finished = 1',
+        [matchId]
+      );
+      const count = result?.count || 0;
+      console.log(`LOG  [STORAGE] 📊 COUNT_FINISHED_SETS {"matchId":"${matchId}","finishedSets":${count}}`);
+      return count;
+    } catch (error) {
+      console.error('[STORAGE] Error counting finished sets:', error);
+      return 0;
+    }
+  }
+
   async getMatchStateById(matchId: string): Promise<MatchState | null> {
     try {
       const db = await this.getDb();
@@ -697,7 +818,8 @@ export class LocalMatchStorage implements IMatchStorage {
       const games = await this.getGamesForMatch(matchId);
       const config = { mode: match.mode as ScoringMode, maxPoints: match.max_points, numSets: match.num_sets };
       const scores = config.mode === 'individual' ? calcIndividualScores(games) : { ...calcTeamScores(games) };
-      const finished = isMatchFinished(games, config.mode, config.maxPoints);
+      const numSetsFinished = await this.countFinishedSets(matchId);
+      const finished = isMatchFinished(numSetsFinished, config.numSets);
       const matchWinner = finished ? getMatchWinner(games, config.mode, config.maxPoints) : null;
 
       return {
