@@ -709,7 +709,7 @@ export class LocalMatchStorage implements IMatchStorage {
     }
   }
 
-  // Récupérer tous les matches avec leurs détails pour les stats (avec index)
+  // Récupérer tous les matches avec leurs détails pour les stats (avec index et scores par set)
   async getAllMatchesStats(): Promise<any[]> {
     try {
       const db = await this.getDb();
@@ -719,13 +719,36 @@ export class LocalMatchStorage implements IMatchStorage {
         return [];
       }
 
-      // Pour chaque match, récupérer le nombre de games
+      // Pour chaque match, récupérer le nombre de games et les scores par set
       const matchesWithDetails = await Promise.all(
         matchesWithIndex.map(async (match) => {
           const gameCount = await db.getFirstAsync<any>(
             'SELECT COUNT(*) as count FROM games WHERE match_id = ?',
             [match.match_id]
           );
+
+          // Récupérer les scores de chaque set (limité à num_sets)
+          const sets = await db.getAllAsync<any>(
+            'SELECT set_number, p0_score, p1_score, p2_score, p3_score, teamV_score, teamH_score FROM sets WHERE match_id = ? AND set_number <= ? ORDER BY set_number',
+            [match.match_id, match.num_sets]
+          );
+
+          const setPoints: any = {};
+          sets.forEach((set) => {
+            if (match.mode === 'individual') {
+              setPoints[`set${set.set_number}`] = {
+                p0: set.p0_score,
+                p1: set.p1_score,
+                p2: set.p2_score,
+                p3: set.p3_score,
+              };
+            } else {
+              setPoints[`set${set.set_number}`] = {
+                teamV: set.teamV_score,
+                teamH: set.teamH_score,
+              };
+            }
+          });
 
           return {
             index: match.index,
@@ -735,6 +758,7 @@ export class LocalMatchStorage implements IMatchStorage {
             winner: match.winner?.name || match.winner?.team || 'N/A',
             mode: match.mode,
             created_at: match.created_at,
+            setPoints,
           };
         })
       );

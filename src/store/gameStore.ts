@@ -374,6 +374,7 @@ export const useGameStore = create<GameStoreState>((set, get) => ({
           'Status': m.match_finished,
           'Mode': m.mode,
           'Created': m.created_at.substring(0, 10),
+          'setPoints': m.setPoints,
         })),
       };
 
