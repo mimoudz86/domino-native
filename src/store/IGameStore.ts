@@ -22,6 +22,7 @@ export interface IGameStore {
   dispatcher: ILocalEventDispatcher | null;
   isInitialized: boolean;
   currentMatchId: string | null;
+  selectedConfig: MatchConfig;
   dragState: {
     isDragging: boolean;
     domino: Domino | null;
@@ -38,9 +39,9 @@ export interface IGameStore {
   startNewMatch: (config?: MatchConfig) => Promise<void>;
 
   /**
-   * Continuer match existant ou créer nouveau si terminé
+   * Continuer match existant ou créer nouveau si terminé (utilise selectedConfig)
    */
-  continueOrNewMatch: (config?: MatchConfig) => Promise<void>;
+  continueOrNewMatch: () => Promise<void>;
 
   /**
    * Initialiser une nouvelle partie
@@ -86,6 +87,11 @@ export interface IGameStore {
    * Terminer le drag
    */
   endDrag: () => void;
+
+  /**
+   * Définir la config sélectionnée par l'utilisateur (utilisée pour tous les matchs)
+   */
+  setSelectedConfig: (config: MatchConfig) => void;
 
   /**
    * Debug: Afficher toutes les données de match enregistrées

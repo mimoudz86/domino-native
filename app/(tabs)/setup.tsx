@@ -8,16 +8,15 @@ import { DEFAULT_MATCH_CONFIG } from '@/types/MatchConfig';
 
 export default function MatchSetupScreenWrapper() {
   const router = useRouter();
-  const { startNewMatch, continueOrNewMatch, initGame, resetGame, getMatchState } = useActiveGameStore();
+  const { startNewMatch, continueOrNewMatch, initGame, resetGame, getMatchState, setSelectedConfig, selectedConfig } = useActiveGameStore();
   const [existingMatch, setExistingMatch] = useState<MatchState | null>(null);
-  const [matchConfig, setMatchConfig] = useState<MatchConfig>(DEFAULT_MATCH_CONFIG);
 
   useEffect(() => {
     const loadExistingMatch = async () => {
       const matchState = await getMatchState();
       if (matchState && matchState.currentGameNumber > 0 && !matchState.matchFinished) {
         setExistingMatch(matchState);
-        setMatchConfig({
+        setSelectedConfig({
           mode: matchState.mode,
           maxPoints: matchState.maxPoints,
           numSets: matchState.numSets
@@ -25,10 +24,11 @@ export default function MatchSetupScreenWrapper() {
       }
     };
     loadExistingMatch();
-  }, [getMatchState]);
+  }, [getMatchState, setSelectedConfig]);
 
   const handleStartNewMatch = async (config: MatchConfig) => {
     console.log(`[MATCH-SETUP] Starting new match:`, config);
+    setSelectedConfig(config);
     resetGame();
     await startNewMatch(config);
     await initGame(['AI 1', 'AI 2', 'AI 3', 'AI 4'], [true, true, true, true], config);
@@ -36,10 +36,10 @@ export default function MatchSetupScreenWrapper() {
   };
 
   const handleContinueMatch = async () => {
-    console.log(`[MATCH-SETUP] Continuing match`);
+    console.log(`[MATCH-SETUP] Continuing match with selectedConfig`, selectedConfig);
     resetGame();
-    await continueOrNewMatch(matchConfig);
-    await initGame(['AI 1', 'AI 2', 'AI 3', 'AI 4'], [true, true, true, true], matchConfig);
+    await continueOrNewMatch();
+    await initGame(['AI 1', 'AI 2', 'AI 3', 'AI 4'], [true, true, true, true], selectedConfig);
     router.push('/game');
   };
 

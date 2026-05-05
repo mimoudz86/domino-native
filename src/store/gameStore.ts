@@ -28,6 +28,7 @@ type DraggableStatus = 'none' | 'left' | 'right' | 'both';
 type GameStoreState = IGameStore & {
   currentMatchId: string | null;
   matchService?: MatchService;
+  selectedConfig: MatchConfig;
   _isInitializing: boolean;
   _dbInitialized: boolean;
 };
@@ -84,6 +85,7 @@ export const useGameStore = create<GameStoreState>((set, get) => ({
   dragState: null,
   currentMatchId: null,
   matchService: undefined,
+  selectedConfig: DEFAULT_MATCH_CONFIG,
   _isInitializing: false,
   _dbInitialized: false,
 
@@ -136,25 +138,26 @@ export const useGameStore = create<GameStoreState>((set, get) => ({
     set({ currentMatchId: matchId, matchService });
   },
 
-  continueOrNewMatch: async (config: MatchConfig = DEFAULT_MATCH_CONFIG) => {
+  continueOrNewMatch: async () => {
     const currentMatchId = get().currentMatchId;
+    const selectedConfig = get().selectedConfig;
 
     if (!currentMatchId) {
       console.error('[GAME-STORE] ❌ No currentMatchId found, creating new match instead');
       get().resetGame();
-      await get().startNewMatch(config);
+      await get().startNewMatch(selectedConfig);
       return;
     }
 
     // Récupérer l'état du match SPÉCIFIQUE par son ID (pas le dernier actif)
-    const storage = new LocalMatchStorage(config);
+    const storage = new LocalMatchStorage(selectedConfig);
     const matchState = await storage.getMatchStateById(currentMatchId);
 
     if (matchState?.matchFinished) {
-      // Match terminé → créer un nouveau match
-      console.log(`[GAME-STORE] 🔄 MATCH_FINISHED detected, creating NEW match`);
+      // Match terminé → créer un nouveau match avec la config sélectionnée par l'utilisateur
+      console.log(`[GAME-STORE] 🔄 MATCH_FINISHED detected, creating NEW match with selectedConfig`);
       get().resetGame();
-      await get().startNewMatch(config);
+      await get().startNewMatch(selectedConfig);
     } else {
       // Match continue → recréer MatchService avec le même matchId
       console.log(`[GAME-STORE] ➡️  CONTINUING match ${currentMatchId}`);
@@ -326,6 +329,11 @@ export const useGameStore = create<GameStoreState>((set, get) => ({
 
   endDrag: () => {
     set({ dragState: null });
+  },
+
+  setSelectedConfig: (config: MatchConfig) => {
+    console.log(`[GAME-STORE] 📋 CONFIG_SELECTED {"mode":"${config.mode}","maxPoints":${config.maxPoints},"numSets":${config.numSets}}`);
+    set({ selectedConfig: config });
   },
 
   getMatchState: async (): Promise<MatchState | null> => {
