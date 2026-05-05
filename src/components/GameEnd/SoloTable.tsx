@@ -43,8 +43,7 @@ export function SoloTable({ viewData }: SoloTableProps) {
               <Text
                 style={[
                   styles.tableCell,
-                  styles.tableValueCell,
-                  player.id === viewData.winner.id && styles.winnerScore
+                  player.id === viewData.winner.id ? styles.winnerScore : styles.tableValueCell,
                 ]}
               >
                 {gameData?.game || 0}
@@ -52,9 +51,7 @@ export function SoloTable({ viewData }: SoloTableProps) {
               <Text
                 style={[
                   styles.tableCell,
-                  styles.tableValueCell,
-                  styles.setScore,
-                  player.id === viewData.winner.id && styles.winnerScore
+                  player.id === viewData.winner.id ? styles.winnerScore : styles.tableValueCell,
                 ]}
               >
                 {gameData?.set || 0}
@@ -62,9 +59,7 @@ export function SoloTable({ viewData }: SoloTableProps) {
               <Text
                 style={[
                   styles.tableCell,
-                  styles.tableValueCell,
-                  styles.matchScore,
-                  player.id === viewData.winner.id && styles.winnerScore
+                  player.id === viewData.winner.id ? styles.winnerScore : styles.tableValueCell,
                 ]}
               >
                 {gameData?.match || 0}
@@ -114,22 +109,17 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
   tableValueCell: {
-    color: '#4ade80',
+    color: '#999',
     fontWeight: '600',
   },
-  setScore: {
-    color: '#60a5fa',
-  },
-  matchScore: {
-    color: '#f59e0b',
-  },
   winnerRow: {
-    backgroundColor: 'rgba(74, 222, 128, 0.1)',
+    backgroundColor: 'rgba(212, 175, 55, 0.1)',
     fontWeight: '700',
-    color: '#4ade80',
+    color: '#D4AF37',
   },
   winnerScore: {
-    color: '#fbbf24',
-    fontWeight: '700',
+    color: '#D4AF37',
+    fontWeight: 'bold',
+    fontSize: 16,
   },
 });

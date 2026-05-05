@@ -29,10 +29,10 @@ export function TeamsTable({ viewData }: TeamsTableProps) {
           <Text style={[styles.tableCell, styles.tableValueCell]}>
             {mockTeamData.V.game}
           </Text>
-          <Text style={[styles.tableCell, styles.tableValueCell, styles.setScore]}>
+          <Text style={[styles.tableCell, styles.tableValueCell]}>
             {mockTeamData.V.set}
           </Text>
-          <Text style={[styles.tableCell, styles.tableValueCell, styles.matchScore]}>
+          <Text style={[styles.tableCell, styles.tableValueCell]}>
             {mockTeamData.V.match}
           </Text>
         </View>
@@ -44,10 +44,10 @@ export function TeamsTable({ viewData }: TeamsTableProps) {
           <Text style={[styles.tableCell, styles.tableValueCell]}>
             {mockTeamData.H.game}
           </Text>
-          <Text style={[styles.tableCell, styles.tableValueCell, styles.setScore]}>
+          <Text style={[styles.tableCell, styles.tableValueCell]}>
             {mockTeamData.H.set}
           </Text>
-          <Text style={[styles.tableCell, styles.tableValueCell, styles.matchScore]}>
+          <Text style={[styles.tableCell, styles.tableValueCell]}>
             {mockTeamData.H.match}
           </Text>
         </View>
@@ -93,13 +93,12 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
   tableValueCell: {
-    color: '#4ade80',
+    color: '#999',
     fontWeight: '600',
   },
-  setScore: {
-    color: '#60a5fa',
-  },
-  matchScore: {
-    color: '#f59e0b',
+  winnerScore: {
+    color: '#D4AF37',
+    fontWeight: 'bold',
+    fontSize: 16,
   },
 });
