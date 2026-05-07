@@ -558,6 +558,7 @@ export class LocalMatchStorage implements IMatchStorage {
   }
 
   // Récupérer les totaux de points pour un match
+  // Calculer les totaux de points en temps réel (pas de stockage)
   async getMatchTotals(matchId: string): Promise<{
     p0_total: number;
     p1_total: number;
@@ -567,55 +568,49 @@ export class LocalMatchStorage implements IMatchStorage {
     teamH_total: number;
   } | null> {
     try {
-      const db = await this.getDb();
-      const match = await db.getFirstAsync<any>(
-        'SELECT p0_total_points, p1_total_points, p2_total_points, p3_total_points, teamV_total_points, teamH_total_points FROM matches WHERE match_id = ?',
-        [matchId]
+      const match = await this.getDb().then(db =>
+        db.getFirstAsync<any>('SELECT mode FROM matches WHERE match_id = ?', [matchId])
       );
 
       if (!match) return null;
 
-      return {
-        p0_total: match.p0_total_points || 0,
-        p1_total: match.p1_total_points || 0,
-        p2_total: match.p2_total_points || 0,
-        p3_total: match.p3_total_points || 0,
-        teamV_total: match.teamV_total_points || 0,
-        teamH_total: match.teamH_total_points || 0
-      };
+      const games = await this.getGamesForMatch(matchId);
+
+      if (match.mode === 'individual') {
+        const scores = calcIndividualScores(games);
+        return {
+          p0_total: scores[0] || 0,
+          p1_total: scores[1] || 0,
+          p2_total: scores[2] || 0,
+          p3_total: scores[3] || 0,
+          teamV_total: 0,
+          teamH_total: 0
+        };
+      } else {
+        const { teamV, teamH } = calcTeamScores(games);
+        return {
+          p0_total: 0,
+          p1_total: 0,
+          p2_total: 0,
+          p3_total: 0,
+          teamV_total: teamV,
+          teamH_total: teamH
+        };
+      }
     } catch (error) {
       console.error('[STORAGE] Error getting match totals:', error);
       return null;
     }
   }
 
-  // Mettre à jour les totaux de points dans la table matches
+  // Synchroniser les scores du match (no-op depuis que les totaux sont calculés)
   async updateMatchScoreTotals(matchId: string, mode: ScoringMode): Promise<void> {
     try {
-      const db = await this.getDb();
-      const games = await this.getGamesForMatch(matchId);
-
-      if (mode === 'individual') {
-        const scores = calcIndividualScores(games);
-        await db.runAsync(
-          `UPDATE matches SET p0_total_points = ?, p1_total_points = ?, p2_total_points = ?, p3_total_points = ? WHERE match_id = ?`,
-          [
-            scores[0] || 0,
-            scores[1] || 0,
-            scores[2] || 0,
-            scores[3] || 0,
-            matchId
-          ]
-        );
-      } else {
-        const { teamV, teamH } = calcTeamScores(games);
-        await db.runAsync(
-          `UPDATE matches SET teamV_total_points = ?, teamH_total_points = ? WHERE match_id = ?`,
-          [teamV, teamH, matchId]
-        );
-      }
+      // Les totaux ne sont plus stockés - ils sont calculés à la demande via getMatchTotals()
+      const totals = await this.getMatchTotals(matchId);
+      console.log(`LOG  [STORAGE] 📊 MATCH_SCORE_SYNC {"matchId":"${matchId}","mode":"${mode}","totals":${JSON.stringify(totals)}}`);
     } catch (error) {
-      console.error('[STORAGE] Error updating match score totals:', error);
+      console.error('[STORAGE] Error syncing match score totals:', error);
     }
   }
 
