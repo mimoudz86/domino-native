@@ -123,6 +123,10 @@ export const useGameStore = create<GameStoreState>((set, get) => ({
     // Créer le match dans la BD
     await storage.createMatch(matchId, config);
 
+    // Vérifier que le set actif existe
+    const activeSetId = await storage.getActiveSetId(matchId);
+    console.log(`[GAME-STORE] ✅ MATCH_AND_SETS_CREATED {"matchId":"${matchId}","activeSetId":"${activeSetId || 'NULL'}"}`);
+
     // Envoyer le match au serveur
     await sendMatchToServer(matchId, config);
 
