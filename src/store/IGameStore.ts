@@ -29,6 +29,10 @@ export interface IGameStore {
     draggableStatus: DraggableStatus;
   } | null;
 
+  // Game end modal state
+  gameEnded: boolean;
+  lastGameData: any | null;
+
   // ═══════════════════════════════════════════
   // ACTIONS (Appelées par les composants)
   // ═══════════════════════════════════════════
@@ -107,4 +111,9 @@ export interface IGameStore {
    * Supprimer toutes les données de la DB
    */
   removeAllData: () => Promise<void>;
+
+  /**
+   * Réinitialiser l'état du game end modal
+   */
+  resetGameEndState: () => void;
 }

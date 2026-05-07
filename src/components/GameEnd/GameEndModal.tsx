@@ -1,190 +1,23 @@
 import React from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, Modal, ScrollView } from 'react-native';
-import { TeamsTable } from './TeamsTable';
 import { SoloTable } from './SoloTable';
 import type { MatchConfig } from '../../types/MatchConfig';
-
-type GameEndState = {
-  winner: { id: number; name: string };
-  teamV: {
-    teamName: string;
-    players: { id: number; name: string; score: number }[];
-    totalScore: number;
-  };
-  teamH: {
-    teamName: string;
-    players: { id: number; name: string; score: number }[];
-    totalScore: number;
-  };
-  winningTeam: 'V' | 'H';
-  winningType: 'EMPTY_HAND' | 'BLOCKED_GAME';
-  pointsEarned: number;
-  setScore: {
-    teamVPoints: number;
-    teamHPoints: number;
-  };
-  matchProgress: {
-    team1SetsWon: number;
-    team2SetsWon: number;
-    currentSetIndex: number;
-    matchFinished: boolean;
-  };
-};
-
-export type GameMode = 'team' | 'solo';
+import type { PlayerTurnState } from '../../shared/models/GameTurnState';
 
 interface GameEndModalProps {
   visible: boolean;
-  gameEndState?: GameEndState | null;
-  thisPlayerId?: number | null;
-  mode?: GameMode;
   selectedConfig?: MatchConfig;
+  lastGameData?: any;
+  currentSetData?: any;
+  players?: PlayerTurnState[];
   onContinue: () => void;
   onLeave: () => void;
-  // Backwards compatibility
-  winnerName?: string;
 }
 
-function getTeamViewData(gameEndState: any, thisPlayerId: number | null) {
-  const defaultViewData = {
-    clientTeam: 'V' as 'V' | 'H',
-    myTeam: { teamName: 'Team Unknown', players: [{id: 0, name: ''}, {id: 1, name: ''}], totalScore: 0 },
-    theirTeam: { teamName: 'Team Unknown', players: [{id: 2, name: ''}, {id: 3, name: ''}], totalScore: 0 },
-    myGameScore: 0,
-    theirGameScore: 0,
-    mySetScore: 0,
-    theirSetScore: 0,
-    myMatchScore: 0,
-    theirMatchScore: 0,
-    didClientTeamWin: false,
-    winner: { id: -1, name: 'Unknown' }
-  };
+function SoloModeView({ selectedConfig, lastGameData, currentSetData, players, onContinue, onLeave }: any) {
+  const displayPlayers = players || [];
 
-  if (!gameEndState) return defaultViewData;
-  if (!gameEndState.teamV || !gameEndState.teamH) {
-    console.warn('[TeamViewData] Missing teamV or teamH - using defaults');
-    return defaultViewData;
-  }
-
-  const { teamV, teamH, winningTeam, winner, setScore, matchProgress } = gameEndState;
-
-  let clientTeam: 'V' | 'H' = 'V';
-
-  if (thisPlayerId !== null && thisPlayerId !== undefined) {
-    const isInTeamV = teamV.players.some((p: any) => p.id === thisPlayerId);
-    const isInTeamH = teamH.players.some((p: any) => p.id === thisPlayerId);
-
-    if (isInTeamV) {
-      clientTeam = 'V';
-    } else if (isInTeamH) {
-      clientTeam = 'H';
-    }
-  }
-
-  const myTeam = clientTeam === 'V' ? teamV : teamH;
-  const theirTeam = clientTeam === 'V' ? teamH : teamV;
-
-  const myGameScore = myTeam.totalScore;
-  const theirGameScore = theirTeam.totalScore;
-
-  const mySetScore = clientTeam === 'V' ? setScore.teamVPoints : setScore.teamHPoints;
-  const theirSetScore = clientTeam === 'V' ? setScore.teamHPoints : setScore.teamVPoints;
-
-  const myMatchScore = clientTeam === 'V' ? matchProgress.team1SetsWon : matchProgress.team2SetsWon;
-  const theirMatchScore = clientTeam === 'V' ? matchProgress.team2SetsWon : matchProgress.team1SetsWon;
-
-  const didClientTeamWin = winningTeam === clientTeam;
-
-  return {
-    clientTeam,
-    myTeam,
-    theirTeam,
-    myGameScore,
-    theirGameScore,
-    mySetScore,
-    theirSetScore,
-    myMatchScore,
-    theirMatchScore,
-    didClientTeamWin,
-    winner
-  };
-}
-
-function getSoloViewData(gameEndState: any) {
-  const defaultViewData = {
-    players: [
-      { id: 0, name: '', gameScore: 0, earned: 0, matchScore: 0 },
-      { id: 1, name: '', gameScore: 0, earned: 0, matchScore: 0 },
-      { id: 2, name: '', gameScore: 0, earned: 0, matchScore: 0 },
-      { id: 3, name: '', gameScore: 0, earned: 0, matchScore: 0 }
-    ],
-    winner: { id: -1, name: 'Unknown' },
-    winningType: 'EMPTY_HAND' as 'EMPTY_HAND' | 'BLOCKED_GAME',
-    matchState: null,
-    maxPoints: 50
-  };
-
-  if (!gameEndState) return defaultViewData;
-
-  const winner = gameEndState.winner || { id: -1, name: 'Unknown' };
-  const winningType = gameEndState.winningType || 'EMPTY_HAND';
-  const matchState = gameEndState.matchState || null;
-  const maxPoints = matchState?.maxPoints || 50;
-
-  // Handle three possible payloads:
-  // 1. NEW: Enriched payload { winner, winningType, gameEnd, matchState }
-  // 2. Simple payload: { winner, scores: [{ playerId, playerName, score }] }
-  // 3. Full GameEndState: { winner, teamV, teamH, setScore, matchProgress }
-
-  let players: any[] = [];
-
-  if (gameEndState.gameEnd?.individual) {
-    // NEW: Enriched payload with game/match info
-    players = gameEndState.gameEnd.individual.players.map((p: any) => ({
-      id: p.id,
-      name: p.name,
-      gameScore: p.score,
-      earned: p.earned,
-      matchScore: matchState?.scoreIndividual?.[p.id] ?? 0
-    }));
-  } else if (gameEndState.scores && Array.isArray(gameEndState.scores)) {
-    // Simple payload from GameEngine
-    players = gameEndState.scores.map((s: any) => ({
-      id: s.playerId,
-      name: s.playerName,
-      gameScore: s.score,
-      earned: 0,
-      matchScore: 0
-    }));
-  } else if (gameEndState.teamV && gameEndState.teamH) {
-    // Full GameEndState structure
-    const allPlayers = [
-      ...gameEndState.teamV.players,
-      ...gameEndState.teamH.players
-    ];
-
-    players = allPlayers.map(p => ({
-      id: p.id,
-      name: p.name,
-      gameScore: p.score,
-      earned: 0,
-      matchScore: 0
-    })).sort((a, b) => a.id - b.id);
-  }
-
-  return {
-    players: players.length > 0 ? players : defaultViewData.players,
-    winner,
-    winningType,
-    matchState,
-    maxPoints
-  };
-}
-
-function TeamModeView({ gameEndState, thisPlayerId, selectedConfig, onContinue, onLeave }: any) {
-  const viewData = getTeamViewData(gameEndState, thisPlayerId);
-  const myTeamNames = `${viewData.myTeam.players[0].name} & ${viewData.myTeam.players[1].name}`;
-  const theirTeamNames = `${viewData.theirTeam.players[0].name} & ${viewData.theirTeam.players[1].name}`;
+  console.log('[GAME-END-MODAL] SoloModeView received currentSetData:', currentSetData);
 
   return (
     <View style={styles.container}>
@@ -199,19 +32,10 @@ function TeamModeView({ gameEndState, thisPlayerId, selectedConfig, onContinue, 
       )}
 
       <View style={styles.headerSection}>
-        <Text style={styles.title}>
-          🏆 {viewData.didClientTeamWin ? 'NOUS GAGNONS!' : 'EUX GAGNENT!'}
-        </Text>
-        <Text style={styles.winner}>
-          🎯 {viewData.winner.name} wins!
-        </Text>
+        <Text style={styles.title}>🏆 FIN DU JEU</Text>
       </View>
 
-      <Text style={styles.vsText}>
-        {myTeamNames} VS {theirTeamNames}
-      </Text>
-
-      <TeamsTable viewData={viewData} />
+      <SoloTable lastGameData={lastGameData} currentSetData={currentSetData} players={displayPlayers} />
 
       <View style={styles.buttonContainer}>
         <TouchableOpacity style={styles.button} onPress={onContinue}>
@@ -225,94 +49,27 @@ function TeamModeView({ gameEndState, thisPlayerId, selectedConfig, onContinue, 
   );
 }
 
-function SoloModeView({ gameEndState, selectedConfig, onContinue, onLeave }: any) {
-  const viewData = getSoloViewData(gameEndState);
-  const winningReason = viewData.winningType === 'EMPTY_HAND'
-    ? '(Main vide)'
-    : '(Jeu bloqué)';
-
-  return (
-    <View style={styles.container}>
-      {selectedConfig && (
-        <View style={styles.configSection}>
-          <Text style={styles.configText}>
-            Mode: <Text style={styles.configValue}>{selectedConfig.mode}</Text>
-            {' '} | Points: <Text style={styles.configValue}>{selectedConfig.maxPoints}</Text>
-            {' '} | Sets: <Text style={styles.configValue}>{selectedConfig.numSets}</Text>
-          </Text>
-        </View>
-      )}
-
-      <View style={styles.headerSection}>
-        <Text style={styles.title}>🏆 FIN DU JEU #{viewData.matchState?.currentGameNumber || 1}</Text>
-        <Text style={styles.winner}>🎯 {viewData.winner.name} gagne! {winningReason}</Text>
-      </View>
-
-      {viewData.matchState && (
-        <View style={styles.matchProgressSection}>
-          <Text style={styles.progressLabel}>Progression du match:</Text>
-          {viewData.players.map((player: any) => {
-            const percent = Math.round((viewData.matchState.scoreIndividual[player.id] / viewData.maxPoints) * 100);
-            return (
-              <View key={player.id} style={styles.progressRow}>
-                <Text style={styles.playerName}>{player.name}:</Text>
-                <Text style={styles.progressScore}>
-                  {viewData.matchState.scoreIndividual[player.id]}/{viewData.maxPoints}
-                </Text>
-                <Text style={styles.progressPercent}>({percent}%)</Text>
-              </View>
-            );
-          })}
-          {viewData.matchState.matchFinished && (
-            <Text style={styles.matchWonText}>✨ {viewData.winner.name} a GAGNÉ LE MATCH! ✨</Text>
-          )}
-        </View>
-      )}
-
-      <SoloTable viewData={viewData} />
-
-      <View style={styles.buttonContainer}>
-        <TouchableOpacity style={styles.button} onPress={onContinue}>
-          <Text style={styles.buttonText}>▶️ {viewData.matchState?.matchFinished ? 'Nouvelle partie' : 'Continuer'}</Text>
-        </TouchableOpacity>
-        <TouchableOpacity style={[styles.button, styles.secondaryButton]} onPress={onLeave}>
-          <Text style={styles.secondaryButtonText}>🏠 Quitter</Text>
-        </TouchableOpacity>
-      </View>
-    </View>
-  );
-}
-
 export function GameEndModal({
   visible,
-  gameEndState = null,
-  thisPlayerId = null,
-  mode = 'solo',
   selectedConfig,
+  lastGameData,
+  currentSetData,
+  players,
   onContinue,
   onLeave,
-  winnerName = 'Unknown'
 }: GameEndModalProps) {
   return (
     <Modal visible={visible} transparent animationType="fade">
       <View style={styles.overlay}>
         <ScrollView style={styles.scrollContainer} contentContainerStyle={styles.scrollContent}>
-          {mode === 'team' ? (
-            <TeamModeView
-              gameEndState={gameEndState}
-              thisPlayerId={thisPlayerId}
-              selectedConfig={selectedConfig}
-              onContinue={onContinue}
-              onLeave={onLeave}
-            />
-          ) : (
-            <SoloModeView
-              gameEndState={gameEndState}
-              selectedConfig={selectedConfig}
-              onContinue={onContinue}
-              onLeave={onLeave}
-            />
-          )}
+          <SoloModeView
+            selectedConfig={selectedConfig}
+            lastGameData={lastGameData}
+            currentSetData={currentSetData}
+            players={players}
+            onContinue={onContinue}
+            onLeave={onLeave}
+          />
         </ScrollView>
       </View>
     </Modal>

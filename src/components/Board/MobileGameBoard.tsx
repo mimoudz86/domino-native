@@ -1,8 +1,7 @@
 import { GlobalDragGhost } from '../GlobalDragGhost';
-import React, { useState, useMemo, useEffect } from 'react';
+import React, { useState, useMemo } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import type { PlayerTurnState, TurnState } from '../../shared/models/GameTurnState';
-import { DominoModel } from '../../shared/models/Domino';
 import { getPlayerIdAtPosition } from '../../utils/playerPositioning';
 import { CurrentPlayerArea } from '../Player/CurrentPlayerArea';
 import { OpponentPlayerArea } from '../Player/OpponentPlayerArea';
@@ -11,9 +10,6 @@ import { ScoreSlot } from './ScoreSlot';
 import { GameEndModal } from '../GameEnd/GameEndModal';
 import { PassNotificationBadge } from '../Player/PassNotificationBadge';
 import { useActiveGameStore } from '../../store/gameStoreContext';
-import { LocalMatchStorage } from '../../services/LocalMatchStorage';
-import { MatchService } from '../../services/MatchService';
-import { DEFAULT_MATCH_CONFIG } from '../../types/MatchConfig';
 
 interface MobileGameBoardProps {
   players?: PlayerTurnState[];
@@ -22,124 +18,42 @@ interface MobileGameBoardProps {
   onBackToHome?: () => void;
 }
 
-// Mock dominos for all players
-const MOCK_DOMINOS = [
-  new DominoModel(6, 5),
-  new DominoModel(5, 4),
-  new DominoModel(4, 3),
-  new DominoModel(3, 2),
-  new DominoModel(2, 1),
-  new DominoModel(1, 0),
-  new DominoModel(6, 6),
-];
-
-// Mock players for testing
-const MOCK_PLAYERS: PlayerTurnState[] = [
-  {
-    id: 0,
-    name: 'Aliceasaurus',
-    dominos: MOCK_DOMINOS,
-    dominoCount: 7,
-    playables: [0, 2, 6],
-    placements: ['both', 'left', 'both'],
-    hasPassed: false,
-    canPlay: true,
-  },
-  {
-    id: 1,
-    name: 'Bobalonius',
-    dominos: null as any,
-    dominoCount: 7,
-    playables: [],
-    placements: [],
-    hasPassed: false,
-    canPlay: false,
-  },
-  {
-    id: 2,
-    name: 'CharlieMax',
-    dominos: null as any,
-    dominoCount: 7,
-    playables: [],
-    placements: [],
-    hasPassed: true,
-    canPlay: false,
-  },
-  {
-    id: 3,
-    name: 'DianaQueen',
-    dominos: null as any,
-    dominoCount: 7,
-    playables: [],
-    placements: [],
-    hasPassed: false,
-    canPlay: false,
-  },
-];
-
 export function MobileGameBoard({
-  players: initialPlayers = MOCK_PLAYERS,
+  players: initialPlayers = [],
   thisPlayerId = 0,
-  gameState,
+  gameState: gameStateProp,
   onBackToHome,
 }: MobileGameBoardProps) {
 
   const [isExpanded, setIsExpanded] = useState(false);
-  const [gameEnded, setGameEnded] = useState(false);
-  const [winner, setWinner] = useState('');
-  const [gameEndState, setGameEndState] = useState<any | null>(null);
-  const { resetGame, dispatcher, initGame, startNewMatch, getMatchState, currentMatchId, continueOrNewMatch } = useActiveGameStore();
+  const { resetGame, initGame, continueOrNewMatch, selectedConfig, gameEnded, lastGameData, currentSetData, resetGameEndState, turnState } = useActiveGameStore();
+
+  // Utiliser turnState du store au lieu de la prop
+  const gameState = turnState || gameStateProp;
 
   const toggleExpand = () => setIsExpanded(prev => !prev);
 
-  useEffect(() => {
-    if (!dispatcher) {
-      return;
-    }
-
-    const handleGameEnd = (payload: any) => {
-      const winnerName = payload.winner?.name || 'Joueur inconnu';
-      setWinner(winnerName);
-      setGameEndState(payload);
-      setGameEnded(true);
-    };
-
-    const unsubscribe = dispatcher.on('GAME_ENDED', handleGameEnd);
-
-    return () => {
-      unsubscribe();
-    };
-  }, [dispatcher]);
-
   const handleContinue = async () => {
-    setGameEnded(false);
-    setWinner('');
-    setGameEndState(null);
+    resetGameEndState();
     await continueOrNewMatch();
     await initGame(['AI 1', 'AI 2', 'AI 3', 'AI 4'], [true, true, true, true]);
   };
 
   const handleLeave = () => {
-    // [COMMENTED-v1] console.log(`[MOBILE-GAME-BOARD] Leaving game`);
-    setGameEnded(false);
-    setWinner('');
-    setGameEndState(null);
+    resetGameEndState();
     resetGame();
-    if (onBackToHome) {
-      onBackToHome();
-    }
+    onBackToHome?.();
   };
 
-  // ✅ SOLUTION: useMemo avec dépendance à gameState
-  // Recalculer les joueurs chaque fois que gameState change
   const players = useMemo(() => {
-    if (gameState && gameState.players && gameState.players.length > 0) {
-      // Utiliser les données réelles de gameState
+    if (gameState?.players && gameState.players.length > 0) {
       return gameState.players;
     }
-    // Fallback aux mocks si pas de gameState
     return initialPlayers;
-  }, [gameState, gameState?.players, gameState?.currentPlayerIndex]);
+  }, [gameState?.players, gameState]);
+
+  console.log('[MOBILE-GAME-BOARD] players in gameState:', gameState?.players?.length);
+  console.log('[MOBILE-GAME-BOARD] players final before pass:', players?.length);
 
   if (players.length < 4) {
     return (
@@ -190,9 +104,10 @@ export function MobileGameBoard({
         <PassNotificationBadge />
         <GameEndModal
           visible={gameEnded}
-          gameEndState={gameEndState}
-          thisPlayerId={thisPlayerId}
-          mode="solo"
+          selectedConfig={selectedConfig}
+          lastGameData={lastGameData}
+          currentSetData={currentSetData}
+          players={players}
           onContinue={handleContinue}
           onLeave={handleLeave}
         />
@@ -271,9 +186,10 @@ export function MobileGameBoard({
       <PassNotificationBadge />
       <GameEndModal
         visible={gameEnded}
-        gameEndState={gameEndState}
-        thisPlayerId={thisPlayerId}
-        mode="solo"
+        selectedConfig={selectedConfig}
+        lastGameData={lastGameData}
+        currentSetData={currentSetData}
+        players={players}
         onContinue={handleContinue}
         onLeave={handleLeave}
       />

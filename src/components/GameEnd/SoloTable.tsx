@@ -2,20 +2,48 @@ import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 
 interface SoloTableProps {
-  viewData: any;
+  lastGameData?: any;
+  currentSetData?: any;
+  players?: any[];
 }
 
-export function SoloTable({ viewData }: SoloTableProps) {
-  // Données fictives pour l'instant - à remplacer par des vraies données de matchState
-  const mockGameData = [
-    { playerId: 0, game: 3, set: 15, match: 1 },
-    { playerId: 1, game: 5, set: 22, match: 0 },
-    { playerId: 2, game: 0, set: 18, match: 0 },
-    { playerId: 3, game: 2, set: 20, match: 2 },
-  ];
+export function SoloTable({ lastGameData, currentSetData, players = [] }: SoloTableProps) {
+  console.log('[SOLO-TABLE] lastGameData:', lastGameData);
+  console.log('[SOLO-TABLE] currentSetData:', currentSetData);
+  console.log('[SOLO-TABLE] players param:', players?.length, players);
+  console.log('[SOLO-TABLE] players[0]?.name:', players[0]?.name);
+
+  const getPlayerGameScore = (playerId: number) => {
+    const scoreKey = `p${playerId}_score`;
+    return lastGameData?.[scoreKey] ?? 0;
+  };
+
+  const getPlayerName = (playerId: number) => {
+    const nameKey = `p${playerId}_name`;
+    return lastGameData?.[nameKey] ?? players?.[playerId]?.name ?? `P${playerId}`;
+  };
+
+  const getSetScore = (playerId: number) => {
+    const scoreKey = `p${playerId}_score`;
+    return currentSetData?.[scoreKey] ?? 0;
+  };
 
   return (
     <View style={styles.container}>
+      {currentSetData && (
+        <View style={styles.setScoresSection}>
+          <Text style={styles.setSectionTitle}>📊 Scores du Set</Text>
+          <View style={styles.setScoresRow}>
+            {[0, 1, 2, 3].map((playerId) => (
+              <View key={playerId} style={styles.setScoreItem}>
+                <Text style={styles.setPlayerName}>{getPlayerName(playerId)}</Text>
+                <Text style={styles.setScoreValue}>{getSetScore(playerId)}</Text>
+              </View>
+            ))}
+          </View>
+        </View>
+      )}
+
       <View style={styles.scoreTable}>
         <View style={styles.tableHeaderRow}>
           <Text style={[styles.tableCell, { flex: 1.2 }, styles.tableLabelCell]}>
@@ -26,43 +54,45 @@ export function SoloTable({ viewData }: SoloTableProps) {
           <Text style={[styles.tableCell, styles.tableHeaderCell]}>Match</Text>
         </View>
 
-        {viewData.players.map((player: any) => {
-          const gameData = mockGameData.find(d => d.playerId === player.id) || mockGameData[player.id];
+        {[0, 1, 2, 3].map((playerId) => {
+          const player = players.find((p: any) => p.id === playerId);
+          const isWinner = lastGameData?.winner_id === playerId;
+
           return (
-            <View key={player.id} style={styles.tableRow}>
+            <View key={playerId} style={styles.tableRow}>
               <Text
                 style={[
                   styles.tableCell,
                   { flex: 1.2 },
                   styles.tableLabelCell,
-                  player.id === viewData.winner.id && styles.winnerRow
+                  isWinner && styles.winnerRow
                 ]}
               >
-                {player.name}
+                {getPlayerName(playerId)}
               </Text>
               <Text
                 style={[
                   styles.tableCell,
-                  player.id === viewData.winner.id ? styles.winnerScore : styles.tableValueCell,
+                  isWinner ? styles.winnerScore : styles.tableValueCell,
                 ]}
               >
-                {gameData?.game || 0}
+                {getPlayerGameScore(playerId)}
               </Text>
               <Text
                 style={[
                   styles.tableCell,
-                  player.id === viewData.winner.id ? styles.winnerScore : styles.tableValueCell,
+                  isWinner ? styles.winnerScore : styles.tableValueCell,
                 ]}
               >
-                {gameData?.set || 0}
+                0
               </Text>
               <Text
                 style={[
                   styles.tableCell,
-                  player.id === viewData.winner.id ? styles.winnerScore : styles.tableValueCell,
+                  isWinner ? styles.winnerScore : styles.tableValueCell,
                 ]}
               >
-                {gameData?.match || 0}
+                0
               </Text>
             </View>
           );

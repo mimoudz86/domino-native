@@ -27,6 +27,9 @@ type DraggableStatus = 'none' | 'left' | 'right' | 'both';
 
 type GameStoreState = IGameStore & {
   currentMatchId: string | null;
+  currentSetId: string | null;
+  currentGameId: string | null;
+  currentSetData: any | null;
   matchService?: MatchService;
   selectedConfig: MatchConfig;
   _isInitializing: boolean;
@@ -84,10 +87,15 @@ export const useGameStore = create<GameStoreState>((set, get) => ({
   isInitialized: false,
   dragState: null,
   currentMatchId: null,
+  currentSetId: null,
+  currentGameId: null,
+  currentSetData: null,
   matchService: undefined,
   selectedConfig: DEFAULT_MATCH_CONFIG,
   _isInitializing: false,
   _dbInitialized: false,
+  gameEnded: false,
+  lastGameData: null,
 
   // ═══════════════════════════════════════════
   // ACTIONS
@@ -118,21 +126,33 @@ export const useGameStore = create<GameStoreState>((set, get) => ({
     // Envoyer le match au serveur
     await sendMatchToServer(matchId, config);
 
-    // Créer le MatchService avec le matchId (enregistre le listener GAME_ENDED)
+    // Créer le MatchService avec le matchId
     const matchService = new MatchService(storage, matchId);
     console.log(`LOG  [GAME-STORE] 📋 MATCH_SERVICE_CREATED {"matchId":"${matchId}"}`);
 
-    // DISABLED: Listener pour création auto du nouveau match après que le match se termine
-    // Causa création automatique de matchs vides "in progress"
-    // L'utilisateur doit choisir explicitement de continuer via l'UI
-    // console.log(`LOG  [GAME-STORE] 🔗 REGISTERING_MATCH_COMPLETED_LISTENER {"matchId":"${matchId}"}`);
-    // globalEventEmitter.once('MATCH_COMPLETED', async (event: any) => {
-    //   console.log(`LOG  [GAME-STORE] 🔄 MATCH_COMPLETED_LISTENER_FIRED {"previousMatchId":"${event.matchId}","winner":"${event.winner?.name || 'N/A'}","numSets":${event.config.numSets}}`);
-    //   console.log(`LOG  [GAME-STORE] 🚀 AUTO_CREATING_NEW_MATCH {"config":${JSON.stringify(event.config)}}`);
-    //   await get().startNewMatch(event.config);
-    //   console.log(`LOG  [GAME-STORE] 🎮 AUTO_INITIALIZING_GAME`);
-    //   await get().initGame(['You', 'Bot 1', 'Bot 2', 'Bot 3'], [false, true, true, true], event.config);
-    // });
+    // Listener pour GAME_ENDED - afficher le modal immédiatement (players encore disponibles)
+    const handleGameEnded = (payload: any) => {
+      const currentState = get();
+      console.log(`LOG  [GAME-STORE] 🎮 GAME_ENDED_RECEIVED`);
+      console.log(`LOG  [GAME-STORE] 📊 gameState.players:`, currentState.turnState?.players?.length || 0, 'players');
+      set({ gameEnded: true });
+    };
+
+    globalEventEmitter.on('GAME_ENDED', handleGameEnded);
+
+    // Listener pour GAME_SAVED - récupérer les données du game et du set pour afficher dans le modal
+    const handleGameSaved = (payload: any) => {
+      console.log(`LOG  [GAME-STORE] 💾 GAME_SAVED_RECEIVED gameData:`, payload.gameData);
+      console.log(`LOG  [GAME-STORE] 💾 GAME_SAVED_RECEIVED setData:`, payload.setData);
+      set({
+        lastGameData: payload.gameData,
+        currentGameId: payload.gameId,
+        currentSetId: payload.setData?.set_id,
+        currentSetData: payload.setData
+      });
+    };
+
+    globalEventEmitter.on('GAME_SAVED', handleGameSaved);
 
     // Mettre à jour l'état du store
     set({ currentMatchId: matchId, matchService });
@@ -164,9 +184,6 @@ export const useGameStore = create<GameStoreState>((set, get) => ({
       get().resetGame();
 
       // Recréer MatchService pour le même match
-      globalEventEmitter.removeAllListeners('GAME_ENDED');
-
-      // Récupérer le dernier gameIndex du match pour ne pas créer de doublon
       const lastGameIndex = await storage.getLastGameIndex(currentMatchId);
       console.log(`[GAME-STORE] 🔢 LAST_GAME_INDEX=${lastGameIndex}`);
 
@@ -232,7 +249,8 @@ export const useGameStore = create<GameStoreState>((set, get) => ({
     adapter.on('GAME_ENDED', (payload: any) => {
       const scores = payload.scores?.map((s: any) => `${s.playerName}:${s.score}`).join(' | ');
       console.log(`LOG  [GAME-STORE] 🏆 LISTENER_GAME_ENDED {"winner":"${payload.winner?.name}","scores":"${scores}"}`);
-      set({ turnState: payload });
+      // Ne pas remplacer turnState - on garde les joueurs intacts
+      // set({ turnState: payload });
     });
 
     // 6. Initialiser le jeu
@@ -300,6 +318,11 @@ export const useGameStore = create<GameStoreState>((set, get) => ({
 
   resetGame: () => {
     clearSlotPositions();
+    // Nettoyer le MatchService listener si nécessaire
+    const oldMatchService = get().matchService;
+    if (oldMatchService) {
+      (oldMatchService as any).cleanup?.();
+    }
     set({
       turnState: null,
       dispatcher: null,
@@ -347,6 +370,20 @@ export const useGameStore = create<GameStoreState>((set, get) => ({
       await matchService.debugLogAllData();
     } else {
       console.log('[GAME-STORE] No MatchService initialized');
+    }
+  },
+
+  debugShowMatchTotals: async () => {
+    const matchService = get().matchService;
+    const currentMatchId = get().currentMatchId;
+    if (matchService && currentMatchId) {
+      const storage = new LocalMatchStorage();
+      const totals = await storage.getMatchTotals(currentMatchId);
+      console.log('[GAME-STORE] 📊 MATCH_TOTALS:', totals);
+      return totals;
+    } else {
+      console.log('[GAME-STORE] No MatchService or matchId initialized');
+      return null;
     }
   },
 
@@ -406,5 +443,14 @@ export const useGameStore = create<GameStoreState>((set, get) => ({
       console.error('[GAME-STORE] Error cleaning up database:', error);
       throw error;
     }
+  },
+
+  resetGameEndState: () => {
+    set({
+      gameEnded: false,
+      lastGameData: null,
+      currentGameId: null,
+      currentSetData: null,
+    });
   },
 }));
