@@ -517,14 +517,11 @@ export class LocalMatchStorage implements IMatchStorage {
       }
 
       if (!match) {
-        console.log(`LOG  [STORAGE] 🔍 GET_ACTIVE_MATCH_RESULT {"matchFound":false,"result":null}`);
         return null;
       }
 
       // Récupérer le set ACTIF via le pointeur (current_set_number)
       const currentSet = match.current_set_number || 1;
-
-      console.log(`LOG  [STORAGE] 🔍 GET_ACTIVE_MATCH_RESULT {"matchId":"${match.match_id}","currentSet":${currentSet},"numSets":${match.num_sets},"mode":"${match.mode}","maxPoints":${match.max_points}}`);
 
       return {
         matchId: match.match_id,

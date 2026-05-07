@@ -452,7 +452,6 @@ export class GameEngine {
         };
 
         // Émettre l'événement pour la persistance via MatchService
-        console.log(`LOG  [GAME-ENGINE] 📤 EMIT_GAME_ENDED event`);
         globalEventEmitter.emit('GAME_ENDED', {
           winner: {
             id: winner?.id || 0,

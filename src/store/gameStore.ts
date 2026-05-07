@@ -136,8 +136,6 @@ export const useGameStore = create<GameStoreState>((set, get) => ({
 
     // Listener pour GAME_ENDED - afficher le modal immédiatement (players encore disponibles)
     const handleGameEnded = (payload: any) => {
-      const currentState = get();
-      console.log(`LOG  [GAME-STORE] 🎮 GAME_ENDED_RECEIVED`);
       set({ gameEnded: true });
     };
 
@@ -258,8 +256,6 @@ export const useGameStore = create<GameStoreState>((set, get) => ({
     });
 
     adapter.on('GAME_ENDED', (payload: any) => {
-      const scores = payload.scores?.map((s: any) => `${s.playerName}:${s.score}`).join(' | ');
-      console.log(`LOG  [GAME-STORE] 🏆 LISTENER_GAME_ENDED {"winner":"${payload.winner?.name}","scores":"${scores}"}`);
       // Ne pas remplacer turnState - on garde les joueurs intacts
       // set({ turnState: payload });
     });

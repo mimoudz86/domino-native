@@ -18,9 +18,7 @@ export class MatchService {
   }
 
   private setupListeners(): void {
-    console.log(`LOG  [MATCH-SERVICE] 👂 LISTENER_SETUP for GAME_ENDED`);
     this.gameEndedListener = async (payload: any) => {
-      console.log(`LOG  [MATCH-SERVICE] 📍 GAME_ENDED_RECEIVED {"player":"${payload.winner?.name}","winningType":"${payload.winningType}"}`);
       await this.recordGameResult(payload);
     };
     globalEventEmitter.on('GAME_ENDED', this.gameEndedListener);
@@ -45,8 +43,6 @@ export class MatchService {
       if (!this.matchId) {
         throw new Error('[MATCH-SERVICE] matchId is required. Call startNewMatch() before initGame().');
       }
-
-      console.log(`LOG  [MATCH-SERVICE] 📍 RECORD_GAME_START {"expectedMatchId":"${this.matchId}"}`);
 
       // Obtenir le match actif et le setId
       const activeMatch = await this.storage.getActiveMatch();
