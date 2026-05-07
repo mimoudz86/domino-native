@@ -69,58 +69,57 @@ export class MatchService {
       await globalEventEmitter.emit('GAME_SAVED', { gameId, matchId: this.matchId, gameData, setData });
 
 
-      // Récupérer SEULEMENT les games du set actuel pour vérifier si le set est terminé
+      // Récupérer tous les games pour plus tard
       const allGames = await this.storage.getGamesForMatch(this.matchId);
-      const currentSetGames = allGames.filter(g => (g.set_number || 1) === activeMatch.currentSet);
-
-      // Vérifier si le set actuel est fini (basé SEULEMENT sur les games du set)
-      const setFinished = isSetFinished(currentSetGames, activeMatch.config.mode, activeMatch.config.maxPoints);
-      const isLastSet = activeMatch.currentSet >= activeMatch.config.numSets;
-
-      console.log(`LOG  [MATCH-SERVICE] 🔍 SET_FINISHED_CHECK {"setFinished":${setFinished},"currentSet":${activeMatch.currentSet},"numSets":${activeMatch.config.numSets},"isLastSet":${isLastSet},"gamesInSet":${currentSetGames.length}}`);
-      console.log(`LOG  [MATCH-SERVICE] 📐 IS_LAST_SET_CALC {"formula":"${activeMatch.currentSet} >= ${activeMatch.config.numSets}","result":${isLastSet}}`);
 
       let matchFinished = false;
       let currentSetForServer = activeMatch.currentSet;
 
-      // LOGIQUE: Vérifier si le set courant est fini
+      // Enregistrer le set (scores + gagnant) - appelé pour chaque game
+      await this.storage.recordToSet(this.matchId, activeMatch.currentSet);
+
+      // Refetcher les données du set pour vérifier si set est fini
+      const updatedSetData = await this.storage.getSetByGameId(gameId);
+      const setFinished = updatedSetData?.set_finished === 1;
+      const isLastSet = activeMatch.currentSet >= activeMatch.config.numSets;
+
+      console.log(`LOG  [MATCH-SERVICE] 🔍 SET_FINISHED_CHECK {"setFinished":${setFinished},"currentSet":${activeMatch.currentSet},"numSets":${activeMatch.config.numSets},"isLastSet":${isLastSet}}`);
+
+      // LOGIQUE: Si le set est fini
       if (setFinished) {
         console.log(`LOG  [MATCH-SERVICE] 🎯 SET_FINISHED {"currentSet":${activeMatch.currentSet}}`);
 
-        // Enregistrer le set (scores + gagnant)
-        await this.storage.recordToSet(this.matchId, activeMatch.currentSet);
+        // Vérifier si tous les sets du match sont finis
+        const numSetsFinished = await this.storage.countFinishedSets(this.matchId);
+        const allSetsFini = numSetsFinished >= activeMatch.config.numSets;
 
-        if (isLastSet) {
-          // Dernier set fini → vérifier si match est fini
-          console.log(`LOG  [MATCH-SERVICE] 🌟 LAST_SET_FINISHED {"currentSet":${activeMatch.currentSet}}`);
-          const numSetsFinished = await this.storage.countFinishedSets(this.matchId);
-          matchFinished = isMatchFinished(numSetsFinished, activeMatch.config.numSets);
-          console.log(`LOG  [MATCH-SERVICE] 📊 MATCH_FINISHED_CHECK {"numSetsFinished":${numSetsFinished},"numSets":${activeMatch.config.numSets},"matchFinished":${matchFinished}}`);
+        console.log(`LOG  [MATCH-SERVICE] 📊 SETS_FINISHED_COUNT {"numSetsFinished":${numSetsFinished},"numSets":${activeMatch.config.numSets},"allSetsFini":${allSetsFini}}`);
 
-          if (matchFinished) {
-            const winner = getMatchWinner(allGames, activeMatch.config.mode, activeMatch.config.maxPoints);
-            // Utiliser recordToMatch qui s'occupe de déterminer le winner et marquer comme fini
-            await this.storage.recordToMatch(this.matchId, allGames, activeMatch.config);
+        if (allSetsFini) {
+          // Tous les sets sont finis → match est fini
+          matchFinished = true;
+          console.log(`LOG  [MATCH-SERVICE] 🏆 MATCH_IS_FINISHED {"matchId":"${this.matchId}"}`);
 
-            // Émettre événement pour que le store crée automatiquement un nouveau match
-            console.log(`LOG  [MATCH-SERVICE] 📢 EMITTING_MATCH_COMPLETED {"matchId":"${this.matchId}"}`);
-            await globalEventEmitter.emit('MATCH_COMPLETED', {
-              matchId: this.matchId,
-              winner,
-              config: activeMatch.config
-            });
-          }
-        } else {
-          // Set intermédiaire fini → passer au suivant
-          console.log(`LOG  [MATCH-SERVICE] 🔄 INTERMEDIATE_SET_FINISHED_TRANSITIONING {"currentSet":${activeMatch.currentSet}}`);
+          const winner = getMatchWinner(allGames, activeMatch.config.mode, activeMatch.config.maxPoints);
+          await this.storage.recordToMatch(this.matchId, allGames, activeMatch.config);
+
+          // Émettre événement
+          console.log(`LOG  [MATCH-SERVICE] 📢 EMITTING_MATCH_COMPLETED {"matchId":"${this.matchId}"}`);
+          await globalEventEmitter.emit('MATCH_COMPLETED', {
+            matchId: this.matchId,
+            winner,
+            config: activeMatch.config
+          });
+        } else if (!isLastSet) {
+          // Set fini mais pas le dernier → passer au set suivant
+          console.log(`LOG  [MATCH-SERVICE] 🔄 MOVING_TO_NEXT_SET {"currentSet":${activeMatch.currentSet}}`);
           await this.storage.nextSet(this.matchId);
-          // Récupérer le nouveau currentSet après activation du set suivant
           const updatedMatch = await this.storage.getActiveMatch(this.matchId);
           currentSetForServer = updatedMatch?.currentSet || activeMatch.currentSet;
           console.log(`LOG  [MATCH-SERVICE] 📈 SET_TRANSITION_DONE {"previousSet":${activeMatch.currentSet},"newSet":${currentSetForServer}}`);
         }
       } else {
-        console.log(`LOG  [MATCH-SERVICE] ⏸️  SET_NOT_FINISHED_YET {"currentSet":${activeMatch.currentSet},"gamesInSet":${currentSetGames.length}}`);
+        console.log(`LOG  [MATCH-SERVICE] ⏸️  SET_NOT_FINISHED_YET {"currentSet":${activeMatch.currentSet}}`);
       }
 
       console.log(`LOG  [MATCH-SERVICE] ✅ GAME_RECORDED {"gameId":"${gameId}","gameIndex":${this.gameIndex},"setFinished":${setFinished},"matchFinished":${matchFinished}}`)

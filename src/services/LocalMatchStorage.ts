@@ -987,9 +987,9 @@ export class LocalMatchStorage implements IMatchStorage {
       const db = await this.getDb();
       const now = Date.now();
 
-      // Step 1: Récupérer le mode du match
+      // Step 1: Récupérer le mode et maxPoints du match
       const match = await db.getFirstAsync<any>(
-        'SELECT mode FROM matches WHERE match_id = ?',
+        'SELECT mode, max_points FROM matches WHERE match_id = ?',
         [matchId]
       );
 
@@ -997,6 +997,8 @@ export class LocalMatchStorage implements IMatchStorage {
         console.error(`[STORAGE] ❌ Match ${matchId} not found for recordToSet`);
         return;
       }
+
+      const maxPoints = match.max_points;
 
       // Step 2: Récupérer le set_id
       const setRecord = await db.getFirstAsync<any>(
@@ -1027,26 +1029,29 @@ export class LocalMatchStorage implements IMatchStorage {
           scores[3] += g.p3_score || 0;
         });
 
-        // Step 5: Déterminer le winner du set
+        // Step 5: Déterminer le winner du set et vérifier si set est fini
         let maxScore = Math.max(...scores);
         const winnerId = scores.indexOf(maxScore);
+        const setIsFinished = maxScore >= maxPoints ? 1 : 0;
 
         // Step 6: Sauvegarder le set avec ses scores finaux
         await db.runAsync(
-          `UPDATE sets SET 
+          `UPDATE sets SET
             p0_score = ?, p1_score = ?, p2_score = ?, p3_score = ?,
-            winner_id = ?, winner_name = ?, set_finished = 1, ended_at = ?
+            winner_id = ?, winner_name = ?, set_finished = ?, ended_at = ?
            WHERE set_id = ?`,
-          [scores[0], scores[1], scores[2], scores[3], winnerId, `Player ${winnerId}`, now, setId]
+          [scores[0], scores[1], scores[2], scores[3], winnerId, `Player ${winnerId}`, setIsFinished, setIsFinished ? now : null, setId]
         );
 
-        // Step 7: Incrémenter sets_won du gagnant
-        await db.runAsync(
-          `UPDATE matches SET p${winnerId}_sets_won = p${winnerId}_sets_won + 1 WHERE match_id = ?`,
-          [matchId]
-        );
+        // Step 7: Incrémenter sets_won du gagnant SEULEMENT si set est fini
+        if (setIsFinished) {
+          await db.runAsync(
+            `UPDATE matches SET p${winnerId}_sets_won = p${winnerId}_sets_won + 1 WHERE match_id = ?`,
+            [matchId]
+          );
+        }
 
-        console.log(`LOG  [STORAGE] 📝 RECORD_TO_SET_INDIVIDUAL {"matchId":"${matchId}","setNumber":${setNumber},"winnerId":${winnerId},"scores":${JSON.stringify(scores)}}`);
+        console.log(`LOG  [STORAGE] 📝 RECORD_TO_SET_INDIVIDUAL {"matchId":"${matchId}","setNumber":${setNumber},"winnerId":${winnerId},"scores":${JSON.stringify(scores)},"setFinished":${setIsFinished}}`);
       } else {
         // Step 4: Agréger les scores du set (teams mode)
         let teamVScore = 0;
@@ -1057,32 +1062,36 @@ export class LocalMatchStorage implements IMatchStorage {
           teamHScore += (g.p1_score || 0) + (g.p3_score || 0);
         });
 
-        // Step 5: Déterminer le winner du set
+        // Step 5: Déterminer le winner du set et vérifier si set est fini
         const winnerTeam = teamVScore > teamHScore ? 'V' : 'H';
+        const winnerScore = winnerTeam === 'V' ? teamVScore : teamHScore;
+        const setIsFinished = winnerScore >= maxPoints ? 1 : 0;
 
         // Step 6: Sauvegarder le set avec ses scores finaux
         await db.runAsync(
-          `UPDATE sets SET 
+          `UPDATE sets SET
             teamV_score = ?, teamH_score = ?,
-            winner_id = ?, winner_name = ?, set_finished = 1, ended_at = ?
+            winner_id = ?, winner_name = ?, set_finished = ?, ended_at = ?
            WHERE set_id = ?`,
-          [teamVScore, teamHScore, winnerTeam === 'V' ? 0 : 1, `Team ${winnerTeam}`, now, setId]
+          [teamVScore, teamHScore, winnerTeam === 'V' ? 0 : 1, `Team ${winnerTeam}`, setIsFinished, setIsFinished ? now : null, setId]
         );
 
-        // Step 7: Incrémenter sets_won de l'équipe gagnante
-        if (winnerTeam === 'V') {
-          await db.runAsync(
-            'UPDATE matches SET teamV_sets_won = teamV_sets_won + 1 WHERE match_id = ?',
-            [matchId]
-          );
-        } else {
-          await db.runAsync(
-            'UPDATE matches SET teamH_sets_won = teamH_sets_won + 1 WHERE match_id = ?',
-            [matchId]
-          );
+        // Step 7: Incrémenter sets_won de l'équipe gagnante SEULEMENT si set est fini
+        if (setIsFinished) {
+          if (winnerTeam === 'V') {
+            await db.runAsync(
+              'UPDATE matches SET teamV_sets_won = teamV_sets_won + 1 WHERE match_id = ?',
+              [matchId]
+            );
+          } else {
+            await db.runAsync(
+              'UPDATE matches SET teamH_sets_won = teamH_sets_won + 1 WHERE match_id = ?',
+              [matchId]
+            );
+          }
         }
 
-        console.log(`LOG  [STORAGE] 📝 RECORD_TO_SET_TEAMS {"matchId":"${matchId}","setNumber":${setNumber},"winner":"${winnerTeam}","teamV":${teamVScore},"teamH":${teamHScore}}`);
+        console.log(`LOG  [STORAGE] 📝 RECORD_TO_SET_TEAMS {"matchId":"${matchId}","setNumber":${setNumber},"winner":"${winnerTeam}","teamV":${teamVScore},"teamH":${teamHScore},"setFinished":${setIsFinished}}`);
       }
     } catch (error) {
       console.error('[STORAGE] Error in recordToSet:', error);

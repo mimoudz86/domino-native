@@ -145,8 +145,6 @@ export const useGameStore = create<GameStoreState>((set, get) => ({
 
     // Listener pour GAME_SAVED - récupérer les données du game et du set pour afficher dans le modal
     const handleGameSaved = (payload: any) => {
-      console.log(`LOG  [GAME-STORE] 💾 GAME_SAVED_RECEIVED gameData:`, payload.gameData);
-      console.log(`LOG  [GAME-STORE] 💾 GAME_SAVED_RECEIVED setData:`, payload.setData);
       set({
         lastGameData: payload.gameData,
         currentGameId: payload.gameId,
