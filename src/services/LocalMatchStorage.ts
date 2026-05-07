@@ -131,7 +131,7 @@ export class LocalMatchStorage implements IMatchStorage {
       // Ignore errors if tables don't exist
     }
 
-    // Table matches — configuration du match + comptage des sets gagnés
+    // Table matches — configuration du match + pointeur set courant + comptage des sets gagnés
     try {
       await db.execAsync(`
         CREATE TABLE matches (
@@ -139,16 +139,11 @@ export class LocalMatchStorage implements IMatchStorage {
           mode TEXT NOT NULL,
           max_points INTEGER NOT NULL,
           num_sets INTEGER NOT NULL DEFAULT 1,
+          current_set_number INTEGER NOT NULL DEFAULT 1,
           started_at INTEGER NOT NULL,
           ended_at INTEGER,
           match_finished INTEGER NOT NULL DEFAULT 0,
           winner TEXT,
-          p0_total_points INTEGER NOT NULL DEFAULT 0,
-          p1_total_points INTEGER NOT NULL DEFAULT 0,
-          p2_total_points INTEGER NOT NULL DEFAULT 0,
-          p3_total_points INTEGER NOT NULL DEFAULT 0,
-          teamV_total_points INTEGER NOT NULL DEFAULT 0,
-          teamH_total_points INTEGER NOT NULL DEFAULT 0,
           p0_sets_won INTEGER NOT NULL DEFAULT 0,
           p1_sets_won INTEGER NOT NULL DEFAULT 0,
           p2_sets_won INTEGER NOT NULL DEFAULT 0,
@@ -173,7 +168,6 @@ export class LocalMatchStorage implements IMatchStorage {
           started_at INTEGER NOT NULL,
           ended_at INTEGER,
           set_finished INTEGER NOT NULL DEFAULT 0,
-          is_active INTEGER NOT NULL DEFAULT 0,
           winner_id INTEGER,
           winner_name TEXT,
           p0_score INTEGER NOT NULL DEFAULT 0,
