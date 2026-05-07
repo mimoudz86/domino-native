@@ -32,6 +32,9 @@ export interface IGameStore {
   // Game end modal state
   gameEnded: boolean;
   lastGameData: any | null;
+  currentSetId: string | null;
+  currentGameId: string | null;
+  currentSetData: any | null;
 
   // ═══════════════════════════════════════════
   // ACTIONS (Appelées par les composants)
