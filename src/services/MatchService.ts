@@ -8,6 +8,7 @@ export class MatchService {
   private matchId: string;
   private gameIndex: number = 0;
   private serverUrl = 'http://192.168.117.186:3000'; // Backend server
+  private gameEndedListener: ((payload: any) => Promise<void>) | null = null;
 
   constructor(private storage: IMatchStorage, matchId: string, startGameIndex: number = 0) {
     this.matchId = matchId;
@@ -18,10 +19,19 @@ export class MatchService {
 
   private setupListeners(): void {
     console.log(`LOG  [MATCH-SERVICE] 👂 LISTENER_SETUP for GAME_ENDED`);
-    globalEventEmitter.on('GAME_ENDED', async (payload) => {
+    this.gameEndedListener = async (payload: any) => {
       console.log(`LOG  [MATCH-SERVICE] 📍 GAME_ENDED_RECEIVED {"player":"${payload.winner?.name}","winningType":"${payload.winningType}"}`);
       await this.recordGameResult(payload);
-    });
+    };
+    globalEventEmitter.on('GAME_ENDED', this.gameEndedListener);
+  }
+
+  cleanup(): void {
+    if (this.gameEndedListener) {
+      console.log(`LOG  [MATCH-SERVICE] 🧹 CLEANUP - removing GAME_ENDED listener`);
+      globalEventEmitter.off('GAME_ENDED', this.gameEndedListener);
+      this.gameEndedListener = null;
+    }
   }
 
   async recordGameResult(payload: any): Promise<void> {
@@ -68,8 +78,20 @@ export class MatchService {
         set_number: activeMatch.currentSet
       };
 
-      // Sauvegarder le game avec setId
-      await this.storage.saveGame(gameId, this.matchId, this.gameIndex, rawGame, setId);
+      // Calculer les points gagnés pour chaque joueur
+      const earnedPoints = calcIndividualScores([rawGame]);
+      console.log(`LOG  [MATCH-SERVICE] 🎯 EARNED_POINTS {"p0":${earnedPoints[0] || 0},"p1":${earnedPoints[1] || 0},"p2":${earnedPoints[2] || 0},"p3":${earnedPoints[3] || 0}}`);
+
+      // Sauvegarder le game avec pips restants et points gagnés
+      await this.storage.saveGame(gameId, this.matchId, this.gameIndex, rawGame, setId, earnedPoints);
+
+      // Fetcher les données du game sauvegardé et du set
+      const gameData = await this.storage.getLastGame(gameId);
+      const setData = await this.storage.getLastSetData(this.matchId);
+
+      // Émettre l'événement GAME_SAVED avec le gameId et les données pour que le frontend puisse les afficher
+      console.log(`LOG  [MATCH-SERVICE] 📤 GAME_SAVED {"gameId":"${gameId}"}`);
+      await globalEventEmitter.emit('GAME_SAVED', { gameId, matchId: this.matchId, gameData, setData });
 
       // Mettre à jour les totaux de points du match
       await this.storage.updateMatchScoreTotals(this.matchId, activeMatch.config.mode);
@@ -136,9 +158,10 @@ export class MatchService {
       // Envoyer la mise à jour du match au serveur
       await this.sendMatchUpdateToServer(activeMatch.config, allGames.length, currentSetForServer, matchFinished);
 
-      // Émettre l'événement de mise à jour
+      // Émettre l'événement de mise à jour avec gameId
       const updatedMatchState = await this.storage.getMatchState();
-      await globalEventEmitter.emit('MATCH_UPDATED', updatedMatchState);
+      console.log(`LOG  [MATCH-SERVICE] 📢 EMITTING_MATCH_UPDATED {"matchId":"${this.matchId}","gameId":"${gameId}"}`);
+      await globalEventEmitter.emit('MATCH_UPDATED', { ...updatedMatchState, gameId });
     } catch (error) {
       console.error('[MATCH-SERVICE] Error recording game:', error);
     }

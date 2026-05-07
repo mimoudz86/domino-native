@@ -191,7 +191,7 @@ export class LocalMatchStorage implements IMatchStorage {
       console.error('[STORAGE] Error creating sets table:', error);
     }
 
-    // Table games — données BRUTES (pips restants, pas les pips gagnés)
+    // Table games — pips restants ET points gagnés
     try {
       await db.execAsync(`
         CREATE TABLE games (
@@ -199,6 +199,10 @@ export class LocalMatchStorage implements IMatchStorage {
           match_id TEXT NOT NULL,
           set_id TEXT NOT NULL,
           game_index INTEGER NOT NULL,
+          p0_remainingpoints INTEGER NOT NULL DEFAULT 0,
+          p1_remainingpoints INTEGER NOT NULL DEFAULT 0,
+          p2_remainingpoints INTEGER NOT NULL DEFAULT 0,
+          p3_remainingpoints INTEGER NOT NULL DEFAULT 0,
           p0_score INTEGER NOT NULL DEFAULT 0,
           p1_score INTEGER NOT NULL DEFAULT 0,
           p2_score INTEGER NOT NULL DEFAULT 0,
@@ -330,13 +334,14 @@ export class LocalMatchStorage implements IMatchStorage {
     }
   }
 
-  // Sauvegarder un game avec les données BRUTES
+  // Sauvegarder un game avec les pips restants et les points gagnés
   async saveGame(
     gameId: string,
     matchId: string,
     gameIndex: number,
     rawGame: RawGame,
-    setId: string
+    setId: string,
+    earnedPoints: Record<number, number>
   ): Promise<void> {
     try {
       const db = await this.getDb();
@@ -344,11 +349,12 @@ export class LocalMatchStorage implements IMatchStorage {
       await db.runAsync(
         `INSERT INTO games (
           game_id, match_id, set_id, game_index,
+          p0_remainingpoints, p1_remainingpoints, p2_remainingpoints, p3_remainingpoints,
           p0_score, p1_score, p2_score, p3_score,
           p0_name, p1_name, p2_name, p3_name,
           p0_type, p1_type, p2_type, p3_type,
           winner_id, winner_name, winning_type, started_at, ended_at
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
         [
           gameId,
           matchId,
@@ -358,6 +364,10 @@ export class LocalMatchStorage implements IMatchStorage {
           rawGame.p1_score,
           rawGame.p2_score,
           rawGame.p3_score,
+          earnedPoints[0] || 0,
+          earnedPoints[1] || 0,
+          earnedPoints[2] || 0,
+          earnedPoints[3] || 0,
           rawGame.p0_name,
           rawGame.p1_name,
           rawGame.p2_name,
@@ -412,6 +422,52 @@ export class LocalMatchStorage implements IMatchStorage {
     } catch (error) {
       console.error('[STORAGE] Error getting last game index:', error);
       return 0;
+    }
+  }
+
+  async getLastGame(gameId: string): Promise<{
+    p0_score: number;
+    p1_score: number;
+    p2_score: number;
+    p3_score: number;
+    p0_name: string;
+    p1_name: string;
+    p2_name: string;
+    p3_name: string;
+    winner_id: number;
+    winner_name: string;
+  } | null> {
+    try {
+      const db = await this.getDb();
+      const game = await db.getFirstAsync<any>(
+        `SELECT p0_remainingpoints, p1_remainingpoints, p2_remainingpoints, p3_remainingpoints,
+                p0_score, p1_score, p2_score, p3_score,
+                p0_name, p1_name, p2_name, p3_name,
+                winner_id, winner_name
+         FROM games
+         WHERE game_id = ?`,
+        [gameId]
+      );
+
+      console.log(`[STORAGE] 📋 getLastGame(${gameId}):`, game);
+
+      if (!game) return null;
+
+      return {
+        p0_score: game.p0_score,
+        p1_score: game.p1_score,
+        p2_score: game.p2_score,
+        p3_score: game.p3_score,
+        p0_name: game.p0_name,
+        p1_name: game.p1_name,
+        p2_name: game.p2_name,
+        p3_name: game.p3_name,
+        winner_id: game.winner_id,
+        winner_name: game.winner_name,
+      };
+    } catch (error) {
+      console.error('[STORAGE] Error getting last game:', error);
+      return null;
     }
   }
 
@@ -973,6 +1029,28 @@ export class LocalMatchStorage implements IMatchStorage {
       };
     } catch (error) {
       console.error('[STORAGE] Error loading match state by ID:', error);
+      return null;
+    }
+  }
+
+  async getLastSetData(matchId: string): Promise<any> {
+    try {
+      const db = await this.getDb();
+
+      const setData = await db.getFirstAsync<any>(
+        `SELECT set_id, set_number, p0_score, p1_score, p2_score, p3_score,
+                teamV_score, teamH_score, winner_id, winner_name, set_finished
+         FROM sets
+         WHERE match_id = ?
+         ORDER BY set_number DESC
+         LIMIT 1`,
+        [matchId]
+      );
+
+      console.log(`LOG  [STORAGE] 📊 GET_LAST_SET_DATA {"matchId":"${matchId}","setNumber":${setData?.set_number},"p0":${setData?.p0_score},"p1":${setData?.p1_score},"p2":${setData?.p2_score},"p3":${setData?.p3_score}}`);
+      return setData;
+    } catch (error) {
+      console.error('[STORAGE] Error getting last set data:', error);
       return null;
     }
   }

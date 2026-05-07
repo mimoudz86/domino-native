@@ -5,7 +5,7 @@ import type { MatchConfig } from '../types/MatchConfig';
 export interface IMatchStorage {
   // Match management
   createMatch(matchId: string, config: MatchConfig): Promise<void>;
-  saveGame(gameId: string, matchId: string, gameIndex: number, rawGame: RawGame, setId: string): Promise<void>;
+  saveGame(gameId: string, matchId: string, gameIndex: number, rawGame: RawGame, setId: string, earnedPoints: Record<number, number>): Promise<void>;
   updateMatchScoreTotals(matchId: string, mode: ScoringMode): Promise<void>;
   finishMatch(matchId: string, winner: MatchWinner): Promise<void>;
   nextSet(matchId: string): Promise<void>;
