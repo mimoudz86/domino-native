@@ -714,6 +714,20 @@ export class LocalMatchStorage implements IMatchStorage {
     }
   }
 
+  async isMatchFinished(matchId: string): Promise<boolean> {
+    try {
+      const db = await this.getDb();
+      const match = await db.getFirstAsync<{ match_finished: number }>(
+        'SELECT match_finished FROM matches WHERE match_id = ?',
+        [matchId]
+      );
+      return match?.match_finished === 1;
+    } catch (error) {
+      console.error('[STORAGE] Error checking if match is finished:', error);
+      return false;
+    }
+  }
+
   // Récupérer tous les matches avec leurs détails pour les stats (avec index et scores par set)
   async getAllMatchesStats(): Promise<any[]> {
     try {
@@ -969,6 +983,7 @@ export class LocalMatchStorage implements IMatchStorage {
 
   async recordToSet(matchId: string, setNumber: number): Promise<void> {
     try {
+      console.log(`LOG  [STORAGE] 🔴 RECORD_TO_SET_START {"matchId":"${matchId}","setNumber":${setNumber}}`);
       const db = await this.getDb();
       const now = Date.now();
 
@@ -1081,6 +1096,8 @@ export class LocalMatchStorage implements IMatchStorage {
     config: any
   ): Promise<void> {
     try {
+      console.log(`LOG  [STORAGE] 🟢 RECORD_TO_GAME_START {"matchId":"${matchId}","setId":"${setId}","gameIndex":${gameIndex},"mode":"${config.mode}"}`);
+
       // Step 1: Construire RawGame à partir du payload
       const rawGame: RawGame = {
         p0_pips_remaining: payload.rawScores.p0,
@@ -1123,6 +1140,7 @@ export class LocalMatchStorage implements IMatchStorage {
 
   async recordToMatch(matchId: string, allGames: RawGame[], config: any): Promise<void> {
     try {
+      console.log(`LOG  [STORAGE] 🔵 RECORD_TO_MATCH_START {"matchId":"${matchId}","totalGames":${allGames.length},"mode":"${config.mode}","maxPoints":${config.maxPoints}}`);
       const db = await this.getDb();
       const now = Date.now();
 

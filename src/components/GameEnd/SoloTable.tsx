@@ -8,11 +8,6 @@ interface SoloTableProps {
 }
 
 export function SoloTable({ lastGameData, currentSetData, players = [] }: SoloTableProps) {
-  console.log('[SOLO-TABLE] lastGameData:', lastGameData);
-  console.log('[SOLO-TABLE] currentSetData:', currentSetData);
-  console.log('[SOLO-TABLE] players param:', players?.length, players);
-  console.log('[SOLO-TABLE] players[0]?.name:', players[0]?.name);
-
   const getPlayerGameScore = (playerId: number) => {
     const scoreKey = `p${playerId}_score`;
     return lastGameData?.[scoreKey] ?? 0;
@@ -149,6 +144,38 @@ const styles = StyleSheet.create({
   },
   winnerScore: {
     color: '#D4AF37',
+    fontWeight: 'bold',
+    fontSize: 16,
+  },
+  setScoresSection: {
+    marginBottom: 15,
+    padding: 10,
+    backgroundColor: 'rgba(100, 150, 200, 0.1)',
+    borderRadius: 8,
+    borderLeftWidth: 3,
+    borderLeftColor: '#6496c8',
+  },
+  setSectionTitle: {
+    color: '#fff',
+    fontWeight: 'bold',
+    fontSize: 14,
+    marginBottom: 8,
+  },
+  setScoresRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-around',
+  },
+  setScoreItem: {
+    alignItems: 'center',
+    flex: 1,
+  },
+  setPlayerName: {
+    color: '#999',
+    fontSize: 12,
+    marginBottom: 4,
+  },
+  setScoreValue: {
+    color: '#6496c8',
     fontWeight: 'bold',
     fontSize: 16,
   },

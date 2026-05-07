@@ -6,31 +6,32 @@ export interface IMatchStorage {
   // Match management
   createMatch(matchId: string, config: MatchConfig): Promise<void>;
   saveGame(gameId: string, matchId: string, gameIndex: number, rawGame: RawGame, setId: string, earnedPoints: Record<number, number>): Promise<void>;
-  updateMatchScoreTotals(matchId: string, mode: ScoringMode): Promise<void>;
   finishMatch(matchId: string, winner: MatchWinner): Promise<void>;
   nextSet(matchId: string): Promise<void>;
   getActiveSetId(matchId: string): Promise<string | null>;
 
+  // Recording hierarchy (new system)
+  recordToGame(payload: any, matchId: string, setId: string, gameIndex: number, config: MatchConfig): Promise<void>;
+  recordToSet(matchId: string, setNumber: number): Promise<void>;
+  recordToMatch(matchId: string, allGames: RawGame[], config: MatchConfig): Promise<void>;
+
   // Queries
   getMatchState(): Promise<MatchState>;
-  getMatchStateById(matchId: string): Promise<MatchState | null>;
   getActiveMatch(matchId?: string): Promise<{ matchId: string; config: MatchConfig; currentSet: number } | null>;
   getGamesForMatch(matchId: string): Promise<RawGame[]>;
   getLastGameIndex(matchId: string): Promise<number>;
   getLastGame(gameId: string): Promise<any>;
   getLastSetData(matchId: string): Promise<any>;
   getAllGames(): Promise<GameResult[]>;
-  getMatchScore(matchId: string, mode: ScoringMode): Promise<Record<number, number> | { teamV: number; teamH: number } | null>;
-  getMatchTotals(matchId: string): Promise<{ p0_total: number; p1_total: number; p2_total: number; p3_total: number; teamV_total: number; teamH_total: number } | null>;
   getAllSetsData(matchId: string): Promise<any[]>;
   countFinishedSets(matchId: string): Promise<number>;
-  finishSet(setNumber: number, matchId: string): Promise<void>;
 
   // Utilities
   reset(mode: ScoringMode): Promise<void>;
   cleanupDatabase(): Promise<void>;
   getAllMatchesWithIndex(): Promise<any[]>;
   getAllMatchesStats(): Promise<any[]>;
+  isMatchFinished(matchId: string): Promise<boolean>;
 
   // Fetch current game/set/match data by gameId
   getGameWithSetAndMatch(gameId: string): Promise<{ game: any; set: any; match: any } | null>;

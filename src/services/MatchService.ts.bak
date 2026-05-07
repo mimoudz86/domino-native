@@ -54,20 +54,60 @@ export class MatchService {
       const setId = await this.storage.getActiveSetId(this.matchId);
       if (!setId) throw new Error('Active set not found');
 
-      // Mode nouveau: utiliser recordToGame qui s'occupe de tout
+      // Mode nouveau: utiliser rawScores
       this.gameIndex++;
-      await this.storage.recordToGame(payload, this.matchId, setId, this.gameIndex, activeMatch.config);
-
-      // Construire gameId pour fetcher les données
       const gameId = `LOCAL_G_${setId}_${this.gameIndex}`;
 
+      // Construire RawGame from payload
+      const rawGame: RawGame = {
+        p0_pips_remaining: payload.rawScores.p0,
+        p1_pips_remaining: payload.rawScores.p1,
+        p2_pips_remaining: payload.rawScores.p2,
+        p3_pips_remaining: payload.rawScores.p3,
+        p0_name: payload.gameEnd?.individual?.players?.[0]?.name || 'Player 0',
+        p1_name: payload.gameEnd?.individual?.players?.[1]?.name || 'Player 1',
+        p2_name: payload.gameEnd?.individual?.players?.[2]?.name || 'Player 2',
+        p3_name: payload.gameEnd?.individual?.players?.[3]?.name || 'Player 3',
+        p0_type: 'human', // TODO: from config
+        p1_type: 'human',
+        p2_type: 'human',
+        p3_type: 'human',
+        winner_id: payload.winner.id,
+        winner_name: payload.winner.name,
+        winning_type: payload.winningType,
+        set_number: activeMatch.currentSet
+      };
+
+      // Valider que les rawScores ne sont pas vides
+      const totalPips = rawGame.p0_pips_remaining + rawGame.p1_pips_remaining + rawGame.p2_pips_remaining + rawGame.p3_pips_remaining;
+      if (totalPips === 0) {
+        console.warn(`LOG  [MATCH-SERVICE] ⚠️ WARNING: All remaining pips are 0 - game may be invalid`);
+      }
+
+      // Calculer les points gagnés (UNE SEULE FOIS ici - selon le mode)
+      let earnedPoints: any;
+      if (activeMatch.config.mode === 'individual') {
+        earnedPoints = calcIndividualScores([rawGame]);
+        console.log(`LOG  [MATCH-SERVICE] 🎯 EARNED_POINTS_INDIVIDUAL {"p0":${earnedPoints[0] || 0},"p1":${earnedPoints[1] || 0},"p2":${earnedPoints[2] || 0},"p3":${earnedPoints[3] || 0}}`);
+      } else {
+        const teamScores = calcTeamScores([rawGame]);
+        earnedPoints = teamScores;
+        console.log(`LOG  [MATCH-SERVICE] 🎯 EARNED_POINTS_TEAMS {"teamV":${earnedPoints.teamV},"teamH":${earnedPoints.teamH}}`);
+      }
+
+      // Sauvegarder le game avec pips restants ET points gagnés
+      await this.storage.saveGame(gameId, this.matchId, this.gameIndex, rawGame, setId, earnedPoints);
+
       // Fetcher les données du game sauvegardé et du set
-      const { game: gameData, set: setData } = await this.storage.getGameWithSetAndMatch(gameId) || {};
+      const gameData = await this.storage.getLastGame(gameId);
+      const setData = await this.storage.getLastSetData(this.matchId);
 
       // Émettre l'événement GAME_SAVED avec le gameId et les données pour que le frontend puisse les afficher
       console.log(`LOG  [MATCH-SERVICE] 📤 GAME_SAVED {"gameId":"${gameId}"}`);
       await globalEventEmitter.emit('GAME_SAVED', { gameId, matchId: this.matchId, gameData, setData });
 
+      // Mettre à jour les totaux de points du match
+      await this.storage.updateMatchScoreTotals(this.matchId, activeMatch.config.mode);
 
       // Récupérer SEULEMENT les games du set actuel pour vérifier si le set est terminé
       const allGames = await this.storage.getGamesForMatch(this.matchId);
@@ -87,8 +127,8 @@ export class MatchService {
       if (setFinished) {
         console.log(`LOG  [MATCH-SERVICE] 🎯 SET_FINISHED {"currentSet":${activeMatch.currentSet}}`);
 
-        // Enregistrer le set (scores + gagnant)
-        await this.storage.recordToSet(this.matchId, activeMatch.currentSet);
+        // Marquer le set comme fini dans la DB
+        await this.storage.finishSet(activeMatch.currentSet, this.matchId);
 
         if (isLastSet) {
           // Dernier set fini → vérifier si match est fini
@@ -99,8 +139,8 @@ export class MatchService {
 
           if (matchFinished) {
             const winner = getMatchWinner(allGames, activeMatch.config.mode, activeMatch.config.maxPoints);
-            // Utiliser recordToMatch qui s'occupe de déterminer le winner et marquer comme fini
-            await this.storage.recordToMatch(this.matchId, allGames, activeMatch.config);
+            await this.storage.finishMatch(this.matchId, winner);
+            console.log(`LOG  [MATCH-SERVICE] 🏆 MATCH_FINISHED {"winner":${JSON.stringify(winner)}}`);
 
             // Émettre événement pour que le store crée automatiquement un nouveau match
             console.log(`LOG  [MATCH-SERVICE] 📢 EMITTING_MATCH_COMPLETED {"matchId":"${this.matchId}"}`);

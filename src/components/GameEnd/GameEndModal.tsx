@@ -17,8 +17,6 @@ interface GameEndModalProps {
 function SoloModeView({ selectedConfig, lastGameData, currentSetData, players, onContinue, onLeave }: any) {
   const displayPlayers = players || [];
 
-  console.log('[GAME-END-MODAL] SoloModeView received currentSetData:', currentSetData);
-
   return (
     <View style={styles.container}>
       {selectedConfig && (

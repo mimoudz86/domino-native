@@ -37,13 +37,14 @@ export function useActiveGameStore(): IGameStore;
 export function useActiveGameStore<T>(selector: (state: IGameStore) => T): T;
 export function useActiveGameStore<T>(selector?: (state: IGameStore) => T): IGameStore | T {
   const context = useContext(GameStoreContext);
+  const store = useGameStore();
 
   // Pour maintenant, on retourne toujours LocalGameStore
   // À l'avenir: retourner ServerGameStore si mode === 'server'
   if (selector) {
-    return useGameStore(selector as any);
+    return selector(store as IGameStore);
   }
-  return useGameStore() as IGameStore;
+  return store as IGameStore;
 }
 
 interface GameStoreProviderProps {

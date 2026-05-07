@@ -45,11 +45,7 @@ export function RNTrainLine({
   // Refs pour chaque slot - pour measureInWindow
   const slotRefs = useRef<Map<number, View>>(new Map()).current;
 
-  if (!slots || !Array.isArray(slots)) {
-    return <View style={styles.line} />;
-  }
-
-  const lineSlots = slots.filter(s => s.line === lineType);
+  const lineSlots = (slots && Array.isArray(slots)) ? slots.filter(s => s.line === lineType) : [];
 
   const visualSlots = useMemo(() => {
     const swapDomino = (d: Domino): Domino => ({
@@ -117,6 +113,10 @@ export function RNTrainLine({
   const isBottomAligned = lineType === 'right_down-position' || lineType === 'lower-line';
 
   const transformStyle = [{ translateX }];
+
+  if (!slots || !Array.isArray(slots) || lineSlots.length === 0) {
+    return <View style={styles.line} />;
+  }
 
   return (
     <View

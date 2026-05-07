@@ -34,6 +34,8 @@ type GameStoreState = IGameStore & {
   selectedConfig: MatchConfig;
   _isInitializing: boolean;
   _dbInitialized: boolean;
+  gameEnded: boolean;
+  lastGameData: any | null;
 };
 
 function generateMatchId(): string {
@@ -171,10 +173,19 @@ export const useGameStore = create<GameStoreState>((set, get) => ({
     }
 
     const storage = new LocalMatchStorage(selectedConfig);
-    const activeMatch = await storage.getActiveMatch(currentMatchId);
+    const match = await storage.getActiveMatch(currentMatchId);
 
-    if (!activeMatch) {
+    if (!match) {
       console.log(`[GAME-STORE] 🔄 MATCH_${currentMatchId} not found, creating NEW match`);
+      get().resetGame();
+      await get().startNewMatch(selectedConfig);
+      return;
+    }
+
+    // Vérifier si le match est fini
+    const isFinished = await storage.isMatchFinished(currentMatchId);
+    if (isFinished) {
+      console.log(`[GAME-STORE] ✅ MATCH_${currentMatchId} is finished, creating NEW match`);
       get().resetGame();
       await get().startNewMatch(selectedConfig);
       return;
@@ -363,19 +374,6 @@ export const useGameStore = create<GameStoreState>((set, get) => ({
   },
 
   // Debug methods
-  debugShowMatchTotals: async () => {
-    const matchService = get().matchService;
-    const currentMatchId = get().currentMatchId;
-    if (matchService && currentMatchId) {
-      const storage = new LocalMatchStorage();
-      const totals = await storage.getMatchTotals(currentMatchId);
-      console.log('[GAME-STORE] 📊 MATCH_TOTALS:', totals);
-      return totals;
-    } else {
-      console.log('[GAME-STORE] No MatchService or matchId initialized');
-      return null;
-    }
-  },
 
   debugExportDatabase: async () => {
     const matchService = get().matchService;
@@ -386,6 +384,16 @@ export const useGameStore = create<GameStoreState>((set, get) => ({
     } else {
       console.log('[GAME-STORE] No MatchService initialized');
       return '{}';
+    }
+  },
+
+  debugShowAllData: async () => {
+    const matchService = get().matchService;
+    if (matchService) {
+      const json = await matchService.exportDatabase();
+      console.log('[GAME-STORE] All match data:', JSON.parse(json));
+    } else {
+      console.log('[GAME-STORE] No MatchService initialized');
     }
   },
 
