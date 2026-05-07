@@ -7,7 +7,6 @@ import { globalEventEmitter } from '../core/EventEmitter';
 export class MatchService {
   private matchId: string;
   private gameIndex: number = 0;
-  private serverUrl = 'http://192.168.117.186:3000'; // Backend server
   private gameEndedListener: ((payload: any) => Promise<void>) | null = null;
 
   constructor(private storage: IMatchStorage, matchId: string, startGameIndex: number = 0) {
@@ -61,10 +60,10 @@ export class MatchService {
 
       // Construire RawGame from payload
       const rawGame: RawGame = {
-        p0_score: payload.rawScores.p0,
-        p1_score: payload.rawScores.p1,
-        p2_score: payload.rawScores.p2,
-        p3_score: payload.rawScores.p3,
+        p0_pips_remaining: payload.rawScores.p0,
+        p1_pips_remaining: payload.rawScores.p1,
+        p2_pips_remaining: payload.rawScores.p2,
+        p3_pips_remaining: payload.rawScores.p3,
         p0_name: payload.gameEnd?.individual?.players?.[0]?.name || 'Player 0',
         p1_name: payload.gameEnd?.individual?.players?.[1]?.name || 'Player 1',
         p2_name: payload.gameEnd?.individual?.players?.[2]?.name || 'Player 2',
@@ -79,16 +78,28 @@ export class MatchService {
         set_number: activeMatch.currentSet
       };
 
-      // Calculer les points gagnés pour chaque joueur
-      const earnedPoints = calcIndividualScores([rawGame]);
-      console.log(`LOG  [MATCH-SERVICE] 🎯 EARNED_POINTS {"p0":${earnedPoints[0] || 0},"p1":${earnedPoints[1] || 0},"p2":${earnedPoints[2] || 0},"p3":${earnedPoints[3] || 0}}`);
+      // Valider que les rawScores ne sont pas vides
+      const totalPips = rawGame.p0_pips_remaining + rawGame.p1_pips_remaining + rawGame.p2_pips_remaining + rawGame.p3_pips_remaining;
+      if (totalPips === 0) {
+        console.warn(`LOG  [MATCH-SERVICE] ⚠️ WARNING: All remaining pips are 0 - game may be invalid`);
+      }
 
-      // Sauvegarder le game avec pips restants et points gagnés
+      // Calculer les points gagnés (UNE SEULE FOIS ici - selon le mode)
+      let earnedPoints: any;
+      if (activeMatch.config.mode === 'individual') {
+        earnedPoints = calcIndividualScores([rawGame]);
+        console.log(`LOG  [MATCH-SERVICE] 🎯 EARNED_POINTS_INDIVIDUAL {"p0":${earnedPoints[0] || 0},"p1":${earnedPoints[1] || 0},"p2":${earnedPoints[2] || 0},"p3":${earnedPoints[3] || 0}}`);
+      } else {
+        const teamScores = calcTeamScores([rawGame]);
+        earnedPoints = teamScores;
+        console.log(`LOG  [MATCH-SERVICE] 🎯 EARNED_POINTS_TEAMS {"teamV":${earnedPoints.teamV},"teamH":${earnedPoints.teamH}}`);
+      }
+
+      // Sauvegarder le game avec pips restants ET points gagnés
       await this.storage.saveGame(gameId, this.matchId, this.gameIndex, rawGame, setId, earnedPoints);
 
       // Fetcher les données du game sauvegardé et du set
-      const gameData = await this.storage.getLastGame(gameId);
-      const setData = await this.storage.getLastSetData(this.matchId);
+      const { game: gameData, set: setData } = await this.storage.getGameWithSetAndMatch(gameId) || {};
 
       // Émettre l'événement GAME_SAVED avec le gameId et les données pour que le frontend puisse les afficher
       console.log(`LOG  [MATCH-SERVICE] 📤 GAME_SAVED {"gameId":"${gameId}"}`);
@@ -96,9 +107,6 @@ export class MatchService {
 
       // Mettre à jour les totaux de points du match
       await this.storage.updateMatchScoreTotals(this.matchId, activeMatch.config.mode);
-
-      // Envoyer au serveur de validation (optionnel, ne bloque pas)
-      await this.sendGameToServer(rawGame, gameId);
 
       // Récupérer SEULEMENT les games du set actuel pour vérifier si le set est terminé
       const allGames = await this.storage.getGamesForMatch(this.matchId);
@@ -156,9 +164,6 @@ export class MatchService {
 
       console.log(`LOG  [MATCH-SERVICE] ✅ GAME_RECORDED {"gameId":"${gameId}","gameIndex":${this.gameIndex},"setFinished":${setFinished},"matchFinished":${matchFinished}}`)
 
-      // Envoyer la mise à jour du match au serveur
-      await this.sendMatchUpdateToServer(activeMatch.config, allGames.length, currentSetForServer, matchFinished);
-
       // Émettre l'événement de mise à jour avec gameId
       const updatedMatchState = await this.storage.getMatchState();
       console.log(`LOG  [MATCH-SERVICE] 📢 EMITTING_MATCH_UPDATED {"matchId":"${this.matchId}","gameId":"${gameId}"}`);
@@ -176,46 +181,10 @@ export class MatchService {
     return this.storage.getAllGames();
   }
 
-  async getFullMatchData(): Promise<any> {
-    const matchState = await this.storage.getMatchState();
-    const games = await this.storage.getAllGames();
-
-    return {
-      matchState: {
-        mode: matchState.mode,
-        maxPoints: matchState.maxPoints,
-        scoreIndividual: matchState.scoreIndividual,
-        scoreTeams: matchState.scoreTeams,
-        matchFinished: matchState.matchFinished,
-        winner: matchState.winner,
-        currentGameNumber: matchState.currentGameNumber,
-      },
-      games: games.map(g => ({
-        gameNumber: g.gameNumber,
-        winnerId: g.winnerId,
-        winnerName: g.winnerName,
-        winningType: g.winningType,
-        individual: g.individual,
-        timestamp: new Date(g.timestamp).toISOString(),
-      })),
-      summary: {
-        totalGames: games.length,
-        matchWinner: matchState.winner,
-        matchFinished: matchState.matchFinished,
-        finalScores: matchState.scoreIndividual,
-      }
-    };
-  }
-
   async resetMatch(mode: ScoringMode): Promise<void> {
     await this.storage.reset(mode);
     const matchState = await this.storage.getMatchState();
     await globalEventEmitter.emit('MATCH_RESET', matchState);
-  }
-
-  async debugLogAllData(): Promise<void> {
-    const data = await this.getFullMatchData();
-    console.log(`LOG  [MATCH-SERVICE] 🔍 DEBUG_FULL_DATA ${JSON.stringify(data, null, 2)}`);
   }
 
   async exportDatabase(): Promise<string> {
@@ -236,85 +205,5 @@ export class MatchService {
     }
   }
 
-  private async sendGameToServer(rawGame: RawGame, gameId: string): Promise<void> {
-    try {
-      console.log(`[MATCH-SERVICE] 🔵 ENTERING_SEND_GAME_TO_SERVER gameId=${gameId}`);
-      console.log(`[MATCH-SERVICE] 🔵 SERVER_URL=${this.serverUrl}`);
-      const payload = {
-        game_id: gameId,
-        match_id: this.matchId,
-        ...rawGame
-      };
-      console.log(`[MATCH-SERVICE] 🔵 PAYLOAD_CREATED, making fetch call to ${this.serverUrl}/api/games`);
 
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 3000);
-
-      const response = await fetch(`${this.serverUrl}/api/games`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload),
-        signal: controller.signal
-      });
-
-      clearTimeout(timeoutId);
-
-      if (!response.ok) {
-        console.warn(`[MATCH-SERVICE] Server responded with ${response.status}`);
-        return;
-      }
-
-      const data = await response.json();
-      console.log(`LOG  [MATCH-SERVICE] 📤 SENT_TO_SERVER {"gameId":"${gameId}","serverResponse":"${data.message}"}`);
-    } catch (error) {
-      console.warn('[MATCH-SERVICE] Could not reach server (this is ok for testing):', error);
-    }
-  }
-
-  private async sendMatchUpdateToServer(config: any, gamesCount: number, currentSet: number, matchFinished: boolean): Promise<void> {
-    try {
-      // Récupérer les données de tous les sets
-      const allSetsData = await this.storage.getAllSetsData(this.matchId);
-      const totals = await this.storage.getMatchTotals(this.matchId);
-
-      const payload = {
-        match_id: this.matchId,
-        mode: config.mode,
-        max_points: config.maxPoints,
-        num_sets: config.numSets,
-        current_set: currentSet,
-        games_count: gamesCount,
-        match_finished: matchFinished ? 1 : 0,
-        sets: allSetsData,
-        p0_total_points: totals?.p0_total || 0,
-        p1_total_points: totals?.p1_total || 0,
-        p2_total_points: totals?.p2_total || 0,
-        p3_total_points: totals?.p3_total || 0,
-        teamV_total_points: totals?.teamV_total || 0,
-        teamH_total_points: totals?.teamH_total || 0,
-        updated_at: new Date().toISOString()
-      };
-
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 3000);
-
-      const response = await fetch(`${this.serverUrl}/api/matches/${this.matchId}`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload),
-        signal: controller.signal
-      });
-
-      clearTimeout(timeoutId);
-
-      if (!response.ok) {
-        console.warn(`[MATCH-SERVICE] Match update failed with ${response.status}`);
-        return;
-      }
-
-      console.log(`LOG  [MATCH-SERVICE] 📤 MATCH_UPDATED_ON_SERVER {"matchId":"${this.matchId}","current_set":${currentSet},"games_count":${gamesCount}}`);
-    } catch (error) {
-      console.warn('[MATCH-SERVICE] Could not reach server for match update:', error);
-    }
-  }
 }

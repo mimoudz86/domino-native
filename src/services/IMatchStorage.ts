@@ -31,4 +31,10 @@ export interface IMatchStorage {
   cleanupDatabase(): Promise<void>;
   getAllMatchesWithIndex(): Promise<any[]>;
   getAllMatchesStats(): Promise<any[]>;
+
+  // Fetch current game/set/match data by gameId
+  getGameWithSetAndMatch(gameId: string): Promise<{ game: any; set: any; match: any } | null>;
+  getGameData(gameId: string): Promise<any>;
+  getSetByGameId(gameId: string): Promise<any>;
+  getMatchByGameId(gameId: string): Promise<any>;
 }

@@ -2,10 +2,10 @@
 // Réutilisables dans React Native ET React Server
 
 export type RawGame = {
-  p0_score: number;
-  p1_score: number;
-  p2_score: number;
-  p3_score: number;
+  p0_pips_remaining: number;
+  p1_pips_remaining: number;
+  p2_pips_remaining: number;
+  p3_pips_remaining: number;
   p0_name: string;
   p1_name: string;
   p2_name: string;
@@ -24,7 +24,7 @@ export type RawGame = {
 export function isDrawGameIndividual(game: RawGame): boolean {
   if (game.winning_type !== 'BLOCKED_GAME') return false;
 
-  const pips = [game.p0_score, game.p1_score, game.p2_score, game.p3_score];
+  const pips = [game.p0_pips_remaining, game.p1_pips_remaining, game.p2_pips_remaining, game.p3_pips_remaining];
   const maxPips = Math.max(...pips);
   const countWithMaxPips = pips.filter(p => p === maxPips).length;
 
@@ -35,8 +35,8 @@ export function isDrawGameIndividual(game: RawGame): boolean {
 export function isDrawGameTeam(game: RawGame): boolean {
   if (game.winning_type !== 'BLOCKED_GAME') return false;
 
-  const teamVPips = [game.p0_score, game.p2_score];
-  const teamHPips = [game.p1_score, game.p3_score];
+  const teamVPips = [game.p0_pips_remaining, game.p2_pips_remaining];
+  const teamHPips = [game.p1_pips_remaining, game.p3_pips_remaining];
 
   for (const vpip of teamVPips) {
     for (const hpip of teamHPips) {
@@ -54,8 +54,8 @@ export function calcIndividualScores(games: RawGame[]): Record<number, number> {
       return acc; // Draw game: pas de points distribués
     }
 
-    const total = g.p0_score + g.p1_score + g.p2_score + g.p3_score;
-    const winnerPips = [g.p0_score, g.p1_score, g.p2_score, g.p3_score][g.winner_id];
+    const total = g.p0_pips_remaining + g.p1_pips_remaining + g.p2_pips_remaining + g.p3_pips_remaining;
+    const winnerPips = [g.p0_pips_remaining, g.p1_pips_remaining, g.p2_pips_remaining, g.p3_pips_remaining][g.winner_id];
     acc[g.winner_id] = (acc[g.winner_id] || 0) + (total - winnerPips);
     return acc;
   }, {} as Record<number, number>);
@@ -72,10 +72,10 @@ export function calcTeamScores(games: RawGame[]): { teamV: number; teamH: number
     const isWinnerV = g.winner_id === 0 || g.winner_id === 2;
     // Si gagnant est de TeamV, TeamH marque les pips des membres de TeamV
     if (isWinnerV) {
-      acc.teamH += g.p1_score + g.p3_score;
+      acc.teamH += g.p1_pips_remaining + g.p3_pips_remaining;
     } else {
       // Si gagnant est de TeamH, TeamV marque les pips des membres de TeamH
-      acc.teamV += g.p0_score + g.p2_score;
+      acc.teamV += g.p0_pips_remaining + g.p2_pips_remaining;
     }
     return acc;
   }, { teamV: 0, teamH: 0 });
@@ -101,14 +101,14 @@ export function isDrawGame(game: RawGame, mode: 'individual' | 'teams'): boolean
 
 // En cas de draw, retourne les pips "perdus" (non distribués)
 export function getDrawGamePips(game: RawGame): { total: number; byPlayer: Record<number, number> } {
-  const total = game.p0_score + game.p1_score + game.p2_score + game.p3_score;
+  const total = game.p0_pips_remaining + game.p1_pips_remaining + game.p2_pips_remaining + game.p3_pips_remaining;
   return {
     total,
     byPlayer: {
-      0: game.p0_score,
-      1: game.p1_score,
-      2: game.p2_score,
-      3: game.p3_score
+      0: game.p0_pips_remaining,
+      1: game.p1_pips_remaining,
+      2: game.p2_pips_remaining,
+      3: game.p3_pips_remaining
     }
   };
 }

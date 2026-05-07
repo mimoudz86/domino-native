@@ -5,7 +5,6 @@ import type { PlayTurnPayload, PlayResponsePayload, TurnUpdatedPayload, PlayerPu
 import type { ILocalEventDispatcher } from '../core/ILocalEventDispatcher';
 import { Board } from './Board';
 import { GamePlayer } from './GamePlayer';
-import { Score } from './Score';
 import { globalEventEmitter } from '../core/EventEmitter';
 
 interface GameEngineConfig {
@@ -437,12 +436,6 @@ export class GameEngine {
       });
 
       if (adapter) {
-        // Calculer les scores finaux
-        const playerScores = Score.calculateAllScores(this.players);
-
-        // Construire l'état du jeu (mode individuel)
-        const gameEnd = Score.buildIndividualGameEndState(playerScores, winner?.id || 0, this.winningType);
-
         // Préparer les données BRUTES (pips restants de chaque joueur)
         const rawScores = {
           p0: this.players[0].getRemainingPips(),
@@ -458,11 +451,12 @@ export class GameEngine {
             name: winner?.name || ''
           },
           winningType: this.winningType,
-          rawScores,
-          gameEnd: {
-            individual: gameEnd
-          }
+          rawScores
         });
+
+
+
+
 
         adapter.emit({
           type: 'GAME_ENDED',
@@ -472,15 +466,7 @@ export class GameEngine {
               name: winner?.name || ''
             },
             winningType: this.winningType,
-            rawScores,
-            scores: this.getPlayers().map(p => ({
-              playerId: p.id,
-              playerName: p.name,
-              score: p.score
-            })),
-            gameEnd: {
-              individual: gameEnd
-            }
+            rawScores
           }
         });
       }
@@ -553,10 +539,9 @@ export class GameEngine {
   }
 
   private calculateScores(): void {
-    const scores = Score.calculateAllScores(this.players);
-    scores.forEach(s => {
-      const player = this.players.find(p => p.id === s.id);
-      if (player) player.score = s.score;
+    this.players.forEach(player => {
+      const pips = player.hand.reduce((sum, d) => sum + d.left + d.right, 0);
+      player.score = pips;
     });
   }
 

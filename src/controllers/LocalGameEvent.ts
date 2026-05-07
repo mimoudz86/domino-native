@@ -90,7 +90,14 @@ export interface GameEndedPayload {
     id: number;
     name: string;
   };
-  scores: {
+  winningType: 'EMPTY_HAND' | 'BLOCKED_GAME';
+  rawScores: {
+    p0: number;
+    p1: number;
+    p2: number;
+    p3: number;
+  };
+  scores?: {
     playerId: number;
     playerName: string;
     score: number;
