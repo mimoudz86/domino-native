@@ -183,16 +183,24 @@ export const useGameStore = create<GameStoreState>((set, get) => ({
       get().resetGame();
       await get().startNewMatch(selectedConfig);
     } else {
-      // Match continue → recréer MatchService avec le même matchId
+      // Match continue → réutiliser le même MatchService
       console.log(`[GAME-STORE] ➡️  CONTINUING match ${currentMatchId}`);
+      const existingMatchService = get().matchService;
+
+      if (existingMatchService) {
+        // Réinitialiser gameIndex pour continuer où on s'était arrêté
+        const lastGameIndex = await storage.getLastGameIndex(currentMatchId);
+        existingMatchService.resetGameIndex(lastGameIndex);
+        console.log(`[GAME-STORE] ♻️  REUSING_MATCHSERVICE {"matchId":"${currentMatchId}","gameIndex":${lastGameIndex}}`);
+      } else {
+        // Fallback: créer un nouveau MatchService si l'ancien n'existe pas
+        console.log(`[GAME-STORE] ⚠️  EXISTING_MATCHSERVICE_NOT_FOUND, creating new one`);
+        const lastGameIndex = await storage.getLastGameIndex(currentMatchId);
+        const matchService = new MatchService(storage, currentMatchId, lastGameIndex);
+        set({ matchService });
+      }
+
       get().resetGame();
-
-      // Recréer MatchService pour le même match
-      const lastGameIndex = await storage.getLastGameIndex(currentMatchId);
-      console.log(`[GAME-STORE] 🔢 LAST_GAME_INDEX=${lastGameIndex}`);
-
-      const matchService = new MatchService(storage, currentMatchId, lastGameIndex);
-      set({ matchService });
     }
   },
 

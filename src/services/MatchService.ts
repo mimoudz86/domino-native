@@ -34,6 +34,11 @@ export class MatchService {
     }
   }
 
+  resetGameIndex(newGameIndex: number): void {
+    this.gameIndex = newGameIndex;
+    console.log(`LOG  [MATCH-SERVICE] 🔄 RESET_GAME_INDEX {"newGameIndex":${newGameIndex}}`);
+  }
+
   async recordGameResult(payload: any): Promise<void> {
     try {
       // Vérifier que matchId existe (le mode legacy est désactivé)
