@@ -52,9 +52,6 @@ export function MobileGameBoard({
     return initialPlayers;
   }, [gameState?.players, gameState]);
 
-  console.log('[MOBILE-GAME-BOARD] players in gameState:', gameState?.players?.length);
-  console.log('[MOBILE-GAME-BOARD] players final before pass:', players?.length);
-
   if (players.length < 4) {
     return (
       <View style={styles.loadingContainer}>

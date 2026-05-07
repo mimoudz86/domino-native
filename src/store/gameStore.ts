@@ -138,7 +138,6 @@ export const useGameStore = create<GameStoreState>((set, get) => ({
     const handleGameEnded = (payload: any) => {
       const currentState = get();
       console.log(`LOG  [GAME-STORE] 🎮 GAME_ENDED_RECEIVED`);
-      console.log(`LOG  [GAME-STORE] 📊 gameState.players:`, currentState.turnState?.players?.length || 0, 'players');
       set({ gameEnded: true });
     };
 
