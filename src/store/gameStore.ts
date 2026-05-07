@@ -318,11 +318,7 @@ export const useGameStore = create<GameStoreState>((set, get) => ({
 
   resetGame: () => {
     clearSlotPositions();
-    // Nettoyer le MatchService listener si nécessaire
-    const oldMatchService = get().matchService;
-    if (oldMatchService) {
-      (oldMatchService as any).cleanup?.();
-    }
+    // NE PAS nettoyer le MatchService listener ici - il doit rester pour les prochains games
     set({
       turnState: null,
       dispatcher: null,
