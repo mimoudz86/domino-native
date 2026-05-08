@@ -79,7 +79,7 @@ export function SoloTable({ lastGameData, currentSetData, players = [] }: SoloTa
                   isWinner ? styles.winnerScore : styles.tableValueCell,
                 ]}
               >
-                0
+                {getSetScore(playerId)}
               </Text>
               <Text
                 style={[
