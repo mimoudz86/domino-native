@@ -30,6 +30,7 @@ type GameStoreState = IGameStore & {
   currentSetId: string | null;
   currentGameId: string | null;
   currentSetData: any | null;
+  currentMatchData: any | null;
   matchService?: MatchService;
   selectedConfig: MatchConfig;
   _isInitializing: boolean;
@@ -92,6 +93,7 @@ export const useGameStore = create<GameStoreState>((set, get) => ({
   currentSetId: null,
   currentGameId: null,
   currentSetData: null,
+  currentMatchData: null,
   matchService: undefined,
   selectedConfig: DEFAULT_MATCH_CONFIG,
   _isInitializing: false,
@@ -143,13 +145,14 @@ export const useGameStore = create<GameStoreState>((set, get) => ({
 
     globalEventEmitter.on('GAME_ENDED', handleGameEnded);
 
-    // Listener pour GAME_SAVED - récupérer les données du game et du set pour afficher dans le modal
+    // Listener pour GAME_SAVED - récupérer les données du game, du set, et du match pour afficher dans le modal
     const handleGameSaved = (payload: any) => {
       set({
         lastGameData: payload.gameData,
         currentGameId: payload.gameId,
         currentSetId: payload.setData?.set_id,
-        currentSetData: payload.setData
+        currentSetData: payload.setData,
+        currentMatchData: payload.matchData
       });
     };
 
@@ -447,6 +450,7 @@ export const useGameStore = create<GameStoreState>((set, get) => ({
       lastGameData: null,
       currentGameId: null,
       currentSetData: null,
+      currentMatchData: null,
     });
   },
 }));

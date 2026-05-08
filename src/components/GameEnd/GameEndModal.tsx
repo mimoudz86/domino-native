@@ -9,12 +9,13 @@ interface GameEndModalProps {
   selectedConfig?: MatchConfig;
   lastGameData?: any;
   currentSetData?: any;
+  currentMatchData?: any;
   players?: PlayerTurnState[];
   onContinue: () => void;
   onLeave: () => void;
 }
 
-function SoloModeView({ selectedConfig, lastGameData, currentSetData, players, onContinue, onLeave }: any) {
+function SoloModeView({ selectedConfig, lastGameData, currentSetData, currentMatchData, players, onContinue, onLeave }: any) {
   const displayPlayers = players || [];
 
   return (
@@ -33,7 +34,7 @@ function SoloModeView({ selectedConfig, lastGameData, currentSetData, players, o
         <Text style={styles.title}>🏆 FIN DU JEU</Text>
       </View>
 
-      <SoloTable lastGameData={lastGameData} currentSetData={currentSetData} players={displayPlayers} />
+      <SoloTable lastGameData={lastGameData} currentSetData={currentSetData} currentMatchData={currentMatchData} players={displayPlayers} />
 
       <View style={styles.buttonContainer}>
         <TouchableOpacity style={styles.button} onPress={onContinue}>
@@ -52,6 +53,7 @@ export function GameEndModal({
   selectedConfig,
   lastGameData,
   currentSetData,
+  currentMatchData,
   players,
   onContinue,
   onLeave,
@@ -64,6 +66,7 @@ export function GameEndModal({
             selectedConfig={selectedConfig}
             lastGameData={lastGameData}
             currentSetData={currentSetData}
+            currentMatchData={currentMatchData}
             players={players}
             onContinue={onContinue}
             onLeave={onLeave}

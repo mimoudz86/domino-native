@@ -64,12 +64,12 @@ export class MatchService {
       // Enregistrer le set (scores + gagnant) - appelé pour chaque game
       await this.storage.recordToSet(this.matchId, activeMatch.currentSet);
 
-      // Fetcher les données du game sauvegardé et du set (APRÈS recordToSet pour avoir les scores à jour)
-      const { game: gameData, set: setData } = await this.storage.getGameWithSetAndMatch(gameId) || {};
+      // Fetcher les données du game sauvegardé, du set, et du match (APRÈS recordToSet pour avoir les scores à jour)
+      const { game: gameData, set: setData, match: matchData } = await this.storage.getGameWithSetAndMatch(gameId) || {};
 
       // Émettre l'événement GAME_SAVED avec le gameId et les données pour que le frontend puisse les afficher
       console.log(`LOG  [MATCH-SERVICE] 📤 GAME_SAVED {"gameId":"${gameId}"}`);
-      await globalEventEmitter.emit('GAME_SAVED', { gameId, matchId: this.matchId, gameData, setData });
+      await globalEventEmitter.emit('GAME_SAVED', { gameId, matchId: this.matchId, gameData, setData, matchData });
 
       // Récupérer tous les games pour plus tard
       const allGames = await this.storage.getGamesForMatch(this.matchId);

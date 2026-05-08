@@ -4,10 +4,11 @@ import { View, Text, StyleSheet } from 'react-native';
 interface SoloTableProps {
   lastGameData?: any;
   currentSetData?: any;
+  currentMatchData?: any;
   players?: any[];
 }
 
-export function SoloTable({ lastGameData, currentSetData, players = [] }: SoloTableProps) {
+export function SoloTable({ lastGameData, currentSetData, currentMatchData, players = [] }: SoloTableProps) {
   const getPlayerGameScore = (playerId: number) => {
     const scoreKey = `p${playerId}_score`;
     return lastGameData?.[scoreKey] ?? 0;
@@ -21,6 +22,11 @@ export function SoloTable({ lastGameData, currentSetData, players = [] }: SoloTa
   const getSetScore = (playerId: number) => {
     const scoreKey = `p${playerId}_score`;
     return currentSetData?.[scoreKey] ?? 0;
+  };
+
+  const getPlayerMatchScore = (playerId: number) => {
+    const scoreKey = `p${playerId}_sets_won`;
+    return currentMatchData?.[scoreKey] ?? 0;
   };
 
   return (
@@ -73,7 +79,7 @@ export function SoloTable({ lastGameData, currentSetData, players = [] }: SoloTa
                   isWinner ? styles.winnerScore : styles.tableValueCell,
                 ]}
               >
-                0
+                {getPlayerMatchScore(playerId)}
               </Text>
             </View>
           );

@@ -26,7 +26,7 @@ export function MobileGameBoard({
 }: MobileGameBoardProps) {
 
   const [isExpanded, setIsExpanded] = useState(false);
-  const { resetGame, initGame, continueOrNewMatch, selectedConfig, gameEnded, lastGameData, currentSetData, resetGameEndState, turnState } = useActiveGameStore();
+  const { resetGame, initGame, continueOrNewMatch, selectedConfig, gameEnded, lastGameData, currentSetData, currentMatchData, resetGameEndState, turnState } = useActiveGameStore();
 
   // Utiliser turnState du store au lieu de la prop
   const gameState = turnState || gameStateProp;
@@ -104,6 +104,7 @@ export function MobileGameBoard({
           selectedConfig={selectedConfig}
           lastGameData={lastGameData}
           currentSetData={currentSetData}
+          currentMatchData={currentMatchData}
           players={players}
           onContinue={handleContinue}
           onLeave={handleLeave}
@@ -186,6 +187,7 @@ export function MobileGameBoard({
         selectedConfig={selectedConfig}
         lastGameData={lastGameData}
         currentSetData={currentSetData}
+        currentMatchData={currentMatchData}
         players={players}
         onContinue={handleContinue}
         onLeave={handleLeave}
