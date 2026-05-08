@@ -25,20 +25,6 @@ export function SoloTable({ lastGameData, currentSetData, players = [] }: SoloTa
 
   return (
     <View style={styles.container}>
-      {currentSetData && (
-        <View style={styles.setScoresSection}>
-          <Text style={styles.setSectionTitle}>📊 Scores du Set</Text>
-          <View style={styles.setScoresRow}>
-            {[0, 1, 2, 3].map((playerId) => (
-              <View key={playerId} style={styles.setScoreItem}>
-                <Text style={styles.setPlayerName}>{getPlayerName(playerId)}</Text>
-                <Text style={styles.setScoreValue}>{getSetScore(playerId)}</Text>
-              </View>
-            ))}
-          </View>
-        </View>
-      )}
-
       <View style={styles.scoreTable}>
         <View style={styles.tableHeaderRow}>
           <Text style={[styles.tableCell, { flex: 1.2 }, styles.tableLabelCell]}>
