@@ -412,15 +412,6 @@ export class GameEngine {
   // PRIVATE HELPERS
   // ═══════════════════════════════════════════════════════════════════════════════
 
-  private distribute(): void {
-    const dominoes = DominoModel.createStandardSet();
-    Board.shuffle(dominoes);
-
-    for (let i = 0; i < this.players.length; i++) {
-      this.players[i].hand = dominoes.slice(i * 7, (i + 1) * 7);
-    }
-  }
-
   nextTurn(adapter?: ILocalEventDispatcher): void {
     this.checkEndConditions();
 
