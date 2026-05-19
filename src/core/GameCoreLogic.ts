@@ -1,0 +1,102 @@
+import type { Domino } from '../shared/models/Domino';
+
+export interface GamePlayer {
+  id: number;
+  hand: Domino[];
+  hasPassed?: boolean;
+}
+
+export class GameCoreLogic {
+  static canPlaceDomino(
+    domino: Domino,
+    side: 'left' | 'right',
+    leftEnd: number | null,
+    rightEnd: number | null
+  ): boolean {
+    if (leftEnd === null || rightEnd === null) {
+      return true;
+    }
+
+    if (side === 'left') {
+      return domino.left === leftEnd || domino.right === leftEnd;
+    } else {
+      return domino.right === rightEnd || domino.left === rightEnd;
+    }
+  }
+
+  static getPlayableDominos(
+    hand: Domino[],
+    leftEnd: number | null,
+    rightEnd: number | null
+  ): Array<[Domino, ('left' | 'right')[]]> {
+    if (leftEnd === null || rightEnd === null) {
+      return hand.map(d => [d, ['left', 'right']]);
+    }
+
+    const playable: Array<[Domino, ('left' | 'right')[]]> = [];
+
+    for (const domino of hand) {
+      const sides: ('left' | 'right')[] = [];
+
+      if (domino.left === leftEnd || domino.right === leftEnd) {
+        sides.push('left');
+      }
+      if (domino.right === rightEnd || domino.left === rightEnd) {
+        sides.push('right');
+      }
+
+      if (sides.length > 0) {
+        playable.push([domino, sides]);
+      }
+    }
+
+    return playable;
+  }
+
+  static checkEndConditions(
+    players: GamePlayer[]
+  ): { isEnded: boolean; winnerId?: number; winningType?: 'EMPTY_HAND' | 'BLOCKED_GAME' } {
+    for (const player of players) {
+      if (player.hand.length === 0) {
+        return {
+          isEnded: true,
+          winnerId: player.id,
+          winningType: 'EMPTY_HAND'
+        };
+      }
+    }
+
+    if (players.every(p => p.hasPassed)) {
+      const winner = this.findLowestPips(players);
+      return {
+        isEnded: true,
+        winnerId: winner.id,
+        winningType: 'BLOCKED_GAME'
+      };
+    }
+
+    return { isEnded: false };
+  }
+
+  static findLowestPips(players: GamePlayer[]): GamePlayer {
+    return players.reduce((min, current) => {
+      const minPips = min.hand.reduce((sum, d) => sum + d.left + d.right, 0);
+      const currentPips = current.hand.reduce((sum, d) => sum + d.left + d.right, 0);
+      return currentPips < minPips ? current : min;
+    });
+  }
+
+  static calculatePips(hand: Domino[]): number {
+    return hand.reduce((sum, d) => sum + d.left + d.right, 0);
+  }
+
+  static findFirstPlayerWithDoubleSix(players: GamePlayer[]): number {
+    for (let i = 0; i < players.length; i++) {
+      const hasDoubleSix = players[i].hand.some(d => d.left === 6 && d.right === 6);
+      if (hasDoubleSix) {
+        return i;
+      }
+    }
+    return -1;
+  }
+}
