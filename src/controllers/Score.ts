@@ -58,6 +58,31 @@ export type IndividualGameEndState = {
   pointsEarned: number;
 };
 
+export type ScoringMode = 'individual' | 'teams';
+
+export type GameResult = {
+  gameNumber: number;
+  winnerId: number;
+  winnerName: string;
+  winningType: 'EMPTY_HAND' | 'BLOCKED_GAME';
+  individual?: IndividualGameEndState;
+  teams?: GameEndState;
+  timestamp: number;
+};
+
+export type MatchState = {
+  mode: ScoringMode;
+  maxPoints: 50 | 100;
+  numSets: 1 | 2 | 3;
+  games: GameResult[];
+  scoreIndividual: Record<number, number>;
+  scoreTeams: { teamV: number; teamH: number };
+  matchFinished: boolean;
+  winner: null | { id?: number; team?: 'V' | 'H'; name: string };
+  currentGameNumber: number;
+  currentSetNumber: number;
+};
+
 const MAX_GAME_POINTS: number = 50;
 const MAX_SET_COUNT: number = 3;
 

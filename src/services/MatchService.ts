@@ -1,4 +1,4 @@
-import type { GameResult, MatchState, ScoringMode } from '../controllers/MatchManager';
+import type { GameResult, MatchState, ScoringMode } from '../controllers/Score';
 import type { IMatchStorage } from './IMatchStorage';
 import type { RawGame } from '../shared/scoring/scoreCalculator';
 import { isSetFinished, isMatchFinished, getMatchWinner, calcIndividualScores, calcTeamScores } from '../shared/scoring/scoreCalculator';

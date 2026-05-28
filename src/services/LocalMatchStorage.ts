@@ -1,5 +1,5 @@
 import * as SQLite from 'expo-sqlite';
-import type { GameResult, MatchState, ScoringMode } from '../controllers/MatchManager';
+import type { GameResult, MatchState, ScoringMode } from '../controllers/Score';
 import type { IMatchStorage } from './IMatchStorage';
 import type { MatchConfig } from '../types/MatchConfig';
 import { DEFAULT_MATCH_CONFIG } from '../types/MatchConfig';

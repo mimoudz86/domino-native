@@ -9,7 +9,7 @@
 import type { Domino, TurnState } from '../shared/models/GameTurnState';
 import type { ILocalEventDispatcher } from '../core/ILocalEventDispatcher';
 import type { MatchConfig } from '../types/MatchConfig';
-import type { MatchState } from '../controllers/MatchManager';
+import type { MatchState } from '../controllers/Score';
 
 type DraggableStatus = 'none' | 'left' | 'right' | 'both';
 

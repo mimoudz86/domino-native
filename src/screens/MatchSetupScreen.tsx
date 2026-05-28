@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { View, TouchableOpacity, Text, StyleSheet, ScrollView } from 'react-native';
 import type { MatchConfig } from '../types/MatchConfig';
-import type { MatchState } from '../controllers/MatchManager';
+import type { MatchState } from '../controllers/Score';
 
 interface MatchSetupScreenProps {
   onStartNewMatch: (config: MatchConfig) => void;
