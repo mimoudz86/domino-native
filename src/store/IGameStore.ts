@@ -35,6 +35,7 @@ export interface IGameStore {
   currentSetId: string | null;
   currentGameId: string | null;
   currentSetData: any | null;
+  currentMatchData: any | null;
 
   // ═══════════════════════════════════════════
   // ACTIONS (Appelées par les composants)

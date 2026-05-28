@@ -3,7 +3,7 @@ import { MatchSetupScreen } from '@/screens/MatchSetupScreen';
 import { useState, useEffect } from 'react';
 import { useActiveGameStore } from '@/store/gameStoreContext';
 import type { MatchConfig } from '@/types/MatchConfig';
-import type { MatchState } from '@/controllers/MatchManager';
+import type { MatchState } from '@/controllers/Score';
 import { DEFAULT_MATCH_CONFIG } from '@/types/MatchConfig';
 
 export default function MatchSetupScreenWrapper() {
