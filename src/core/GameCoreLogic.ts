@@ -99,4 +99,46 @@ export class GameCoreLogic {
     }
     return -1;
   }
+
+  static getEnds(
+    trainOnBoard: Array<{ domino: Domino }>
+  ): { leftEnd: number | null; rightEnd: number | null } {
+    if (trainOnBoard.length === 0) {
+      return { leftEnd: null, rightEnd: null };
+    }
+    return {
+      leftEnd: trainOnBoard[0].domino.left,
+      rightEnd: trainOnBoard[trainOnBoard.length - 1].domino.right
+    };
+  }
+
+  static swapDomino(
+    domino: Domino,
+    side: 'left' | 'right',
+    leftEnd: number | null,
+    rightEnd: number | null
+  ): Domino {
+    if (side === 'left' && leftEnd === domino.left) {
+      return domino.swap();
+    } else if (side === 'right' && rightEnd === domino.right) {
+      return domino.swap();
+    }
+    return domino;
+  }
+
+  static addToTrainOnBoard(
+    trainOnBoard: Array<{ domino: Domino }>,
+    domino: Domino,
+    side: 'left' | 'right'
+  ): Array<{ domino: Domino }> {
+    const newTrain = [...trainOnBoard];
+    if (newTrain.length === 0) {
+      newTrain.push({ domino });
+    } else if (side === 'left') {
+      newTrain.unshift({ domino });
+    } else {
+      newTrain.push({ domino });
+    }
+    return newTrain;
+  }
 }

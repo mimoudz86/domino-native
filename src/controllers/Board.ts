@@ -2,6 +2,8 @@ import type { Domino } from '../shared/models/Domino';
 import { DominoModel } from '../shared/models/Domino';
 import type { GamePlayer } from './GamePlayer';
 
+export type PlacementType = 'left' | 'right' | 'both' | 'none';
+
 export class Board {
   playedDominos: Domino[] = [];
   openEndsValues: number[] = [];
@@ -19,12 +21,23 @@ export class Board {
     return this.playedDominos.length;
   }
 
+  getDominoCount(): number {
+    return this.playedDominos.length;
+  }
+
   get left(): number | null {
     return this.isEmpty() ? null : this.openEndsValues[0];
   }
 
   get right(): number | null {
     return this.isEmpty() ? null : this.openEndsValues[1];
+  }
+
+  getEnds(): { leftEnd: number | null; rightEnd: number | null } {
+    return {
+      leftEnd: this.left,
+      rightEnd: this.right
+    };
   }
 
   playDomino(domino: Domino, side: 'left' | 'right'): boolean {
@@ -96,6 +109,79 @@ export class Board {
     }
 
     return result;
+  }
+
+  static canPlaceDomino(
+    domino: Domino,
+    leftEnd: number | null,
+    rightEnd: number | null
+  ): PlacementType {
+    if (leftEnd === null || rightEnd === null) {
+      return 'both';
+    }
+
+    if (domino.left === domino.right) {
+      const matchLeft = domino.left === leftEnd;
+      const matchRight = domino.left === rightEnd;
+
+      if (matchLeft && matchRight) return 'both';
+      if (matchLeft) return 'left';
+      if (matchRight) return 'right';
+      return 'none';
+    }
+
+    const dominoLeftMatchesLeftEnd = domino.left === leftEnd;
+    const dominoRightMatchesLeftEnd = domino.right === leftEnd;
+    const dominoLeftMatchesRightEnd = domino.left === rightEnd;
+    const dominoRightMatchesRightEnd = domino.right === rightEnd;
+
+    const canPlaceLeft = dominoLeftMatchesLeftEnd || dominoRightMatchesLeftEnd;
+    const canPlaceRight = dominoLeftMatchesRightEnd || dominoRightMatchesRightEnd;
+
+    if (canPlaceLeft && canPlaceRight) return 'both';
+    if (canPlaceLeft) return 'left';
+    if (canPlaceRight) return 'right';
+    return 'none';
+  }
+
+  static getPlayableIndices(
+    dominos: Domino[],
+    leftEnd: number | null,
+    rightEnd: number | null
+  ): number[] {
+    return dominos
+      .map((domino, idx) => ({
+        idx,
+        placement: this.canPlaceDomino(domino, leftEnd, rightEnd)
+      }))
+      .filter(({ placement }) => placement !== 'none')
+      .map(({ idx }) => idx);
+  }
+
+  static calculateNewEnds(
+    domino: Domino,
+    side: 'left' | 'right',
+    currentLeftEnd: number | null,
+    currentRightEnd: number | null
+  ): { newLeftEnd: number; newRightEnd: number } {
+    if (currentLeftEnd === null || currentRightEnd === null) {
+      return {
+        newLeftEnd: domino.left,
+        newRightEnd: domino.right
+      };
+    }
+
+    if (side === 'left') {
+      return {
+        newLeftEnd: domino.right,
+        newRightEnd: currentRightEnd
+      };
+    } else {
+      return {
+        newLeftEnd: currentLeftEnd,
+        newRightEnd: domino.left
+      };
+    }
   }
 
   static shuffle<T>(array: T[]): void {
