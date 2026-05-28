@@ -4,7 +4,7 @@ import { DominoModel } from '../shared/models/Domino';
 import type { PlayTurnPayload, PlayResponsePayload, TurnUpdatedPayload, PlayerPublicState } from '../controllers/LocalGameEvent';
 import type { ILocalEventDispatcher } from '../core/ILocalEventDispatcher';
 import { Board } from './Board';
-import { GamePlayer } from './GamePlayer';
+import { Player } from './Player';
 import { globalEventEmitter } from '../core/EventEmitter';
 
 interface GameEngineConfig {
@@ -13,11 +13,11 @@ interface GameEngineConfig {
 }
 
 export class GameEngine {
-  private players: GamePlayer[] = [];
+  private players: Player[] = [];
   private board: Board = new Board();
   private currentPlayerIndex: number = 0;
   private _isOver: boolean = false;
-  private winner: GamePlayer | null = null;
+  private winner: Player | null = null;
   private turnNumber: number = 0;
   private consecutivePasses: number = 0;
   private config: GameEngineConfig;
@@ -33,7 +33,7 @@ export class GameEngine {
   constructor(config: GameEngineConfig) {
     this.config = config;
     this.players = config.playerNames.map(
-      (name, idx) => new GamePlayer(idx, name, config.aiPlayers[idx] || false)
+      (name, idx) => new Player(idx, name, config.aiPlayers[idx] || false)
     );
   }
 
@@ -400,11 +400,11 @@ export class GameEngine {
     } as TurnState;
   }
 
-  getPlayers(): GamePlayer[] {
+  getPlayers(): Player[] {
     return this.players;
   }
 
-  getWinner(): GamePlayer | null {
+  getWinner(): Player | null {
     return this.winner;
   }
 
@@ -502,7 +502,7 @@ export class GameEngine {
     }
 
     if (this.players.every(p => p.hasPassed)) {
-      const calculateHandValue = (p: GamePlayer) => p.hand.reduce((sum, d) => sum + d.left + d.right, 0);
+      const calculateHandValue = (p: Player) => p.hand.reduce((sum, d) => sum + d.left + d.right, 0);
       const winner = this.players.reduce((min, p) =>
         calculateHandValue(p) < calculateHandValue(min) ? p : min
       );
@@ -523,7 +523,7 @@ export class GameEngine {
     return false;
   }
 
-  private endGame(winner: GamePlayer): void {
+  private endGame(winner: Player): void {
     this.isOver = true;
     this.winner = winner;
     this.calculateScores();

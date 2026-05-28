@@ -1,6 +1,6 @@
 import type { Domino } from '../shared/models/Domino';
 
-export interface GamePlayer {
+export interface Player {
   id: number;
   hand: Domino[];
   hasPassed?: boolean;
@@ -54,7 +54,7 @@ export class GameCoreLogic {
   }
 
   static checkEndConditions(
-    players: GamePlayer[]
+    players: Player[]
   ): { isEnded: boolean; winnerId?: number; winningType?: 'EMPTY_HAND' | 'BLOCKED_GAME' } {
     for (const player of players) {
       if (player.hand.length === 0) {
@@ -78,7 +78,7 @@ export class GameCoreLogic {
     return { isEnded: false };
   }
 
-  static findLowestPips(players: GamePlayer[]): GamePlayer {
+  static findLowestPips(players: Player[]): Player {
     return players.reduce((min, current) => {
       const minPips = min.hand.reduce((sum, d) => sum + d.left + d.right, 0);
       const currentPips = current.hand.reduce((sum, d) => sum + d.left + d.right, 0);
@@ -90,7 +90,7 @@ export class GameCoreLogic {
     return hand.reduce((sum, d) => sum + d.left + d.right, 0);
   }
 
-  static findFirstPlayerWithDoubleSix(players: GamePlayer[]): number {
+  static findFirstPlayerWithDoubleSix(players: Player[]): number {
     for (let i = 0; i < players.length; i++) {
       const hasDoubleSix = players[i].hand.some(d => d.left === 6 && d.right === 6);
       if (hasDoubleSix) {

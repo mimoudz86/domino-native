@@ -1,7 +1,7 @@
 import type { Domino } from '../shared/models/Domino';
 import { Board } from './Board';
 
-export class GamePlayer {
+export class Player {
   id: number;
   name: string;
   isAI: boolean;

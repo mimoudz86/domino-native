@@ -1,6 +1,6 @@
 import type { Domino } from '../shared/models/Domino';
 import { DominoModel } from '../shared/models/Domino';
-import type { GamePlayer } from './GamePlayer';
+import type { Player } from './Player';
 
 export type PlacementType = 'left' | 'right' | 'both' | 'none';
 
@@ -191,7 +191,7 @@ export class Board {
     }
   }
 
-  static distribute(players: GamePlayer[]): void {
+  static distribute(players: Player[]): void {
     const dominoes = DominoModel.createStandardSet();
     Board.shuffle(dominoes);
     for (let i = 0; i < players.length; i++) {
