@@ -3,6 +3,7 @@ import type { Domino, TurnState, PlayerTurnState, TrackedDomino} from '../shared
 import { DominoModel } from '../shared/models/Domino';
 import type { PlayTurnPayload, PlayResponsePayload, TurnUpdatedPayload, GameEndedPayload } from '../controllers/LocalGameEvent';
 import type { ILocalEventDispatcher } from '../core/ILocalEventDispatcher';
+import type { IGameEngine } from '../shared/models/IGameEngine';
 import { Board } from './Board';
 import { Player } from './Player';
 import { globalEventEmitter } from '../core/EventEmitter';
@@ -14,23 +15,23 @@ interface GameEngineConfig {
   aiPlayers: boolean[];
 }
 
-export class GameEngine {
-  private players: Player[] = [];
-  private board: Board = new Board();
-  private currentPlayerIndex: number = 0;
+export class GameEngine implements IGameEngine {
+  public players: Player[] = [];
+  public board: Board = new Board();
+  public currentPlayerIndex: number = 0;
   private _isOver: boolean = false;
-  private winner: Player | null = null;
-  private turnNumber: number = 0;
-  private consecutivePasses: number = 0;
+  public winner: Player | null = null;
+  public turnNumber: number = 0;
+  public consecutivePasses: number = 0;
   private config: GameEngineConfig;
-  private trainSequence: TrackedDomino[] = [];
-  private lastAction: 'played' | 'passed' | null = null;
-  private lastPlayerWhoPassedId: number | null = null;
+  public trainSequence: TrackedDomino[] = [];
+  public lastAction: 'played' | 'passed' | null = null;
+  public lastPlayerWhoPassedId: number | null = null;
   private pendingResponse: Promise<PlayResponsePayload> | null = null;
   private resolveResponse: ((payload: PlayResponsePayload) => void) | null = null;
   private passHiddenPromise: Promise<void> | null = null;
   private resolvePassHidden: (() => void) | null = null;
-  private winningType: 'EMPTY_HAND' | 'BLOCKED_GAME' = 'EMPTY_HAND';
+  public winningType: 'EMPTY_HAND' | 'BLOCKED_GAME' = 'EMPTY_HAND';
   public stateBuilder: GameStateBuilder;
 
   constructor(config: GameEngineConfig) {
@@ -132,6 +133,13 @@ export class GameEngine {
 
   private set isOver(value: boolean) {
     this._isOver = value;
+  }
+
+  get trainOnBoard(): any[] {
+    return this.board.playedDominos.map(d => ({
+      domino: d,
+      line: undefined
+    }));
   }
 
   async handleAutoPass(playerId: number, adapter?: ILocalEventDispatcher): Promise<boolean> {
