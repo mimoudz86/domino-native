@@ -1,7 +1,7 @@
 
 import type { Domino, TurnState, PlayerTurnState, TrackedDomino} from '../shared/models/GameTurnState';
 import { DominoModel } from '../shared/models/Domino';
-import type { PlayTurnPayload, PlayResponsePayload, TurnUpdatedPayload, PlayerPublicState } from '../controllers/LocalGameEvent';
+import type { PlayTurnPayload, PlayResponsePayload, TurnUpdatedPayload } from '../controllers/LocalGameEvent';
 import type { ILocalEventDispatcher } from '../core/ILocalEventDispatcher';
 import { Board } from './Board';
 import { Player } from './Player';
@@ -166,18 +166,9 @@ export class GameEngine {
       return sides[0] === 'left' ? ('left' as const) : ('right' as const);
     });
 
-    const opponents: PlayerPublicState[] = this.players
-      .filter(p => p.id !== playerIndex)
-      .map(p => ({
-        id: p.id,
-        name: p.name,
-        dominoCount: p.hand.length,
-        hasPassed: p.hasPassed,
-        isCurrentPlayer: false
-      }));
-
     const boardState = this.buildBoardState();
     const players = this.buildPlayersArray(playerIndex);
+    const opponents: PlayerTurnState[] = players.filter(p => p.id !== playerIndex);
 
     const payload = {
       turnNumber: this.turnNumber,
@@ -547,6 +538,7 @@ export class GameEngine {
 
   private buildBoardState() {
     return {
+      trainSequence: this.trainSequence,
       trainOnBoard: this.board.playedDominos.map(domino => ({
         domino,
         line: undefined
@@ -554,13 +546,16 @@ export class GameEngine {
     };
   }
 
-  private buildPlayersArray(currentPlayerIndex?: number): PlayerPublicState[] {
+  private buildPlayersArray(currentPlayerIndex?: number): PlayerTurnState[] {
     return this.players.map(p => ({
       id: p.id,
       name: p.name,
+      dominos: Array(p.hand.length).fill(null),
       dominoCount: p.hand.length,
+      playables: [],
+      placements: [],
       hasPassed: p.hasPassed,
-      isCurrentPlayer: currentPlayerIndex !== undefined ? p.id === currentPlayerIndex : false
+      canPlay: false
     }));
   }
 

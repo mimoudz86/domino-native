@@ -8,33 +8,7 @@
  * 4. Quand partie terminée → GAME_ENDED
  */
 
-import type { Domino } from '../shared/models/GameTurnState';
-
-// ═══════════════════════════════════════════════════════════════
-// STATE TYPES FOR EVENTS
-// ═══════════════════════════════════════════════════════════════
-
-export interface PlayerPublicState {
-  id: number;
-  name: string;
-  dominoCount: number;
-  hasPassed: boolean;
-  isCurrentPlayer: boolean;
-}
-
-export interface PlayerPrivateState extends PlayerPublicState {
-  dominos: Domino[];
-  playables: number[];
-  placements: ('left' | 'right' | 'both')[];
-  canPlay: boolean;
-}
-
-export interface BoardUpdateState {
-  trainOnBoard: {
-    domino: Domino;
-    line?: any;
-  }[];
-}
+import type { Domino, BoardState, PlayerTurnState } from '../shared/models/GameTurnState';
 
 // ═══════════════════════════════════════════════════════════════
 // EVENT PAYLOADS
@@ -48,9 +22,9 @@ export interface PlayTurnPayload {
   playables: number[];
   placements: ('left' | 'right' | 'both')[];
   canPlay: boolean;
-  board: BoardUpdateState;
-  opponents: PlayerPublicState[];
-  players: PlayerPublicState[];
+  board: BoardState;
+  opponents: PlayerTurnState[];
+  players: PlayerTurnState[];
   lastPlayerWhoPassedId?: number;
 }
 
@@ -69,16 +43,16 @@ export type PlayResponsePayload =
 export interface TurnUpdatedPayload {
   turnNumber: number;
   nextPlayerIndex: number;
-  board: BoardUpdateState;
-  players: PlayerPublicState[];
+  board: BoardState;
+  players: PlayerTurnState[];
   lastPlayerWhoPassedId?: number;
 }
 
 export interface GameStartedPayload {
   turnNumber: number;
   currentPlayerIndex: number;
-  players: PlayerPublicState[];
-  board: BoardUpdateState;
+  players: PlayerTurnState[];
+  board: BoardState;
 }
 
 export interface PlayPassedPayload {

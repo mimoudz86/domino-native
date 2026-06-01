@@ -1,6 +1,6 @@
 import React, { useMemo } from 'react';
 import { View, Text, StyleSheet, Image } from 'react-native';
-import type { PlayerPublicState } from '../../controllers/LocalGameEvent';
+import type { PlayerTurnState } from '../../shared/models/GameTurnState';
 import { getPlayerColor } from '../../utils/avatarGenerator';
 
 // Import des images d'avatars
@@ -13,7 +13,7 @@ const AVATAR_IMAGES: { [key: number]: any } = {
 
 interface PlayerInfoProps {
   playerId: number;
-  player?: PlayerPublicState;
+  player?: PlayerTurnState;
   isCurrentPlayer?: boolean;
   isLastPlayed?: boolean;
 }
@@ -25,7 +25,7 @@ interface PlayerInfoProps {
  * Reçoit toutes ses données via les props
  *
  * @param playerId - ID du joueur (0-3)
- * @param player - État du joueur (PlayerPublicState)
+ * @param player - État du joueur (PlayerTurnState)
  * @param isCurrentPlayer - Si true, affiche un highlight doré
  * @param isLastPlayed - Si true, affiche un highlight pour dernier joueur ayant joué
  */

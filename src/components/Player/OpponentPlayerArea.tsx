@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { View, StyleSheet } from 'react-native';
-import type { TurnUpdatedPayload, PlayerPublicState } from '../../controllers/LocalGameEvent';
+import type { TurnUpdatedPayload } from '../../controllers/LocalGameEvent';
+import type { PlayerTurnState } from '../../shared/models/GameTurnState';
 import { getPlayerColor } from '../../utils/avatarGenerator';
 import { useActiveGameStore } from '../../store/gameStoreContext';
 // import { usePlayerFlash } from '../../hooks/usePlayerFlash';
@@ -29,7 +30,7 @@ export function OpponentPlayerArea({
   position = 'bottom',
 }: OpponentPlayerAreaProps) {
   const { dispatcher } = useActiveGameStore();
-  const [playerState, setPlayerState] = useState<PlayerPublicState | undefined>();
+  const [playerState, setPlayerState] = useState<PlayerTurnState | undefined>();
 
   // 🎯 Écouter TURN_UPDATED pour mettre à jour les données du joueur
   useEffect(() => {
