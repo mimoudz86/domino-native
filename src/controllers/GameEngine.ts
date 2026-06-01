@@ -30,7 +30,7 @@ export class GameEngine {
   private passHiddenPromise: Promise<void> | null = null;
   private resolvePassHidden: (() => void) | null = null;
   private winningType: 'EMPTY_HAND' | 'BLOCKED_GAME' = 'EMPTY_HAND';
-  private stateBuilder: GameStateBuilder;
+  public stateBuilder: GameStateBuilder;
 
   constructor(config: GameEngineConfig) {
     this.config = config;
@@ -71,7 +71,7 @@ export class GameEngine {
 
       adapter.emit({
         type: 'PLAY_TURN',
-        payload: this.getPlayTurnState(this.currentPlayerIndex)
+        payload: this.stateBuilder.buildLocalPlayerState(this.currentPlayerIndex)
       });
 
       const response = await this.waitForPlayResponse();
@@ -133,109 +133,6 @@ export class GameEngine {
     this._isOver = value;
   }
 
-  buildStartGame(): { turnNumber: number; currentPlayerIndex: number; players: any[]; board: any } {
-    const players = this.buildPlayersArray(this.currentPlayerIndex);
-
-    const state = {
-      turnNumber: this.turnNumber,
-      currentPlayerIndex: this.currentPlayerIndex,
-      players,
-      board: this.buildBoardState()
-    };
-
-    console.log(`LOG  [GAME-ENGINE] 🚀 GAME_STARTED {"players":${players.length},"startingPlayer":"${this.players[this.currentPlayerIndex].name}"}`);
-
-    return state;
-  }
-
-  buildEndGame(): GameEndedPayload {
-    const winner = this.getWinner();
-    const endGamePayload: GameEndedPayload = {
-      winner: {
-        id: winner?.id || 0,
-        name: winner?.name || ''
-      },
-      winningType: this.winningType,
-      rawScores: this.getRawScores()
-    };
-
-    console.log(`LOG  [GAME-ENGINE] 🏆 GAME_ENDED {"winner":"${winner?.name}","winnerId":${winner?.id},"scores":${JSON.stringify(this.getPlayers().map(p => ({name: p.name, score: p.score})))},"totalTurnsPlayed":${this.turnNumber}}`);
-
-    return endGamePayload;
-  }
-
-  getRawScores(): { p0: number; p1: number; p2: number; p3: number } {
-    return {
-      p0: this.players[0].getRemainingPips(),
-      p1: this.players[1].getRemainingPips(),
-      p2: this.players[2].getRemainingPips(),
-      p3: this.players[3].getRemainingPips()
-    };
-  }
-
-  /**
-   * 🎯 NOUVEAU: Retourne l'état personnel pour un joueur
-   * Utilisé pour émettre PLAY_TURN
-   */
-  getPlayTurnState(playerIndex: number): PlayTurnPayload {
-    const player = this.players[playerIndex];
-    const playableResult = this.board.getPlayableDominos(player.hand);
-
-    const playables = playableResult.playable
-      .map(([d]) => player.hand.findIndex(h => h.left === d.left && h.right === d.right))
-      .filter(idx => idx !== -1);
-
-    const placements = playableResult.playable.map(([d, sides]) => {
-      if (sides.length === 2) return 'both' as const;
-      return sides[0] === 'left' ? ('left' as const) : ('right' as const);
-    });
-
-    const boardState = this.buildBoardState();
-    const players = this.buildPlayersArray(playerIndex);
-    const opponents: PlayerTurnState[] = players.filter(p => p.id !== playerIndex);
-
-    const payload = {
-      turnNumber: this.turnNumber,
-      yourIndex: playerIndex,
-      yourName: player.name,
-      yourDominos: player.hand,
-      playables,
-      placements,
-      canPlay: player.canPlay(this.board),
-      board: boardState,
-      opponents,
-      players,
-      lastPlayerWhoPassedId: this.lastPlayerWhoPassedId ?? undefined
-    };
-
-    const boardStr = this.formatBoardString(payload.board.trainOnBoard);
-    console.log(`LOG  [GAME-ENGINE] ⏸️  PLAY_TURN {"turn":${payload.turnNumber},"player":"${player.name}","hand":${player.hand.length},"playable":${playables.length},"board":"${boardStr}"}`);
-
-    return payload;
-  }
-
-  /**
-   * 🎯 NOUVEAU: Retourne l'état public pour le broadcast TURN_UPDATED
-   */
-  getTurnUpdatedState(): TurnUpdatedPayload {
-    const nextPlayerIndex = (this.currentPlayerIndex + 1) % this.players.length;
-    const boardState = this.buildBoardState();
-    const players = this.buildPlayersArray(nextPlayerIndex);
-
-    const payload = {
-      turnNumber: this.turnNumber,
-      nextPlayerIndex,
-      board: boardState,
-      players,
-      lastPlayerWhoPassedId: this.lastPlayerWhoPassedId ?? undefined
-    };
-
-    const boardStr = this.formatBoardString(payload.board.trainOnBoard);
-    console.log(`LOG  [GAME-ENGINE] 📊 TURN_UPDATED {"turn":${payload.turnNumber},"nextPlayer":"${this.players[nextPlayerIndex].name}","board":"${boardStr}","playerCounts":"${players.map(p => p.name.charAt(0) + ':' + p.dominoCount).join(' ')}"}`);
-
-    return payload;
-  }
-
   async handleAutoPass(playerId: number, adapter?: ILocalEventDispatcher): Promise<boolean> {
     const player = this.players.find(p => p.id === playerId);
     if (!player) {
@@ -254,7 +151,7 @@ export class GameEngine {
       // [COMMENTED-v1] console.log(`[AUTO-PASS] 📢 Emitting TURN_UPDATED to show badge...`);
       adapter.emit({
         type: 'TURN_UPDATED',
-        payload: this.getTurnUpdatedState()
+        payload: this.stateBuilder.buildLocalBroadcastState()
       });
     }
 
@@ -327,94 +224,6 @@ export class GameEngine {
     return true;
   }
 
-
-  getCurrentState(): TurnState {
-    const current = this.players[this.currentPlayerIndex];
-    const playableResult = this.board.getPlayableDominos(current.hand);
-
-    // 🎯 Calculate playables (indices of playable dominos in hand)
-    const playables = playableResult.playable
-      .map(([d]) => current.hand.findIndex(h => h.left === d.left && h.right === d.right))
-      .filter(idx => idx !== -1);
-
-    // 🎯 Calculate placements: PARALLEL to playables, not to hand
-    // Each element in placements corresponds to each element in playables
-    const placements = playableResult.playable.map(([d, sides]) => {
-      if (sides.length === 2) return 'both' as const;
-      return sides[0] === 'left' ? ('left' as const) : ('right' as const);
-    });
-
-    const currentPlayerHand: PlayerTurnState = {
-      id: current.id,
-      name: current.name,
-      dominoCount: current.hand.length,
-      hasPassed: current.hasPassed,
-      dominos: current.hand,
-      playables,        // ✅ Indices of playable dominos
-      placements,       // ✅ Placements parallel to playables
-      canPlay: current.canPlay(this.board)
-    };
-
-    // 🎯 Build TrainOnBoard from playedDominos
-    const trainOnBoard = this.board.playedDominos.map(domino => ({
-      domino,
-      line: undefined as any  // Future: server-provided layout
-    }));
-
-    // 🎯 Build complete TurnState matching SharedGameTurnState format
-    return {
-      turnNumber: this.turnNumber,
-      currentPlayerIndex: this.currentPlayerIndex,
-      currentPlayerName: current.name,
-      phase: this.isOver ? 'ENDED' : this.lastAction === 'passed' ? 'PASSED' : this.lastAction === 'played' ? 'PLACED' : 'STARTED',
-
-      // 🎯 Board state (new structure)
-      board: {
-        trainSequence: this.trainSequence,
-        trainOnBoard: trainOnBoard
-      },
-
-      // Players state
-      // 🎯 CHANGEMENT: dominos toujours visibles, mais playables/canPlay gelés si pas le tour
-      players: this.players.map(p => ({
-        id: p.id,
-        name: p.name,
-        dominoCount: p.hand.length,
-        hasPassed: p.hasPassed,
-        dominos: p.hand,  // ✅ TOUJOURS visible (jamais null)
-        playables: p.id === current.id ? currentPlayerHand.playables : [],  // Gelés si pas le tour
-        placements: p.id === current.id ? currentPlayerHand.placements : [],  // Gelés si pas le tour
-        canPlay: p.id === current.id ? currentPlayerHand.canPlay : false  // Gelés si pas le tour
-      })),
-
-      // Current player state
-      playerState: {
-        id: current.id,
-        playables: currentPlayerHand.playables,
-        canPlay: currentPlayerHand.canPlay
-      },
-
-      // Game flow
-      consecutivePasses: this.consecutivePasses,
-      gameEnded: this.isOver,
-      winner: this.isOver ? this.currentPlayerIndex : undefined,
-      lastPlayerWhoPassedId: this.lastPlayerWhoPassedId ?? undefined,
-
-      // Game end data (if ended)
-      endData: this.isOver && this.winner ? {
-        winner: {
-          id: this.winner.id,
-          name: this.winner.name
-        },
-        scores: this.players.map(p => ({
-          playerId: p.id,
-          playerName: p.name,
-          score: p.score
-        }))
-      } : undefined
-    } as TurnState;
-  }
-
   getPlayers(): Player[] {
     return this.players;
   }
@@ -438,7 +247,7 @@ export class GameEngine {
       });
 
       if (adapter) {
-        const endGamePayload = this.buildEndGame();
+        const endGamePayload = this.stateBuilder.buildEndGame();
         globalEventEmitter.emit("GAME_ENDED", endGamePayload);
         adapter.emit({
           type: "GAME_ENDED",
@@ -467,7 +276,7 @@ export class GameEngine {
     if (adapter) {
       adapter.emit({
         type: 'TURN_UPDATED',
-        payload: this.getTurnUpdatedState()
+        payload: this.stateBuilder.buildLocalBroadcastState()
       });
     }
   }
@@ -527,29 +336,6 @@ export class GameEngine {
         return;
       }
     }
-  }
-
-  private buildBoardState() {
-    return {
-      trainSequence: this.trainSequence,
-      trainOnBoard: this.board.playedDominos.map(domino => ({
-        domino,
-        line: undefined
-      }))
-    };
-  }
-
-  private buildPlayersArray(currentPlayerIndex?: number): PlayerTurnState[] {
-    return this.players.map(p => ({
-      id: p.id,
-      name: p.name,
-      dominos: Array(p.hand.length).fill(null),
-      dominoCount: p.hand.length,
-      playables: [],
-      placements: [],
-      hasPassed: p.hasPassed,
-      canPlay: false
-    }));
   }
 
   private formatBoardString(trainOnBoard: any[]): string {

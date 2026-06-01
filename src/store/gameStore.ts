@@ -275,7 +275,7 @@ export const useGameStore = create<GameStoreState>((set, get) => ({
     set({
       dispatcher: adapter,
       matchService,
-      turnState: engine.getCurrentState(),
+      turnState: engine.stateBuilder.buildCurrentState(),
       isInitialized: true,
       _isInitializing: false,
     });
@@ -283,7 +283,7 @@ export const useGameStore = create<GameStoreState>((set, get) => ({
     // 8. Émettre GAME_STARTED
     adapter.emit({
       type: 'GAME_STARTED',
-      payload: engine.buildStartGame()
+      payload: engine.stateBuilder.buildStartGame()
     });
 
     // 9. Démarrer la boucle de jeu (en background - pas await)
