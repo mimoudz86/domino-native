@@ -6,6 +6,7 @@ import type { ILocalEventDispatcher } from '../core/ILocalEventDispatcher';
 import { Board } from './Board';
 import { Player } from './Player';
 import { globalEventEmitter } from '../core/EventEmitter';
+import { GameStateBuilder } from '../shared/builders/GameStateBuilder';
 
 interface GameEngineConfig {
   playerNames: string[];
@@ -29,12 +30,14 @@ export class GameEngine {
   private passHiddenPromise: Promise<void> | null = null;
   private resolvePassHidden: (() => void) | null = null;
   private winningType: 'EMPTY_HAND' | 'BLOCKED_GAME' = 'EMPTY_HAND';
+  private stateBuilder: GameStateBuilder;
 
   constructor(config: GameEngineConfig) {
     this.config = config;
     this.players = config.playerNames.map(
       (name, idx) => new Player(idx, name, config.aiPlayers[idx] || false)
     );
+    this.stateBuilder = new GameStateBuilder(this);
   }
 
   async initGame(): Promise<void> {
@@ -153,17 +156,21 @@ export class GameEngine {
         name: winner?.name || ''
       },
       winningType: this.winningType,
-      rawScores: {
-        p0: this.players[0].getRemainingPips(),
-        p1: this.players[1].getRemainingPips(),
-        p2: this.players[2].getRemainingPips(),
-        p3: this.players[3].getRemainingPips()
-      }
+      rawScores: this.getRawScores()
     };
 
     console.log(`LOG  [GAME-ENGINE] 🏆 GAME_ENDED {"winner":"${winner?.name}","winnerId":${winner?.id},"scores":${JSON.stringify(this.getPlayers().map(p => ({name: p.name, score: p.score})))},"totalTurnsPlayed":${this.turnNumber}}`);
 
     return endGamePayload;
+  }
+
+  getRawScores(): { p0: number; p1: number; p2: number; p3: number } {
+    return {
+      p0: this.players[0].getRemainingPips(),
+      p1: this.players[1].getRemainingPips(),
+      p2: this.players[2].getRemainingPips(),
+      p3: this.players[3].getRemainingPips()
+    };
   }
 
   /**
