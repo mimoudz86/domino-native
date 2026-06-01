@@ -145,6 +145,29 @@ export class GameEngine {
     return state;
   }
 
+  buildEndGame(): { winner: { id: number; name: string }; winningType: 'EMPTY_HAND' | 'BLOCKED_GAME'; rawScores: Record<string, number> } {
+    const winner = this.getWinner();
+    const rawScores = {
+      p0: this.players[0].getRemainingPips(),
+      p1: this.players[1].getRemainingPips(),
+      p2: this.players[2].getRemainingPips(),
+      p3: this.players[3].getRemainingPips()
+    };
+
+    const endGamePayload = {
+      winner: {
+        id: winner?.id || 0,
+        name: winner?.name || ''
+      },
+      winningType: this.winningType,
+      rawScores
+    };
+
+    console.log(`LOG  [GAME-ENGINE] 🏆 GAME_ENDED {"winner":"${winner?.name}","winnerId":${winner?.id},"scores":${JSON.stringify(this.getPlayers().map(p => ({name: p.name, score: p.score})))},"totalTurnsPlayed":${this.turnNumber}}`);
+
+    return endGamePayload;
+  }
+
   /**
    * 🎯 NOUVEAU: Retourne l'état personnel pour un joueur
    * Utilisé pour émettre PLAY_TURN
