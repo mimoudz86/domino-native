@@ -1,5 +1,6 @@
 import type { PlayerTurnState, BoardState } from '../models/GameTurnState';
 import type { GameEndedPayload } from '../../controllers/LocalGameEvent';
+import { globalEventEmitter } from '../../core/EventEmitter';
 
 export class GameStateBuilder {
   constructor(private engine: any) {}
@@ -196,6 +197,8 @@ export class GameStateBuilder {
     };
 
     console.log(`LOG  [GAME-ENGINE] 🏆 GAME_ENDED {"winner":"${winner?.name}","winnerId":${winner?.id},"scores":${JSON.stringify(this.engine.getPlayers().map((p: any) => ({name: p.name, score: p.score})))},"totalTurnsPlayed":${this.engine.turnNumber}}`);
+
+    globalEventEmitter.emit('GAME_ENDED', endGamePayload);
 
     return endGamePayload;
   }
