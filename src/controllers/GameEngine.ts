@@ -59,7 +59,7 @@ export class GameEngine implements IGameEngine {
 
     // Log les dominos de tous les joueurs pour TURN 1
     this.players.forEach(p => {
-      const dominoStr = p.hand.map(d => `${d.left}|${d.right}`).join(', ');
+      const dominoStr = p.dominos.map(d => `${d.left}|${d.right}`).join(', ');
       console.log(`LOG  [HANDS] ${p.name}: [${dominoStr}]`);
     });
 
@@ -190,7 +190,7 @@ export class GameEngine implements IGameEngine {
     // Joueur joue un domino (le pass est géré automatiquement via handleAutoPass())
     const move = payload as { domino: Domino; side: 'left' | 'right'; knocked: boolean };
 
-    const dominoInHand = player.hand.find(
+    const dominoInHand = player.dominos.find(
       d => d.left === move.domino.left && d.right === move.domino.right
     );
     if (!dominoInHand) {
@@ -221,7 +221,7 @@ export class GameEngine implements IGameEngine {
     });
 
     const boardStr = this.board.playedDominos.map(d => `${d.left}|${d.right}`).join(' ← → ');
-    console.log(`LOG  [GAME-ENGINE] 🎯 PLAY_RESPONSE {"player":"${player.name}","domino":"${move.domino.left}|${move.domino.right}","choice":"${move.side}","handAfter":${player.hand.length},"board":"${boardStr}","validation":"SUCCESS"}`);
+    console.log(`LOG  [GAME-ENGINE] 🎯 PLAY_RESPONSE {"player":"${player.name}","domino":"${move.domino.left}|${move.domino.right}","choice":"${move.side}","handAfter":${player.dominos.length},"board":"${boardStr}","validation":"SUCCESS"}`);
 
     for (const p of this.players) {
       p.hasPassed = false;
@@ -251,7 +251,7 @@ export class GameEngine implements IGameEngine {
     if (this.isOver) {
       console.log(`LOG  ════════════════════════════════════════════════════════════════════════════ GAME ENDED - FINAL HANDS ════════════════════════════════════════════════════════════════════════════`);
       this.players.forEach(p => {
-        const dominoStr = p.hand.map(d => `${d.left}|${d.right}`).join(', ');
+        const dominoStr = p.dominos.map(d => `${d.left}|${d.right}`).join(', ');
         console.log(`LOG  [HANDS] ${p.name}: [${dominoStr}]`);
       });
 
@@ -276,7 +276,7 @@ export class GameEngine implements IGameEngine {
 
     // Log les dominos de tous les joueurs
     this.players.forEach(p => {
-      const dominoStr = p.hand.map(d => `${d.left}|${d.right}`).join(', ');
+      const dominoStr = p.dominos.map(d => `${d.left}|${d.right}`).join(', ');
       console.log(`LOG  [HANDS] ${p.name}: [${dominoStr}]`);
     });
 
@@ -292,7 +292,7 @@ export class GameEngine implements IGameEngine {
 
 
   checkEndConditions(): boolean {
-    const emptyHand = this.players.find(p => p.hand.length === 0);
+    const emptyHand = this.players.find(p => p.dominos.length === 0);
     if (emptyHand) {
       console.log(`[GAME-ENGINE] ✅ END_CONDITIONS_MET reason=empty_hand`, {
         winnerPlayerId: emptyHand.id,
@@ -304,7 +304,7 @@ export class GameEngine implements IGameEngine {
     }
 
     if (this.players.every(p => p.hasPassed)) {
-      const calculateHandValue = (p: Player) => p.hand.reduce((sum, d) => sum + d.left + d.right, 0);
+      const calculateHandValue = (p: Player) => p.dominos.reduce((sum, d) => sum + d.left + d.right, 0);
       const winner = this.players.reduce((min, p) =>
         calculateHandValue(p) < calculateHandValue(min) ? p : min
       );

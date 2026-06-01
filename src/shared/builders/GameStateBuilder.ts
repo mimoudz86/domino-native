@@ -1,9 +1,10 @@
 import type { PlayerTurnState, BoardState } from '../models/GameTurnState';
 import type { GameEndedPayload } from '../../controllers/LocalGameEvent';
+import type { IGameEngine } from '../models/IGameEngine';
 import { globalEventEmitter } from '../../core/EventEmitter';
 
 export class GameStateBuilder {
-  constructor(private engine: any) {}
+  constructor(private engine: IGameEngine) {}
 
   // ═══════════════════════════════════════════════════════════════
   // ÉLÉMENTS DE BASE (briques de construction)
@@ -23,8 +24,8 @@ export class GameStateBuilder {
     return this.engine.players.map((p: any) => ({
       id: p.id,
       name: p.name,
-      dominos: Array(p.hand.length).fill(null),
-      dominoCount: p.hand.length,
+      dominos: Array(p.dominos.length).fill(null),
+      dominoCount: p.dominos.length,
       playables: [],
       placements: [],
       hasPassed: p.hasPassed,
@@ -52,16 +53,12 @@ export class GameStateBuilder {
     return state;
   }
 
-  buildPlayerTurnState(playerIndex: number): any {
-    return this.engine.buildPlayerTurnState(playerIndex);
-  }
-
   buildLocalPlayerState(playerIndex: number): any {
     const player = this.engine.players[playerIndex];
-    const playableResult = this.engine.board.getPlayableDominos(player.hand);
+    const playableResult = this.engine.board.getPlayableDominos(player.dominos);
 
     const playables = playableResult.playable
-      .map(([d]: any) => player.hand.findIndex((h: any) => h.left === d.left && h.right === d.right))
+      .map(([d]: any) => player.dominos.findIndex((h: any) => h.left === d.left && h.right === d.right))
       .filter((idx: number) => idx !== -1);
 
     const placements = playableResult.playable.map(([d, sides]: any) => {
@@ -77,7 +74,7 @@ export class GameStateBuilder {
       turnNumber: this.engine.turnNumber,
       yourIndex: playerIndex,
       yourName: player.name,
-      yourDominos: player.hand,
+      yourDominos: player.dominos,
       playables,
       placements,
       canPlay: player.canPlay(this.engine.board),
@@ -104,10 +101,10 @@ export class GameStateBuilder {
 
   buildCurrentState(): any {
     const current = this.engine.players[this.engine.currentPlayerIndex];
-    const playableResult = this.engine.board.getPlayableDominos(current.hand);
+    const playableResult = this.engine.board.getPlayableDominos(current.dominos);
 
     const playables = playableResult.playable
-      .map(([d]: any) => current.hand.findIndex((h: any) => h.left === d.left && h.right === d.right))
+      .map(([d]: any) => current.dominos.findIndex((h: any) => h.left === d.left && h.right === d.right))
       .filter((idx: number) => idx !== -1);
 
     const placements = playableResult.playable.map(([d, sides]: any) => {
@@ -118,9 +115,9 @@ export class GameStateBuilder {
     const currentPlayerHand: any = {
       id: current.id,
       name: current.name,
-      dominoCount: current.hand.length,
+      dominoCount: current.dominos.length,
       hasPassed: current.hasPassed,
-      dominos: current.hand,
+      dominos: current.dominos,
       playables,
       placements,
       canPlay: current.canPlay(this.engine.board)
@@ -145,9 +142,9 @@ export class GameStateBuilder {
       players: this.engine.players.map((p: any) => ({
         id: p.id,
         name: p.name,
-        dominoCount: p.hand.length,
+        dominoCount: p.dominos.length,
         hasPassed: p.hasPassed,
-        dominos: p.hand,
+        dominos: p.dominos,
         playables: p.id === current.id ? currentPlayerHand.playables : [],
         placements: p.id === current.id ? currentPlayerHand.placements : [],
         canPlay: p.id === current.id ? currentPlayerHand.canPlay : false
@@ -192,7 +189,7 @@ export class GameStateBuilder {
         id: winner?.id || 0,
         name: winner?.name || ''
       },
-      winningType: this.engine.winningType,
+      winningType: this.engine.winningType ?? 'EMPTY_HAND',
       rawScores
     };
 

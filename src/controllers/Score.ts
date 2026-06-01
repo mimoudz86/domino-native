@@ -166,7 +166,7 @@ export class Score {
    * Calculate score for a single player (sum of pips in hand)
    */
   static calculatePlayerScore(player: any): number {
-    return player.hand.reduce((sum: number, d: Domino) => sum + d.left + d.right, 0);
+    return player.dominos.reduce((sum: number, d: Domino) => sum + d.left + d.right, 0);
   }
 
   /**

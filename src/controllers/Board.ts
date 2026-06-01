@@ -195,7 +195,7 @@ export class Board {
     const dominoes = DominoModel.createStandardSet();
     Board.shuffle(dominoes);
     for (let i = 0; i < players.length; i++) {
-      players[i].hand = dominoes.slice(i * 7, (i + 1) * 7);
+      players[i].dominos = dominoes.slice(i * 7, (i + 1) * 7);
     }
   }
 }

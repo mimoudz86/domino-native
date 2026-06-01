@@ -2,7 +2,7 @@ import type { Domino } from '../shared/models/Domino';
 
 export interface Player {
   id: number;
-  hand: Domino[];
+  dominos: Domino[];
   hasPassed?: boolean;
   score?: number;
 }
@@ -58,7 +58,7 @@ export class GameCoreLogic {
     players: Player[]
   ): { isEnded: boolean; winnerId?: number; winningType?: 'EMPTY_HAND' | 'BLOCKED_GAME' } {
     for (const player of players) {
-      if (player.hand.length === 0) {
+      if (player.dominos.length === 0) {
         return {
           isEnded: true,
           winnerId: player.id,
@@ -81,8 +81,8 @@ export class GameCoreLogic {
 
   static findLowestPips(players: Player[]): Player {
     return players.reduce((min, current) => {
-      const minPips = min.hand.reduce((sum, d) => sum + d.left + d.right, 0);
-      const currentPips = current.hand.reduce((sum, d) => sum + d.left + d.right, 0);
+      const minPips = min.dominos.reduce((sum, d) => sum + d.left + d.right, 0);
+      const currentPips = current.dominos.reduce((sum, d) => sum + d.left + d.right, 0);
       return currentPips < minPips ? current : min;
     });
   }
@@ -93,14 +93,14 @@ export class GameCoreLogic {
 
   static calculateScores(players: Player[]): void {
     players.forEach(player => {
-      const pips = player.hand.reduce((sum, d) => sum + d.left + d.right, 0);
+      const pips = player.dominos.reduce((sum, d) => sum + d.left + d.right, 0);
       player.score = pips;
     });
   }
 
   static findFirstPlayerWithDoubleSix(players: Player[]): number {
     for (let i = 0; i < players.length; i++) {
-      const hasDoubleSix = players[i].hand.some(d => d.left === 6 && d.right === 6);
+      const hasDoubleSix = players[i].dominos.some(d => d.left === 6 && d.right === 6);
       if (hasDoubleSix) {
         return i;
       }
