@@ -130,11 +130,7 @@ export class GameEngine {
     this._isOver = value;
   }
 
-  /**
-   * 🎯 NOUVEAU: Retourne l'état initial du jeu
-   * Utilisé pour émettre GAME_STARTED au démarrage
-   */
-  getGameStartedState(): { turnNumber: number; currentPlayerIndex: number; players: any[]; board: any } {
+  buildStartGame(): { turnNumber: number; currentPlayerIndex: number; players: any[]; board: any } {
     const players = this.buildPlayersArray(this.currentPlayerIndex);
 
     const state = {

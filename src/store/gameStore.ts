@@ -283,7 +283,7 @@ export const useGameStore = create<GameStoreState>((set, get) => ({
     // 8. Émettre GAME_STARTED
     adapter.emit({
       type: 'GAME_STARTED',
-      payload: engine.getGameStartedState()
+      payload: engine.buildStartGame()
     });
 
     // 9. Démarrer la boucle de jeu (en background - pas await)
