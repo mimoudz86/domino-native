@@ -1,17 +1,34 @@
 import type { PlayerTurnState, BoardState } from '../models/GameTurnState';
-import type { PlayTurnPayload, GameEndedPayload } from '../../controllers/LocalGameEvent';
+import type { GameEndedPayload } from '../../controllers/LocalGameEvent';
 
 export class GameStateBuilder {
   constructor(private engine: any) {}
 
+  // ═══════════════════════════════════════════════════════════════
+  // ÉLÉMENTS DE BASE (briques de construction)
+  // ═══════════════════════════════════════════════════════════════
+
+  buildBoardState(): BoardState {
+    return this.engine.buildBoardState();
+  }
+
+  buildPlayersArray(currentPlayerIndex?: number): PlayerTurnState[] {
+    return this.engine.buildPlayersArray(currentPlayerIndex);
+  }
+
+  // ═══════════════════════════════════════════════════════════════
+  // ÉTATS COMPLETS
+  // ═══════════════════════════════════════════════════════════════
+
   buildStartGame(): { turnNumber: number; currentPlayerIndex: number; players: PlayerTurnState[]; board: BoardState } {
-    const players = this.engine.buildPlayersArray(this.engine.currentPlayerIndex);
+    const players = this.buildPlayersArray(this.engine.currentPlayerIndex);
+    const board = this.buildBoardState();
 
     const state = {
       turnNumber: this.engine.turnNumber,
       currentPlayerIndex: this.engine.currentPlayerIndex,
       players,
-      board: this.engine.buildBoardState()
+      board
     };
 
     console.log(`LOG  [GAME-ENGINE] 🚀 GAME_STARTED {"players":${players.length},"startingPlayer":"${this.engine.getPlayers()[this.engine.currentPlayerIndex]?.name}"}`);
@@ -19,8 +36,8 @@ export class GameStateBuilder {
     return state;
   }
 
-  buildPlayTurn(playerIndex: number): PlayTurnPayload {
-    return this.engine.getPlayTurnState(playerIndex);
+  buildPlayerTurnState(playerIndex: number): any {
+    return this.engine.buildPlayerTurnState(playerIndex);
   }
 
   buildEndGame(): GameEndedPayload {
@@ -40,4 +57,3 @@ export class GameStateBuilder {
     return endGamePayload;
   }
 }
-
