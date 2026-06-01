@@ -4,6 +4,7 @@ export interface Player {
   id: number;
   hand: Domino[];
   hasPassed?: boolean;
+  score?: number;
 }
 
 export class GameCoreLogic {
@@ -88,6 +89,13 @@ export class GameCoreLogic {
 
   static calculatePips(hand: Domino[]): number {
     return hand.reduce((sum, d) => sum + d.left + d.right, 0);
+  }
+
+  static calculateScores(players: Player[]): void {
+    players.forEach(player => {
+      const pips = player.hand.reduce((sum, d) => sum + d.left + d.right, 0);
+      player.score = pips;
+    });
   }
 
   static findFirstPlayerWithDoubleSix(players: Player[]): number {

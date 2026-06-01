@@ -7,6 +7,7 @@ import { Board } from './Board';
 import { Player } from './Player';
 import { globalEventEmitter } from '../core/EventEmitter';
 import { GameStateBuilder } from '../shared/builders/GameStateBuilder';
+import { GameCoreLogic } from '../core/GameCoreLogic';
 
 interface GameEngineConfig {
   playerNames: string[];
@@ -43,7 +44,7 @@ export class GameEngine {
   async initGame(): Promise<void> {
     this.reset();
     Board.distribute(this.players);
-    this.findStartingPlayer();
+    this.currentPlayerIndex = GameCoreLogic.findFirstPlayerWithDoubleSix(this.players);
     this.turnNumber = 1;
 
     console.log(`LOG  [GAME-ENGINE] 🎮 INIT_GAME {"players":${this.players.length},"aiPlayers":${this.players.filter(p => p.isAI).length},"startingPlayer":"${this.players[this.currentPlayerIndex].name}"}`);
@@ -319,23 +320,7 @@ export class GameEngine {
   private endGame(winner: Player): void {
     this.isOver = true;
     this.winner = winner;
-    this.calculateScores();
-  }
-
-  private calculateScores(): void {
-    this.players.forEach(player => {
-      const pips = player.hand.reduce((sum, d) => sum + d.left + d.right, 0);
-      player.score = pips;
-    });
-  }
-
-  private findStartingPlayer(): void {
-    for (let i = 0; i < this.players.length; i++) {
-      if (this.players[i].hand.some(d => d.left === 6 && d.right === 6)) {
-        this.currentPlayerIndex = i;
-        return;
-      }
-    }
+    GameCoreLogic.calculateScores(this.players);
   }
 
   private formatBoardString(trainOnBoard: any[]): string {
