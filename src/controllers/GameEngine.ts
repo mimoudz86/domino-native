@@ -1,7 +1,7 @@
 
 import type { Domino, TurnState, PlayerTurnState, TrackedDomino} from '../shared/models/GameTurnState';
 import { DominoModel } from '../shared/models/Domino';
-import type { PlayTurnPayload, PlayResponsePayload, TurnUpdatedPayload } from '../controllers/LocalGameEvent';
+import type { PlayTurnPayload, PlayResponsePayload, TurnUpdatedPayload, GameEndedPayload } from '../controllers/LocalGameEvent';
 import type { ILocalEventDispatcher } from '../core/ILocalEventDispatcher';
 import { Board } from './Board';
 import { Player } from './Player';
@@ -145,22 +145,20 @@ export class GameEngine {
     return state;
   }
 
-  buildEndGame(): { winner: { id: number; name: string }; winningType: 'EMPTY_HAND' | 'BLOCKED_GAME'; rawScores: Record<string, number> } {
+  buildEndGame(): GameEndedPayload {
     const winner = this.getWinner();
-    const rawScores = {
-      p0: this.players[0].getRemainingPips(),
-      p1: this.players[1].getRemainingPips(),
-      p2: this.players[2].getRemainingPips(),
-      p3: this.players[3].getRemainingPips()
-    };
-
-    const endGamePayload = {
+    const endGamePayload: GameEndedPayload = {
       winner: {
         id: winner?.id || 0,
         name: winner?.name || ''
       },
       winningType: this.winningType,
-      rawScores
+      rawScores: {
+        p0: this.players[0].getRemainingPips(),
+        p1: this.players[1].getRemainingPips(),
+        p2: this.players[2].getRemainingPips(),
+        p3: this.players[3].getRemainingPips()
+      }
     };
 
     console.log(`LOG  [GAME-ENGINE] 🏆 GAME_ENDED {"winner":"${winner?.name}","winnerId":${winner?.id},"scores":${JSON.stringify(this.getPlayers().map(p => ({name: p.name, score: p.score})))},"totalTurnsPlayed":${this.turnNumber}}`);
@@ -426,10 +424,6 @@ export class GameEngine {
     this.checkEndConditions();
 
     if (this.isOver) {
-      const winner = this.getWinner();
-      console.log(`LOG  [GAME-ENGINE] 🏆 GAME_ENDED {"winner":"${winner?.name}","winnerId":${winner?.id},"scores":${JSON.stringify(this.getPlayers().map(p => ({name: p.name, score: p.score})))},"totalTurnsPlayed":${this.turnNumber}}`);
-
-      // Afficher les hands finales après la fin du game
       console.log(`LOG  ════════════════════════════════════════════════════════════════════════════ GAME ENDED - FINAL HANDS ════════════════════════════════════════════════════════════════════════════`);
       this.players.forEach(p => {
         const dominoStr = p.hand.map(d => `${d.left}|${d.right}`).join(', ');
@@ -437,38 +431,11 @@ export class GameEngine {
       });
 
       if (adapter) {
-        // Préparer les données BRUTES (pips restants de chaque joueur)
-        const rawScores = {
-          p0: this.players[0].getRemainingPips(),
-          p1: this.players[1].getRemainingPips(),
-          p2: this.players[2].getRemainingPips(),
-          p3: this.players[3].getRemainingPips()
-        };
-
-        // Émettre l'événement pour la persistance via MatchService
-        globalEventEmitter.emit('GAME_ENDED', {
-          winner: {
-            id: winner?.id || 0,
-            name: winner?.name || ''
-          },
-          winningType: this.winningType,
-          rawScores
-        });
-
-
-
-
-
+        const endGamePayload = this.buildEndGame();
+        globalEventEmitter.emit("GAME_ENDED", endGamePayload);
         adapter.emit({
-          type: 'GAME_ENDED',
-          payload: {
-            winner: {
-              id: winner?.id || 0,
-              name: winner?.name || ''
-            },
-            winningType: this.winningType,
-            rawScores
-          }
+          type: "GAME_ENDED",
+          payload: endGamePayload
         });
       }
       return;
