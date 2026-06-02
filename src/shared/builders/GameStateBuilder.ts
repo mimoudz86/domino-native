@@ -1,10 +1,9 @@
 import type { PlayerTurnState, BoardState } from '../models/GameTurnState';
 import type { GameEndedPayload } from '../../controllers/LocalGameEvent';
-import type { IGameEngine } from '../models/IGameEngine';
 import { globalEventEmitter } from '../../core/EventEmitter';
 
 export class GameStateBuilder {
-  constructor(private engine: IGameEngine) {}
+  constructor(private engine: any) {}
 
   // ═══════════════════════════════════════════════════════════════
   // ÉLÉMENTS DE BASE (briques de construction)

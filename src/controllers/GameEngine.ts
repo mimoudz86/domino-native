@@ -3,7 +3,6 @@ import type { Domino, TurnState, PlayerTurnState, TrackedDomino} from '../shared
 import { DominoModel } from '../shared/models/Domino';
 import type { PlayTurnPayload, PlayResponsePayload, TurnUpdatedPayload, GameEndedPayload } from '../controllers/LocalGameEvent';
 import type { ILocalEventDispatcher } from '../core/ILocalEventDispatcher';
-import type { IGameEngine } from '../shared/models/IGameEngine';
 import { Board } from './Board';
 import { Player } from './Player';
 import { globalEventEmitter } from '../core/EventEmitter';
@@ -15,7 +14,7 @@ interface GameEngineConfig {
   aiPlayers: boolean[];
 }
 
-export class GameEngine implements IGameEngine {
+export class GameEngine {
   public players: Player[] = [];
   public board: Board = new Board();
   public currentPlayerIndex: number = 0;
