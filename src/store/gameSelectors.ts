@@ -1,3 +1,4 @@
+import { useMemo } from 'react';
 import type { Domino } from '../shared/Domino';
 import type { PlayerTurnState, PlacedDomino } from '../shared/GameEvent';
 import type { MatchConfig } from '../types/MatchConfig';
@@ -45,3 +46,16 @@ export const useGameEndActions = () =>
     initGame: state.initGame,
     resetGame: state.resetGame,
   }));
+
+export const useLastPasserId = (): number | undefined =>
+  useActiveGameStore(s => s.turnState?.lastPlayerWhoPassedId);
+
+export const usePasserPlayer = (): PlayerTurnState | undefined => {
+  const lastId = useLastPasserId();
+  const players = useAllPlayers();
+
+  return useMemo(
+    () => players.find(p => p.id === lastId),
+    [lastId, players]
+  );
+};

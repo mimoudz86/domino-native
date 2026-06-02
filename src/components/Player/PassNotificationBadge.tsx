@@ -1,5 +1,6 @@
 import { useEffect, useState, useRef } from 'react';
 import { View, Text, StyleSheet } from 'react-native';
+import { usePasserPlayer } from '../../store/gameSelectors';
 import { useActiveGameStore } from '../../store/gameStoreContext';
 
 /**
@@ -16,44 +17,53 @@ export function PassNotificationBadge() {
   const timerRef = useRef<NodeJS.Timeout | null>(null);
   const lastPassedIdRef = useRef<number | null>(null);
 
-  const turnState = useActiveGameStore(state => state.turnState);
+  const passerPlayer = usePasserPlayer();
   const dispatcher = useActiveGameStore(state => state.dispatcher);
 
   useEffect(() => {
-    // Trouver le joueur avec lastPlayerWhoPassedId
-    const player = turnState?.players?.find(p => p.id === turnState?.lastPlayerWhoPassedId);
+    // Check if player has passed (new pass event)
+    if (!passerPlayer?.hasPassed || lastPassedIdRef.current === passerPlayer.id) {
+      return;
+    }
 
-    // Si c'est un nouveau pass (lastPlayerWhoPassedId a changé)
-    if (player?.hasPassed === true && lastPassedIdRef.current !== turnState?.lastPlayerWhoPassedId) {
-      console.log(`LOG  [PASS-BADGE] ✅ SHOW_BADGE {"player":"${player.name}"}`);
-      lastPassedIdRef.current = turnState?.lastPlayerWhoPassedId ?? null;
+    // CAPTURE values NOW before setTimeout (fix closure stale bug)
+    const passerId = passerPlayer.id;
+    const passerName = passerPlayer.name;
 
-      // Annuler le timer précédent si existant
+    console.log(`LOG  [PASS-BADGE] ✅ SHOW_BADGE {"player":"${passerName}"}`);
+    lastPassedIdRef.current = passerId;
+
+    // Cancel previous timer if exists
+    if (timerRef.current) {
+      clearTimeout(timerRef.current);
+    }
+
+    setDisplayName(passerName);
+    setIsVisible(true);
+
+    // Timer 1500ms
+    timerRef.current = setTimeout(() => {
+      console.log(`LOG  [PASS-BADGE] ⏱️  HIDE_BADGE {"player":"${passerName}"}`);
+      setIsVisible(false);
+      setDisplayName(null);
+      lastPassedIdRef.current = null;
+
+      // Notify engine that badge is hidden
+      console.log(`LOG  [PASS-BADGE] 📡 EMIT_PASS_HIDDEN {"player":"${passerName}"}`);
+      if (dispatcher) {
+        dispatcher.emit({
+          type: 'PASS_HIDDEN',
+          payload: { playerId: passerId }  // ✅ Safe: captured before setTimeout
+        });
+      }
+    }, 1500);
+
+    return () => {
       if (timerRef.current) {
         clearTimeout(timerRef.current);
       }
-
-      setDisplayName(player.name);
-      setIsVisible(true);
-
-      // Timer 1500ms
-      timerRef.current = setTimeout(() => {
-        console.log(`LOG  [PASS-BADGE] ⏱️  HIDE_BADGE {"player":"${player.name}"}`);
-        setIsVisible(false);
-        setDisplayName(null);
-        lastPassedIdRef.current = null;
-
-        // Notifier l'engine que le badge est caché
-        console.log(`LOG  [PASS-BADGE] 📡 EMIT_PASS_HIDDEN {"player":"${player.name}"}`);
-        if (dispatcher) {
-          dispatcher.emit({
-            type: 'PASS_HIDDEN',
-            payload: { playerId: player.id }
-          });
-        }
-      }, 1500);
-    }
-  }, [turnState?.lastPlayerWhoPassedId]);
+    };
+  }, [passerPlayer?.id, dispatcher]);
 
   if (!isVisible || !displayName) {
     return null;
