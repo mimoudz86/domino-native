@@ -1,10 +1,10 @@
 import React, { useMemo } from 'react';
 import { View, StyleSheet } from 'react-native';
 import type { Domino } from '../../shared/Domino';
-import type { PlayTurnPayload } from '../../shared/GameEvent';
 import { DominoView } from '../DominoView';
 import { useActiveGameStore } from '../../store/gameStoreContext';
 import { useDragDetection } from '../../hooks/useDragDetection';
+import { useMyPlayer, useIsMyTurn, useMyDominos } from '../../store/gameSelectors';
 
 interface PlayerHandProps {
   playerId: number;
@@ -66,25 +66,12 @@ export function PlayerHand({
   orientation = 'horizontal',
   position: positionProp = 'bottom',
 }: PlayerHandProps) {
-  const { playDomino, turnState } = useActiveGameStore();
-
-  const playerState = useMemo((): PlayTurnPayload | null => {
-    if (!turnState) {
-      return null;
-    }
-
-    const payload = turnState as any;
-    if (payload.yourIndex !== undefined && payload.yourDominos) {
-      return payload;
-    }
-
-    return null;
-  }, [turnState]);
+  const { playDomino } = useActiveGameStore();
+  const myPlayer = useMyPlayer(playerId);
+  const isOurTurn = useIsMyTurn(playerId);
 
   const isHorizontal =
     orientation === 'horizontal' || positionProp === 'bottom' || positionProp === 'top';
-
-  const isOurTurn = playerState?.yourIndex === playerId;
   if (isOurTurn) {
     // console.log(`[HUMAN PLAYER] 👤 It's your turn! Playables: ${playerState?.playables.join(', ')}`);
   }
@@ -92,25 +79,27 @@ export function PlayerHand({
   const getDraggableStatus = (
     dominoIndex: number
   ): 'none' | 'left' | 'right' | 'both' => {
-    if (!playerState) return 'none';
-    const playableIdx = playerState.playables.indexOf(dominoIndex);
+    if (!myPlayer) return 'none';
+    const playableIdx = myPlayer.playables.indexOf(dominoIndex);
     if (playableIdx === -1) {
       return 'none';
     }
-    return (playerState.placements[playableIdx] as 'left' | 'right' | 'both') || 'both';
+    return (myPlayer.placements[playableIdx] as 'left' | 'right' | 'both') || 'both';
   };
 
   const getDraggableStatusMemo = useMemo(
     () => getDraggableStatus,
-    [playerState]
+    [myPlayer]
   );
 
   const dominoElements = useMemo(() => {
-    if (!playerState || !isOurTurn) {
+    if (!myPlayer || !isOurTurn) {
       return [];
     }
 
-    return playerState.yourDominos.map((domino, index) => {
+    const dominos = myPlayer.dominos.filter((d): d is Domino => d !== null);
+
+    return dominos.map((domino, index) => {
       const draggableStatus = getDraggableStatusMemo(index);
       const isPlayable = draggableStatus !== 'none';
 
@@ -135,7 +124,7 @@ export function PlayerHand({
         />
       );
     });
-  }, [playerState, playerId, isOurTurn, playDomino, getDraggableStatusMemo]);
+  }, [myPlayer, playerId, isOurTurn, playDomino, getDraggableStatusMemo]);
 
   if (!isOurTurn) {
     return (

@@ -1,7 +1,6 @@
 import { GlobalDragGhost } from '../GlobalDragGhost';
-import React, { useState, useMemo } from 'react';
+import React, { useState } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
-import type { PlayerTurnState, TurnState } from '../../shared/GameEvent';
 import { getPlayerIdAtPosition } from '../../utils/playerPositioning';
 import { CurrentPlayerArea } from '../Player/CurrentPlayerArea';
 import { OpponentPlayerArea } from '../Player/OpponentPlayerArea';
@@ -10,26 +9,21 @@ import { ScoreSlot } from './ScoreSlot';
 import { GameEndModal } from '../GameEnd/GameEndModal';
 import { PassNotificationBadge } from '../Player/PassNotificationBadge';
 import { useActiveGameStore } from '../../store/gameStoreContext';
+import { useAllPlayers } from '../../store/gameSelectors';
 
 interface MobileGameBoardProps {
-  players?: PlayerTurnState[];
   thisPlayerId?: number;
-  gameState?: TurnState;
   onBackToHome?: () => void;
 }
 
 export function MobileGameBoard({
-  players: initialPlayers = [],
   thisPlayerId = 0,
-  gameState: gameStateProp,
   onBackToHome,
 }: MobileGameBoardProps) {
 
   const [isExpanded, setIsExpanded] = useState(false);
-  const { resetGame, initGame, continueOrNewMatch, selectedConfig, gameEnded, lastGameData, currentSetData, currentMatchData, resetGameEndState, turnState } = useActiveGameStore();
-
-  // Utiliser turnState du store au lieu de la prop
-  const gameState = turnState || gameStateProp;
+  const { resetGame, initGame, continueOrNewMatch, selectedConfig, gameEnded, lastGameData, currentSetData, currentMatchData, resetGameEndState } = useActiveGameStore();
+  const players = useAllPlayers();
 
   const toggleExpand = () => setIsExpanded(prev => !prev);
 
@@ -44,13 +38,6 @@ export function MobileGameBoard({
     resetGame();
     onBackToHome?.();
   };
-
-  const players = useMemo(() => {
-    if (gameState?.players && gameState.players.length > 0) {
-      return gameState.players;
-    }
-    return initialPlayers;
-  }, [gameState?.players, gameState]);
 
   if (players.length < 4) {
     return (
@@ -84,7 +71,7 @@ export function MobileGameBoard({
           {bottomPlayer === thisPlayerId ? (
             <CurrentPlayerArea
               playerId={bottomPlayer}
-              players={players}
+
               position="bottom"
             />
           ) : (
@@ -167,7 +154,6 @@ export function MobileGameBoard({
         {bottomPlayer === thisPlayerId ? (
           <CurrentPlayerArea
             playerId={bottomPlayer}
-            players={players}
             position="bottom"
           />
         ) : (

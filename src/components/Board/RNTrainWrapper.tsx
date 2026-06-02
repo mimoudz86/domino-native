@@ -4,15 +4,12 @@ import type { TrainSlot } from '../../types/train.types';
 import { BOARD_CONFIG, calculateWrapperHeight } from '../../config/boardConfig';
 import { calculateLineAdjustments, calculateExtraLineAdjustments } from '../../utils/trainCalculations';
 import { RNTrainLine } from './RNTrainLine';
-import { useActiveGameStore } from '../../store/gameStoreContext';
 
 interface RNTrainWrapperProps {
   slots: TrainSlot[];
 }
 
 export function RNTrainWrapper({ slots }: RNTrainWrapperProps) {
-  const dragState = useActiveGameStore(s => s.dragState);
-
   const activeLines = useMemo(() => {
     if (!slots || !Array.isArray(slots) || slots.length === 0) {
       return {
@@ -82,7 +79,7 @@ export function RNTrainWrapper({ slots }: RNTrainWrapperProps) {
           isActive
           vertical
           translateX={lineAdjustments.left + extraAdjustments.upper}
-          dragState={dragState}
+
           firstSlot={firstSlot}
           lastSlot={lastSlot}
         />
@@ -95,7 +92,7 @@ export function RNTrainWrapper({ slots }: RNTrainWrapperProps) {
           isActive
           vertical
           translateX={lineAdjustments.left}
-          dragState={dragState}
+
           firstSlot={firstSlot}
           lastSlot={lastSlot}
         />
@@ -106,7 +103,6 @@ export function RNTrainWrapper({ slots }: RNTrainWrapperProps) {
         slots={slots}
         isActive={activeLines.main}
         vertical
-        dragState={dragState}
         firstSlot={firstSlot}
         lastSlot={lastSlot}
       />
@@ -119,7 +115,7 @@ export function RNTrainWrapper({ slots }: RNTrainWrapperProps) {
           isActive
           vertical
           translateX={lineAdjustments.right}
-          dragState={dragState}
+
           firstSlot={firstSlot}
           lastSlot={lastSlot}
         />
@@ -134,7 +130,7 @@ export function RNTrainWrapper({ slots }: RNTrainWrapperProps) {
           vertical
           inverted
           translateX={lineAdjustments.right + extraAdjustments.lower}
-          dragState={dragState}
+
           firstSlot={firstSlot}
           lastSlot={lastSlot}
         />

@@ -1,9 +1,7 @@
-import React, { useState, useEffect } from 'react';
+import React from 'react';
 import { View, StyleSheet } from 'react-native';
-import type { TurnUpdatedPayload } from '../../shared/GameEvent';
-import type { PlayerTurnState } from '../../shared/GameEvent';
 import { getPlayerColor } from '../../utils/avatarGenerator';
-import { useActiveGameStore } from '../../store/gameStoreContext';
+import { usePlayerById } from '../../store/gameSelectors';
 // import { usePlayerFlash } from '../../hooks/usePlayerFlash';
 import { PlayerInfo } from './PlayerInfo';
 import { OpponentPlayerHand } from './OpponentPlayerHand';
@@ -29,22 +27,7 @@ export function OpponentPlayerArea({
   playerId,
   position = 'bottom',
 }: OpponentPlayerAreaProps) {
-  const { dispatcher } = useActiveGameStore();
-  const [playerState, setPlayerState] = useState<PlayerTurnState | undefined>();
-
-  // 🎯 Écouter TURN_UPDATED pour mettre à jour les données du joueur
-  useEffect(() => {
-    if (!dispatcher) return;
-
-    const unsubscribe = dispatcher.on('TURN_UPDATED', (state: TurnUpdatedPayload) => {
-      const player = state.players.find(p => p.id === playerId);
-      if (player) {
-        setPlayerState(player);
-      }
-    });
-
-    return () => unsubscribe();
-  }, [dispatcher, playerId]);
+  const playerState = usePlayerById(playerId);
 
   const playerColor = getPlayerColor(playerId);
   const orientation = position === 'bottom' || position === 'top' ? 'horizontal' : 'vertical';

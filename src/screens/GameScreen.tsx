@@ -1,31 +1,25 @@
 import React, { useEffect } from 'react';
 import { StyleSheet, StatusBar } from 'react-native';
 import { MobileGameBoard } from '../components/Board/MobileGameBoard';
-import { useActiveGameStore } from '../store/gameStoreContext';
+import { useAllPlayers } from '../store/gameSelectors';
 
 interface GameScreenProps {
   onBackToHome?: () => void;
 }
 
 export function GameScreen({ onBackToHome }: GameScreenProps) {
-  const { turnState } = useActiveGameStore();
+  const players = useAllPlayers();
 
   useEffect(() => {
     StatusBar.setHidden(true, 'slide');
     return () => StatusBar.setHidden(false, 'slide');
   }, []);
 
-  // ✅ Re-render quand turnState change dans le store
-  useEffect(() => {
-    // Simple effect to ensure re-render when turnState updates
-    // This makes GameScreen react to game state changes
-  }, [turnState]);
-
-  if (!turnState) {
+  if (players.length < 4) {
     return null;
   }
 
-  return <MobileGameBoard thisPlayerId={0} gameState={turnState} onBackToHome={onBackToHome} />;
+  return <MobileGameBoard thisPlayerId={0} onBackToHome={onBackToHome} />;
 }
 
 const styles = StyleSheet.create({});

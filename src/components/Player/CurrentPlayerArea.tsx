@@ -1,14 +1,13 @@
-import React, { useMemo } from 'react';
+import React from 'react';
 import { View, StyleSheet } from 'react-native';
-import type { PlayerTurnState } from '../../shared/GameEvent';
 import { getPlayerColor } from '../../utils/avatarGenerator';
+import { usePlayerById } from '../../store/gameSelectors';
 // import { usePlayerFlash } from '../../hooks/usePlayerFlash';
 import { PlayerInfo } from './PlayerInfo';
 import { PlayerHand } from './PlayerHand';
 
 interface CurrentPlayerAreaProps {
   playerId: number;
-  players?: PlayerTurnState[];
   position?: 'top' | 'bottom' | 'left' | 'right';
 }
 
@@ -19,17 +18,13 @@ interface CurrentPlayerAreaProps {
  * Les dominos sont visibles et interactifs.
  *
  * @param playerId - ID du joueur (0-3)
- * @param players - État des joueurs
  * @param position - Position du joueur sur l'écran
  */
 export function CurrentPlayerArea({
   playerId,
-  players,
   position = 'bottom',
 }: CurrentPlayerAreaProps) {
-  const playerInfo = useMemo(() => {
-    return players?.find(p => p.id === playerId);
-  }, [players, playerId]);
+  const playerInfo = usePlayerById(playerId);
 
   const playerColor = getPlayerColor(playerId);
   const orientation = position === 'bottom' || position === 'top' ? 'horizontal' : 'vertical';

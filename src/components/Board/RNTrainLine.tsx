@@ -5,6 +5,7 @@ import type { TrainLineType, TrainSlot } from '../../types/train.types';
 import { BOARD_CONFIG } from '../../config/boardConfig';
 import { DominoView } from '../DominoView';
 import { registerSlotPosition } from '../../utils/trainPositions';
+import { useDragState } from '../../store/gameSelectors';
 
 interface RNTrainLineProps {
   lineType: TrainLineType;
@@ -13,7 +14,6 @@ interface RNTrainLineProps {
   vertical?: boolean;
   inverted?: boolean;
   translateX?: number;
-  dragState?: any;
   firstSlot?: TrainSlot;
   lastSlot?: TrainSlot;
 }
@@ -38,10 +38,10 @@ export function RNTrainLine({
   vertical = false,
   inverted = false,
   translateX = 0,
-  dragState,
   firstSlot,
   lastSlot,
 }: RNTrainLineProps) {
+  const dragState = useDragState();
   // Refs pour chaque slot - pour measureInWindow
   const slotRefs = useRef<Map<number, View>>(new Map()).current;
 

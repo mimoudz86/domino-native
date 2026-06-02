@@ -1,6 +1,6 @@
 import React, { useMemo } from 'react';
 import { View, StyleSheet } from 'react-native';
-import { useActiveGameStore } from '../../store/gameStoreContext';
+import { useTrainOnBoard } from '../../store/gameSelectors';
 import { buildTrainSlots } from '../../utils/trainCalculations';
 import { RNTrainWrapper } from './RNTrainWrapper';
 
@@ -9,12 +9,11 @@ interface MobileGameWrapperProps {
 }
 
 export function MobileGameWrapper({ dominoSize = 'small' }: MobileGameWrapperProps) {
-  const { turnState } = useActiveGameStore();
+  const trainOnBoard = useTrainOnBoard();
 
   const slots = useMemo(() => {
-    const trainOnBoard = (turnState as any)?.board?.trainOnBoard ?? [];
     return buildTrainSlots(trainOnBoard);
-  }, [turnState]);
+  }, [trainOnBoard]);
 
   return (
     <View style={styles.container}>

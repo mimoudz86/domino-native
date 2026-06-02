@@ -1,7 +1,6 @@
-import React, { useMemo, useState, useEffect } from 'react';
+import React, { useMemo } from 'react';
 import { View, StyleSheet } from 'react-native';
-import type { TurnUpdatedPayload } from '../../shared/GameEvent';
-import { useActiveGameStore } from '../../store/gameStoreContext';
+import { usePlayerById } from '../../store/gameSelectors';
 
 interface OpponentPlayerHandProps {
   playerId: number;
@@ -24,23 +23,8 @@ export function OpponentPlayerHand({
   orientation = 'horizontal',
   position = 'bottom',
 }: OpponentPlayerHandProps) {
-  const { dispatcher } = useActiveGameStore();
-  const [dominoCount, setDominoCount] = useState<number>(7); // Par défaut 7 dominos
-
-  // 🎯 Écouter TURN_UPDATED pour mettre à jour le dominoCount
-  useEffect(() => {
-    if (!dispatcher) return;
-
-    const unsubscribe = dispatcher.on('TURN_UPDATED', (state: TurnUpdatedPayload) => {
-      // Trouver ce joueur dans la liste des joueurs
-      const player = state.players.find(p => p.id === playerId);
-      if (player) {
-        setDominoCount(player.dominoCount);
-      }
-    });
-
-    return () => unsubscribe();
-  }, [dispatcher, playerId]);
+  const player = usePlayerById(playerId);
+  const dominoCount = player?.dominoCount ?? 7;
 
   const isHorizontal =
     orientation === 'horizontal' || position === 'bottom' || position === 'top';
