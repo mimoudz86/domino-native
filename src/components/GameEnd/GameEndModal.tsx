@@ -58,8 +58,11 @@ export function GameEndModal({
   onContinue,
   onLeave,
 }: GameEndModalProps) {
+  // Fix race condition: only show modal after lastGameData arrives (after GAME_SAVED event)
+  const isReady = visible && lastGameData !== null && lastGameData !== undefined;
+
   return (
-    <Modal visible={visible} transparent animationType="fade">
+    <Modal visible={isReady} transparent animationType="fade">
       <View style={styles.overlay}>
         <ScrollView style={styles.scrollContainer} contentContainerStyle={styles.scrollContent}>
           <SoloModeView

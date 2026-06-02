@@ -8,8 +8,7 @@ import { MobileGameWrapper } from './MobileGameWrapper';
 import { ScoreSlot } from './ScoreSlot';
 import { GameEndModal } from '../GameEnd/GameEndModal';
 import { PassNotificationBadge } from '../Player/PassNotificationBadge';
-import { useActiveGameStore } from '../../store/gameStoreContext';
-import { useAllPlayers } from '../../store/gameSelectors';
+import { useAllPlayers, useGameEndData, useGameEndActions } from '../../store/gameSelectors';
 
 interface MobileGameBoardProps {
   thisPlayerId?: number;
@@ -22,7 +21,8 @@ export function MobileGameBoard({
 }: MobileGameBoardProps) {
 
   const [isExpanded, setIsExpanded] = useState(false);
-  const { resetGame, initGame, continueOrNewMatch, selectedConfig, gameEnded, lastGameData, currentSetData, currentMatchData, resetGameEndState } = useActiveGameStore();
+  const { gameEnded, lastGameData, currentSetData, currentMatchData, selectedConfig } = useGameEndData();
+  const { resetGame, initGame, continueOrNewMatch, resetGameEndState } = useGameEndActions();
   const players = useAllPlayers();
 
   const toggleExpand = () => setIsExpanded(prev => !prev);

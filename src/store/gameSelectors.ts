@@ -1,5 +1,6 @@
 import type { Domino } from '../shared/Domino';
 import type { PlayerTurnState, PlacedDomino } from '../shared/GameEvent';
+import type { MatchConfig } from '../types/MatchConfig';
 import { useActiveGameStore } from './gameStoreContext';
 
 export const useTrainOnBoard = (): PlacedDomino[] =>
@@ -25,3 +26,22 @@ export const useIsMyTurn = (myId: number): boolean =>
 
 export const useDragState = () =>
   useActiveGameStore(s => s.dragState);
+
+export const useGameEndData = () =>
+  useActiveGameStore(state => ({
+    gameEnded: state.gameEnded,
+    lastGameData: state.lastGameData,
+    currentGameId: state.currentGameId,
+    currentSetId: state.currentSetId,
+    currentSetData: state.currentSetData,
+    currentMatchData: state.currentMatchData,
+    selectedConfig: state.selectedConfig,
+  }));
+
+export const useGameEndActions = () =>
+  useActiveGameStore(state => ({
+    resetGameEndState: state.resetGameEndState,
+    continueOrNewMatch: state.continueOrNewMatch,
+    initGame: state.initGame,
+    resetGame: state.resetGame,
+  }));
