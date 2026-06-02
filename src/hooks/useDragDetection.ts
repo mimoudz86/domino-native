@@ -1,6 +1,6 @@
 import { useRef, useCallback, useEffect } from 'react';
 import { PanResponder, type GestureResponderEvent, type PanResponderGestureState } from 'react-native';
-import type { Domino } from '../shared/models/Domino';
+import type { Domino } from '../shared/Domino';
 import { useActiveGameStore } from '../store/gameStoreContext';
 import { useDragContext } from '../context/DragContext';
 import { calculateClosestSideRN } from '../utils/trainPositions';

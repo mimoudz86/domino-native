@@ -1,11 +1,11 @@
 
-import type { Domino, TrackedDomino } from '../shared/models/GameTurnState';
-import type { PlayResponsePayload } from '../controllers/LocalGameEvent';
+import type { Domino } from '../shared/Domino';
+import type { TrackedDomino,PlayResponsePayload } from '../shared/GameEvent';
 import type { ILocalEventDispatcher } from '../core/ILocalEventDispatcher';
 import { Board } from './Board';
 import { Player } from './Player';
 import { globalEventEmitter } from '../core/EventEmitter';
-import { GameStateBuilder } from '../shared/builders/GameStateBuilder';
+import { GameStateBuilder } from '../shared/GameStateBuilder';
 import { GameCoreLogic } from '../core/GameCoreLogic';
 
 interface GameEngineConfig {

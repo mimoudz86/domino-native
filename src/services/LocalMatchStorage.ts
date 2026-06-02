@@ -3,12 +3,12 @@ import type { GameResult, MatchState, ScoringMode } from '../controllers/Score';
 import type { IMatchStorage } from './IMatchStorage';
 import type { MatchConfig } from '../types/MatchConfig';
 import { DEFAULT_MATCH_CONFIG } from '../types/MatchConfig';
-import type { RawGame, MatchWinner } from '../shared/scoring/scoreCalculator';
+import type { RawGame, MatchWinner } from './scoreCalculator';
 import {
   calcIndividualScores, calcTeamScores,
   isMatchFinished,
   getMatchWinner
-} from '../shared/scoring/scoreCalculator';
+} from './scoreCalculator';
 
 export class LocalMatchStorage implements IMatchStorage {
   private static sharedDb: SQLite.SQLiteDatabase | null = null;

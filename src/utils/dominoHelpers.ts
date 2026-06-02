@@ -1,4 +1,4 @@
-import type { Domino } from '../shared/models/Domino';
+import type { Domino } from '../shared/Domino';
 
 export function canDominoMatch(domino: Domino, value: number): boolean {
   return domino.left === value || domino.right === value;

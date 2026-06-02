@@ -1,7 +1,7 @@
 import type { GameResult, MatchState, ScoringMode } from '../controllers/Score';
 import type { IMatchStorage } from './IMatchStorage';
-import type { RawGame } from '../shared/scoring/scoreCalculator';
-import { isSetFinished, isMatchFinished, getMatchWinner, calcIndividualScores, calcTeamScores } from '../shared/scoring/scoreCalculator';
+import type { RawGame } from './scoreCalculator';
+import { isSetFinished, isMatchFinished, getMatchWinner, calcIndividualScores, calcTeamScores } from './scoreCalculator';
 import { globalEventEmitter } from '../core/EventEmitter';
 
 export class MatchService {

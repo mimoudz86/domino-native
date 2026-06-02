@@ -1,5 +1,5 @@
-import type { Domino } from '../shared/models/Domino';
-import { DominoModel } from '../shared/models/Domino';
+import type { Domino } from '../shared/Domino';
+import { DominoModel } from '../shared/Domino';
 import type { Player } from './Player';
 
 export type PlacementType = 'left' | 'right' | 'both' | 'none';

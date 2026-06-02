@@ -1,4 +1,4 @@
-import type { GameEvent, EventListener } from '../shared/types/GameEvent';
+import type { LocalGameEvent, LocalEventListener } from '../shared/GameEvent';
 
 /**
  * ═══════════════════════════════════════════════════════════════
@@ -27,7 +27,7 @@ export interface IEventDispatcher {
      * });
      * ```
      */
-    emit<E extends GameEvent>(event: E): void;
+    emit<E extends LocalGameEvent>(event: E): void;
 
     /**
      * Écouter un type d'événement spécifique
@@ -46,9 +46,9 @@ export interface IEventDispatcher {
      * unsubscribe();
      * ```
      */
-    on<T extends GameEvent['type']>(
+    on<T extends LocalGameEvent['type']>(
         eventType: T,
-        listener: EventListener<Extract<GameEvent, { type: T }>>
+        listener: LocalEventListener<Extract<LocalGameEvent, { type: T }>>
     ): () => void;
 
     /**
@@ -59,5 +59,5 @@ export interface IEventDispatcher {
      * Si eventType est fourni: arrête tous les listeners pour ce type
      * Si eventType n'est pas fourni: arrête tous les listeners
      */
-    off(eventType?: GameEvent['type']): void;
+    off(eventType?: LocalGameEvent['type']): void;
 }

@@ -1,7 +1,7 @@
 import React, { useMemo } from 'react';
 import { View, StyleSheet } from 'react-native';
-import type { Domino } from '../../shared/models/Domino';
-import type { PlayTurnPayload } from '../../controllers/LocalGameEvent';
+import type { Domino } from '../../shared/Domino';
+import type { PlayTurnPayload } from '../../shared/GameEvent';
 import { DominoView } from '../DominoView';
 import { useActiveGameStore } from '../../store/gameStoreContext';
 import { useDragDetection } from '../../hooks/useDragDetection';

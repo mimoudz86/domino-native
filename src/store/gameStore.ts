@@ -9,8 +9,7 @@
 
 import { create } from 'zustand';
 import type { ILocalEventDispatcher } from '../core/ILocalEventDispatcher';
-import type { LocalGameEvent } from '../controllers/LocalGameEvent';
-import type { Domino, TurnState } from '../shared/models/GameTurnState';
+import type { Domino} from '../shared/Domino';
 import type { IGameStore } from './IGameStore';
 import { clearSlotPositions } from '../utils/trainPositions';
 import { GameEngine } from '../controllers/GameEngine';

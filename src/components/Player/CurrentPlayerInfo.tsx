@@ -1,6 +1,6 @@
 import React, { useMemo } from 'react';
 import { View, Text, StyleSheet } from 'react-native';
-import type { PlayerTurnState } from '../../shared/models/GameTurnState';
+import type { PlayerTurnState } from '../../shared/GameEvent';
 import { generatePlayerAvatar, getPlayerColor } from '../../utils/avatarGenerator';
 
 interface PlayerInfoProps {

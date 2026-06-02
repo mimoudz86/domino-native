@@ -1,7 +1,7 @@
 import { GlobalDragGhost } from '../GlobalDragGhost';
 import React, { useState, useMemo } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
-import type { PlayerTurnState, TurnState } from '../../shared/models/GameTurnState';
+import type { PlayerTurnState, TurnState } from '../../shared/GameEvent';
 import { getPlayerIdAtPosition } from '../../utils/playerPositioning';
 import { CurrentPlayerArea } from '../Player/CurrentPlayerArea';
 import { OpponentPlayerArea } from '../Player/OpponentPlayerArea';

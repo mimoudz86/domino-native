@@ -1,4 +1,4 @@
-import type { Domino } from '../shared/models/Domino';
+import type { Domino } from '../shared/Domino';
 import type { TrainLineType, TrainSlot } from '../types/train.types';
 import { BOARD_CONFIG } from '../config/boardConfig';
 

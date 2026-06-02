@@ -1,6 +1,6 @@
-import type { PlayerTurnState, BoardState } from '../models/GameTurnState';
-import type { GameEndedPayload } from '../../controllers/LocalGameEvent';
-import { globalEventEmitter } from '../../core/EventEmitter';
+import type { PlayerTurnState, BoardState } from './GameEvent';
+import type { GameEndedPayload } from './GameEvent';
+import { globalEventEmitter } from '../core/EventEmitter';
 
 export class GameStateBuilder {
   constructor(private engine: any) {}

@@ -11,7 +11,7 @@
  */
 
 import type { ILocalEventDispatcher } from '../core/ILocalEventDispatcher';
-import type { LocalGameEvent, LocalEventListener } from '../controllers/LocalGameEvent';
+import type { LocalGameEvent} from '../shared/GameEvent';
 import { GameEngine } from '../controllers/GameEngine';
 
 export class EventBusAdapter implements ILocalEventDispatcher {

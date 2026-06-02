@@ -1,7 +1,7 @@
 import React from 'react';
 import { TouchableOpacity, StyleSheet } from 'react-native';
 import Svg, { Rect, Circle, Polygon } from 'react-native-svg';
-import type { Domino } from '../shared/models/Domino';
+import type { Domino } from '../shared/Domino';
 
 interface DominoViewProps {
   domino: Domino;

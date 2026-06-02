@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { View, StyleSheet } from 'react-native';
-import type { TurnUpdatedPayload } from '../../controllers/LocalGameEvent';
-import type { PlayerTurnState } from '../../shared/models/GameTurnState';
+import type { TurnUpdatedPayload } from '../../shared/GameEvent';
+import type { PlayerTurnState } from '../../shared/GameEvent';
 import { getPlayerColor } from '../../utils/avatarGenerator';
 import { useActiveGameStore } from '../../store/gameStoreContext';
 // import { usePlayerFlash } from '../../hooks/usePlayerFlash';

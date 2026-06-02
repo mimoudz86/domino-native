@@ -2,7 +2,7 @@ import React from 'react';
 import { View, ScrollView, StyleSheet } from 'react-native';
 import { DominoView } from '../DominoView';
 // import { useDominoFlash } from '../../hooks/useDominoFlash';
-import type { Domino } from '../../shared/models/Domino';
+import type { Domino } from '../../shared/Domino';
 
 interface MobileTrainLineProps {
   dominos: Domino[];

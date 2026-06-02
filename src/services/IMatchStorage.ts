@@ -1,5 +1,5 @@
 import type { GameResult, MatchState, ScoringMode } from '../controllers/Score';
-import type { RawGame, MatchWinner } from '../shared/scoring/scoreCalculator';
+import type { RawGame, MatchWinner } from './scoreCalculator';
 import type { MatchConfig } from '../types/MatchConfig';
 
 export interface IMatchStorage {

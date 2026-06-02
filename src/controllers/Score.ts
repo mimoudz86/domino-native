@@ -3,7 +3,7 @@
  * Basé sur le modèle React avec additions pour scoring individuel
  */
 
-import type { Domino, PlayerWithHand } from '../shared/models/GameTurnState';
+import type { Domino } from '../shared/Domino';
 
 type Game = [number, number]; // [teamV_points, teamH_points]
 type Set = Game[]; // Liste de jeux dans un set

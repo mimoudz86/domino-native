@@ -11,7 +11,7 @@
  */
 
 import { ILocalEventDispatcher } from '../../core/ILocalEventDispatcher';
-import type { PlayTurnPayload } from '../LocalGameEvent';
+import type { PlayTurnPayload } from '../../shared/GameEvent';
 import { evaluateDomino } from './Utils';
 
 export class AIPlayer {

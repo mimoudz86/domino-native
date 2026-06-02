@@ -1,4 +1,4 @@
-import type { Domino } from '../shared/models/Domino';
+import type { Domino } from '../shared/Domino';
 
 export interface Player {
   id: number;

@@ -1,7 +1,7 @@
 import { Gesture } from 'react-native-gesture-handler';
 import Animated, { runOnJS } from 'react-native-reanimated';
 import type { SharedValue } from 'react-native-reanimated';
-import type { Domino } from '../shared/models/GameTurnState';
+import type { Domino } from '../shared/Domino';
 import { useActiveGameStore } from '../store/gameStoreContext';
 import { calculateClosestSideRN } from '../utils/trainPositions';
 

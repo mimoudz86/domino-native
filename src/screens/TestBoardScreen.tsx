@@ -1,6 +1,6 @@
 import React from 'react';
 import { View, StyleSheet, SafeAreaView, Text, TouchableOpacity } from 'react-native';
-import { DominoModel } from '../shared/models/Domino';
+import { DominoModel } from '../shared/Domino';
 import { RNTrainWrapper } from '../components/Board/RNTrainWrapper';
 import { buildTrainSlots } from '../utils/trainCalculations';
 

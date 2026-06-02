@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState, useCallback } from 'react';
-import type { Domino } from '../shared/models/Domino';
+import type { Domino } from '../shared/Domino';
 
 /**
  * Global drag state for the ghost domino (visual feedback during drag)
