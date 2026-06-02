@@ -1,7 +1,6 @@
 
-import type { Domino, TurnState, PlayerTurnState, TrackedDomino} from '../shared/models/GameTurnState';
-import { DominoModel } from '../shared/models/Domino';
-import type { PlayTurnPayload, PlayResponsePayload, TurnUpdatedPayload, GameEndedPayload } from '../controllers/LocalGameEvent';
+import type { Domino, TrackedDomino } from '../shared/models/GameTurnState';
+import type { PlayResponsePayload } from '../controllers/LocalGameEvent';
 import type { ILocalEventDispatcher } from '../core/ILocalEventDispatcher';
 import { Board } from './Board';
 import { Player } from './Player';
@@ -22,7 +21,6 @@ export class GameEngine {
   public winner: Player | null = null;
   public turnNumber: number = 0;
   public consecutivePasses: number = 0;
-  private config: GameEngineConfig;
   public trainSequence: TrackedDomino[] = [];
   public lastAction: 'played' | 'passed' | null = null;
   public lastPlayerWhoPassedId: number | null = null;
@@ -34,7 +32,6 @@ export class GameEngine {
   public stateBuilder: GameStateBuilder;
 
   constructor(config: GameEngineConfig) {
-    this.config = config;
     this.players = config.playerNames.map(
       (name, idx) => new Player(idx, name, config.aiPlayers[idx] || false)
     );
@@ -51,8 +48,6 @@ export class GameEngine {
   }
 
   async startGameLoop(adapter: ILocalEventDispatcher): Promise<void> {
-    const firstPlayer = this.players[this.currentPlayerIndex];
-
     // Séparateur visuel du TURN 1
     console.log(`LOG  ════════════════════════════════════════════════════════════════════════════ TURN ${this.turnNumber} ════════════════════════════════════════════════════════════════════════════`);
 
@@ -328,10 +323,6 @@ export class GameEngine {
     this.isOver = true;
     this.winner = winner;
     GameCoreLogic.calculateScores(this.players);
-  }
-
-  private formatBoardString(trainOnBoard: any[]): string {
-    return trainOnBoard.map(d => `${d.domino.left}|${d.domino.right}`).join(' ← → ') || 'empty';
   }
 
   private reset(): void {
