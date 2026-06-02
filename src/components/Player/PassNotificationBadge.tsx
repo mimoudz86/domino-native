@@ -21,37 +21,44 @@ export function PassNotificationBadge() {
   const dispatcher = useActiveGameStore(state => state.dispatcher);
 
   useEffect(() => {
-    // Si c'est un nouveau pass (joueur avec hasPassed = true et pas encore affiché)
-    if (passer?.hasPassed === true && lastPassedIdRef.current !== passer?.id) {
-      console.log(`LOG  [PASS-BADGE] ✅ SHOW_BADGE {"player":"${passer.name}"}`);
-      lastPassedIdRef.current = passer.id;
+    if (!passer?.hasPassed || lastPassedIdRef.current === passer.id) {
+      return;
+    }
 
-      // Annuler le timer précédent si existant
+    const passerId = passer.id;
+    const passerName = passer.name;
+
+    console.log(`LOG  [PASS-BADGE] ✅ SHOW_BADGE {"player":"${passerName}"}`);
+    lastPassedIdRef.current = passerId;
+
+    if (timerRef.current) {
+      clearTimeout(timerRef.current);
+    }
+
+    setDisplayName(passerName);
+    setIsVisible(true);
+
+    timerRef.current = setTimeout(() => {
+      console.log(`LOG  [PASS-BADGE] ⏱️  HIDE_BADGE {"player":"${passerName}"}`);
+      setIsVisible(false);
+      setDisplayName(null);
+      lastPassedIdRef.current = null;
+
+      console.log(`LOG  [PASS-BADGE] 📡 EMIT_PASS_HIDDEN {"player":"${passerName}"}`);
+      if (dispatcher) {
+        dispatcher.emit({
+          type: 'PASS_HIDDEN',
+          payload: { playerId: passerId }
+        });
+      }
+    }, 1500);
+
+    return () => {
       if (timerRef.current) {
         clearTimeout(timerRef.current);
       }
-
-      setDisplayName(passer.name);
-      setIsVisible(true);
-
-      // Timer 1500ms
-      timerRef.current = setTimeout(() => {
-        console.log(`LOG  [PASS-BADGE] ⏱️  HIDE_BADGE {"player":"${passer.name}"}`);
-        setIsVisible(false);
-        setDisplayName(null);
-        lastPassedIdRef.current = null;
-
-        // Notifier l'engine que le badge est caché
-        console.log(`LOG  [PASS-BADGE] 📡 EMIT_PASS_HIDDEN {"player":"${passer.name}"}`);
-        if (dispatcher) {
-          dispatcher.emit({
-            type: 'PASS_HIDDEN',
-            payload: { playerId: passer.id }
-          });
-        }
-      }, 1500);
-    }
-  }, [passer?.id]);
+    };
+  }, [passer, dispatcher]);
 
   if (!isVisible || !displayName) {
     return null;
