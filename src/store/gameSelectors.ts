@@ -1,7 +1,7 @@
 import { useMemo } from 'react';
 import type { Domino } from '../shared/Domino';
 import type { PlayerTurnState, PlacedDomino } from '../shared/GameEvent';
-import type { MatchConfig } from '../types/MatchConfig';
+import type { MatchConfig } from '../services/IMatchStorage';
 import { useActiveGameStore } from './gameStoreContext';
 
 export const useTrainOnBoard = (): PlacedDomino[] =>

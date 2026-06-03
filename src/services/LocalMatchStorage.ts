@@ -1,7 +1,6 @@
 import * as SQLite from 'expo-sqlite';
-import type { IMatchStorage, GameResult, MatchState, ScoringMode } from './IMatchStorage';
-import type { MatchConfig } from '../types/MatchConfig';
-import { DEFAULT_MATCH_CONFIG } from '../types/MatchConfig';
+import type { IMatchStorage, GameResult, MatchState, ScoringMode, MatchConfig } from './IMatchStorage';
+import { DEFAULT_MATCH_CONFIG } from './IMatchStorage';
 import type { RawGame, MatchWinner } from './scoreCalculator';
 import {
   calcIndividualScores, calcTeamScores,

@@ -1,6 +1,6 @@
 import React, { useEffect, useRef } from 'react';
 import { useActiveGameStore } from '../store/gameStoreContext';
-import { DEFAULT_MATCH_CONFIG } from '../types/MatchConfig';
+import { DEFAULT_MATCH_CONFIG } from '../services/IMatchStorage';
 
 interface GameProviderProps {
   children: React.ReactNode;

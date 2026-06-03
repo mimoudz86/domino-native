@@ -18,9 +18,8 @@ import { AIPlayer } from '../controllers/AI_Strategies/AIPlayer';
 import { MatchService } from '../services/MatchService';
 import { LocalMatchStorage } from '../services/LocalMatchStorage';
 import { globalEventEmitter } from '../core/EventEmitter';
-import type { ScoringMode, MatchState } from '../services/IMatchStorage';
-import type { MatchConfig } from '../types/MatchConfig';
-import { DEFAULT_MATCH_CONFIG } from '../types/MatchConfig';
+import type { ScoringMode, MatchState, MatchConfig } from '../services/IMatchStorage';
+import { DEFAULT_MATCH_CONFIG } from '../services/IMatchStorage';
 
 type DraggableStatus = 'none' | 'left' | 'right' | 'both';
 

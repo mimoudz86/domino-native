@@ -1,9 +1,20 @@
 import type { RawGame, MatchWinner } from './scoreCalculator';
-import type { MatchConfig } from '../types/MatchConfig';
 
 // ═══════════════════════════════════════════════════════════════
 // TYPES
 // ═══════════════════════════════════════════════════════════════
+
+export type MatchConfig = {
+  mode: 'individual' | 'teams';
+  maxPoints: 50 | 100;
+  numSets: 1 | 2 | 3;
+};
+
+export const DEFAULT_MATCH_CONFIG: MatchConfig = {
+  mode: 'individual',
+  maxPoints: 50,
+  numSets: 3,
+};
 
 export type ScoringMode = 'individual' | 'teams';
 
