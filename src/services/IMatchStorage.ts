@@ -40,53 +40,11 @@ export const DEFAULT_MATCH_CONFIG: MatchConfig = {
 
 export type ScoringMode = 'individual' | 'teams';
 
-export type GameEndState = {
-  winner: {
-    id: number;
-    name: string;
-  };
-  teamV: {
-    teamName: string;
-    players: { id: number; name: string; score: number }[];
-    totalScore: number;
-  };
-  teamH: {
-    teamName: string;
-    players: { id: number; name: string; score: number }[];
-    totalScore: number;
-  };
-  winningTeam: 'V' | 'H';
-  winningType: 'EMPTY_HAND' | 'BLOCKED_GAME';
-  pointsEarned: number;
-  setScore: {
-    teamVPoints: number;
-    teamHPoints: number;
-  };
-  matchProgress: {
-    team1SetsWon: number;
-    team2SetsWon: number;
-    currentSetIndex: number;
-    matchFinished: boolean;
-  };
-};
-
-export type IndividualGameEndState = {
-  winner: {
-    id: number;
-    name: string;
-  };
-  players: { id: number; name: string; score: number; earned: number; isWinner: boolean }[];
-  winningType: 'EMPTY_HAND' | 'BLOCKED_GAME';
-  pointsEarned: number;
-};
-
 export type GameResult = {
   gameNumber: number;
   winnerId: number;
   winnerName: string;
   winningType: 'EMPTY_HAND' | 'BLOCKED_GAME';
-  individual?: IndividualGameEndState;
-  teams?: GameEndState;
   timestamp: number;
 };
 
