@@ -1,6 +1,74 @@
-import type { GameResult, MatchState, ScoringMode } from '../controllers/Score';
 import type { RawGame, MatchWinner } from './scoreCalculator';
 import type { MatchConfig } from '../types/MatchConfig';
+
+// ═══════════════════════════════════════════════════════════════
+// TYPES
+// ═══════════════════════════════════════════════════════════════
+
+export type ScoringMode = 'individual' | 'teams';
+
+export type GameEndState = {
+  winner: {
+    id: number;
+    name: string;
+  };
+  teamV: {
+    teamName: string;
+    players: { id: number; name: string; score: number }[];
+    totalScore: number;
+  };
+  teamH: {
+    teamName: string;
+    players: { id: number; name: string; score: number }[];
+    totalScore: number;
+  };
+  winningTeam: 'V' | 'H';
+  winningType: 'EMPTY_HAND' | 'BLOCKED_GAME';
+  pointsEarned: number;
+  setScore: {
+    teamVPoints: number;
+    teamHPoints: number;
+  };
+  matchProgress: {
+    team1SetsWon: number;
+    team2SetsWon: number;
+    currentSetIndex: number;
+    matchFinished: boolean;
+  };
+};
+
+export type IndividualGameEndState = {
+  winner: {
+    id: number;
+    name: string;
+  };
+  players: { id: number; name: string; score: number; earned: number; isWinner: boolean }[];
+  winningType: 'EMPTY_HAND' | 'BLOCKED_GAME';
+  pointsEarned: number;
+};
+
+export type GameResult = {
+  gameNumber: number;
+  winnerId: number;
+  winnerName: string;
+  winningType: 'EMPTY_HAND' | 'BLOCKED_GAME';
+  individual?: IndividualGameEndState;
+  teams?: GameEndState;
+  timestamp: number;
+};
+
+export type MatchState = {
+  mode: ScoringMode;
+  maxPoints: 50 | 100;
+  numSets: 1 | 2 | 3;
+  games: GameResult[];
+  scoreIndividual: Record<number, number>;
+  scoreTeams: { teamV: number; teamH: number };
+  matchFinished: boolean;
+  winner: null | { id?: number; team?: 'V' | 'H'; name: string };
+  currentGameNumber: number;
+  currentSetNumber: number;
+};
 
 export interface IMatchStorage {
   // Match management

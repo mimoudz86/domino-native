@@ -1,7 +1,5 @@
-import type { GameResult, MatchState, ScoringMode } from '../controllers/Score';
-import type { IMatchStorage } from './IMatchStorage';
-import type { RawGame } from './scoreCalculator';
-import { isSetFinished, isMatchFinished, getMatchWinner, calcIndividualScores, calcTeamScores } from './scoreCalculator';
+import type { IMatchStorage, GameResult, MatchState, ScoringMode } from './IMatchStorage';
+import { getMatchWinner } from './scoreCalculator';
 import { globalEventEmitter } from '../core/EventEmitter';
 
 export class MatchService {
