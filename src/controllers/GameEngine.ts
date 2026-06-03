@@ -131,8 +131,7 @@ export class GameEngine {
 
   get trainOnBoard(): any[] {
     return this.board.playedDominos.map(d => ({
-      domino: d,
-      line: undefined
+      domino: d
     }));
   }
 

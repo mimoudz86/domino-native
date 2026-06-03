@@ -1,6 +1,5 @@
 
 import type { Domino } from './Domino';
-import type { TrainLineType } from '../types/train.types';
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // PLAYER TYPES
@@ -39,7 +38,6 @@ export interface TrackedDomino {
 
 export interface PlacedDomino {
   domino: Domino;
-  line?: TrainLineType;
 }
 
 export interface BoardState {

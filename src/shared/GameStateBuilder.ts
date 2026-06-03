@@ -12,8 +12,7 @@ export class GameStateBuilder {
     return {
       trainSequence: this.engine.trainSequence,
       trainOnBoard: this.engine.board.playedDominos.map((domino: any) => ({
-        domino,
-        line: undefined
+        domino
       }))
     };
   }
@@ -122,8 +121,7 @@ export class GameStateBuilder {
     };
 
     const trainOnBoard = this.engine.board.playedDominos.map((domino: any) => ({
-      domino,
-      line: undefined as any
+      domino
     }));
 
     return {
