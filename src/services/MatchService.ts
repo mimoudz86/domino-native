@@ -1,5 +1,5 @@
 import type { IMatchStorage, GameResult, MatchState, ScoringMode } from './IMatchStorage';
-import { getMatchWinner } from './scoreCalculator';
+import { GameCoreLogic } from '../core/GameCoreLogic';
 import { globalEventEmitter } from '../core/EventEmitter';
 
 export class MatchService {
@@ -97,7 +97,7 @@ export class MatchService {
           matchFinished = true;
           console.log(`LOG  [MATCH-SERVICE] 🏆 MATCH_IS_FINISHED {"matchId":"${this.matchId}"}`);
 
-          const winner = getMatchWinner(allGames, activeMatch.config.mode, activeMatch.config.maxPoints);
+          const winner = GameCoreLogic.getMatchWinner(allGames, activeMatch.config.mode, activeMatch.config.maxPoints);
           await this.storage.recordToMatch(this.matchId, allGames, activeMatch.config);
 
           // Émettre événement

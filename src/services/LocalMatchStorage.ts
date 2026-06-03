@@ -1,12 +1,7 @@
 import * as SQLite from 'expo-sqlite';
-import type { IMatchStorage, GameResult, MatchState, ScoringMode, MatchConfig } from './IMatchStorage';
+import type { IMatchStorage, GameResult, MatchState, ScoringMode, MatchConfig, RawGame, MatchWinner } from './IMatchStorage';
 import { DEFAULT_MATCH_CONFIG } from './IMatchStorage';
-import type { RawGame, MatchWinner } from './scoreCalculator';
-import {
-  calcIndividualScores, calcTeamScores,
-  isMatchFinished,
-  getMatchWinner
-} from './scoreCalculator';
+import { GameCoreLogic } from '../core/GameCoreLogic';
 
 export class LocalMatchStorage implements IMatchStorage {
   private static sharedDb: SQLite.SQLiteDatabase | null = null;
@@ -591,12 +586,12 @@ export class LocalMatchStorage implements IMatchStorage {
           scores[3] += g.p3_score || 0;
         });
       } else {
-        scores = { ...calcTeamScores(games) };
+        scores = { ...GameCoreLogic.calcTeamScores(games) };
       }
 
       const numSetsFinished = await this.countFinishedSets(activeMatch.matchId);
-      const finished = isMatchFinished(numSetsFinished, activeMatch.config.numSets);
-      const matchWinner = finished ? getMatchWinner(games, activeMatch.config.mode, activeMatch.config.maxPoints) : null;
+      const finished = GameCoreLogic.isMatchFinished(numSetsFinished, activeMatch.config.numSets);
+      const matchWinner = finished ? GameCoreLogic.getMatchWinner(games, activeMatch.config.mode, activeMatch.config.maxPoints) : null;
 
       return {
         mode: activeMatch.config.mode,
@@ -1128,10 +1123,10 @@ export class LocalMatchStorage implements IMatchStorage {
       // Step 2: Calculer earnedPoints UNE SEULE FOIS selon le mode
       let earnedPoints: any;
       if (config.mode === 'individual') {
-        earnedPoints = calcIndividualScores([rawGame]);
+        earnedPoints = GameCoreLogic.calcIndividualScores([rawGame]);
         console.log(`LOG  [STORAGE] 🎯 EARNED_POINTS_INDIVIDUAL {"p0":${earnedPoints[0] || 0},"p1":${earnedPoints[1] || 0},"p2":${earnedPoints[2] || 0},"p3":${earnedPoints[3] || 0}}`);
       } else {
-        earnedPoints = calcTeamScores([rawGame]);
+        earnedPoints = GameCoreLogic.calcTeamScores([rawGame]);
         console.log(`LOG  [STORAGE] 🎯 EARNED_POINTS_TEAMS {"teamV":${earnedPoints.teamV},"teamH":${earnedPoints.teamH}}`);
       }
 
@@ -1152,7 +1147,7 @@ export class LocalMatchStorage implements IMatchStorage {
       const now = Date.now();
 
       // Step 1: Déterminer le winner final du match
-      const winner = getMatchWinner(allGames, config.mode, config.maxPoints);
+      const winner = GameCoreLogic.getMatchWinner(allGames, config.mode, config.maxPoints);
 
       // Step 2: Sauvegarder le match comme terminé
       await db.runAsync(

@@ -1,4 +1,5 @@
 import type { Domino } from '../shared/Domino';
+import type { RawGame, MatchWinner } from '../services/IMatchStorage';
 
 export interface Player {
   id: number;
@@ -148,5 +149,126 @@ export class GameCoreLogic {
       newTrain.push({ domino });
     }
     return newTrain;
+  }
+
+  // ═══════════════════════════════════════════════════════════════
+  // SCORING FUNCTIONS
+  // ═══════════════════════════════════════════════════════════════
+
+  private static isDrawGameIndividual(game: RawGame): boolean {
+    if (game.winning_type !== 'BLOCKED_GAME') return false;
+
+    const pips = [game.p0_pips_remaining, game.p1_pips_remaining, game.p2_pips_remaining, game.p3_pips_remaining];
+    const maxPips = Math.max(...pips);
+    const countWithMaxPips = pips.filter(p => p === maxPips).length;
+
+    return countWithMaxPips >= 2;
+  }
+
+  private static isDrawGameTeam(game: RawGame): boolean {
+    if (game.winning_type !== 'BLOCKED_GAME') return false;
+
+    const teamVPips = [game.p0_pips_remaining, game.p2_pips_remaining];
+    const teamHPips = [game.p1_pips_remaining, game.p3_pips_remaining];
+
+    for (const vpip of teamVPips) {
+      for (const hpip of teamHPips) {
+        if (vpip === hpip) return true;
+      }
+    }
+
+    return false;
+  }
+
+  static calcIndividualScores(games: RawGame[]): Record<number, number> {
+    return games.reduce((acc, g) => {
+      if (this.isDrawGameIndividual(g)) {
+        return acc;
+      }
+
+      const total = g.p0_pips_remaining + g.p1_pips_remaining + g.p2_pips_remaining + g.p3_pips_remaining;
+      const winnerPips = [g.p0_pips_remaining, g.p1_pips_remaining, g.p2_pips_remaining, g.p3_pips_remaining][g.winner_id];
+      acc[g.winner_id] = (acc[g.winner_id] || 0) + (total - winnerPips);
+      return acc;
+    }, {} as Record<number, number>);
+  }
+
+  static calcTeamScores(games: RawGame[]): { teamV: number; teamH: number } {
+    return games.reduce((acc, g) => {
+      if (this.isDrawGameTeam(g)) {
+        return acc;
+      }
+
+      const isWinnerV = g.winner_id === 0 || g.winner_id === 2;
+      if (isWinnerV) {
+        acc.teamH += g.p1_pips_remaining + g.p3_pips_remaining;
+      } else {
+        acc.teamV += g.p0_pips_remaining + g.p2_pips_remaining;
+      }
+      return acc;
+    }, { teamV: 0, teamH: 0 });
+  }
+
+  static isSetFinished(
+    gamesInSet: RawGame[],
+    mode: 'individual' | 'teams',
+    maxPoints: number
+  ): boolean {
+    if (gamesInSet.length === 0) return false;
+
+    if (mode === 'individual') {
+      const scores = this.calcIndividualScores(gamesInSet);
+      return Object.values(scores).some(s => s >= maxPoints);
+    }
+
+    const { teamV, teamH } = this.calcTeamScores(gamesInSet);
+    return teamV >= maxPoints || teamH >= maxPoints;
+  }
+
+  static isMatchFinished(
+    numSetsFinished: number,
+    numSets: number
+  ): boolean {
+    return numSetsFinished === numSets;
+  }
+
+  static getMatchWinner(
+    games: RawGame[],
+    mode: 'individual' | 'teams',
+    maxPoints: number
+  ): MatchWinner {
+    if (mode === 'individual') {
+      const scores = this.calcIndividualScores(games);
+      const winners = Object.entries(scores)
+        .filter(([_, score]) => score >= maxPoints)
+        .sort(([_, a], [__, b]) => b - a);
+
+      if (winners.length > 0) {
+        const [winnerId] = winners[0];
+        const id = parseInt(winnerId);
+
+        const firstGame = games[0];
+        if (!firstGame) return null;
+
+        const playerNames = [firstGame.p0_name, firstGame.p1_name, firstGame.p2_name, firstGame.p3_name];
+        const playerName = playerNames[id] || `Player ${id}`;
+
+        return {
+          id,
+          name: playerName,
+          type: 'individual'
+        };
+      }
+    } else {
+      const { teamV, teamH } = this.calcTeamScores(games);
+
+      if (teamV >= maxPoints) {
+        return { team: 'V', name: 'Team V', type: 'team' };
+      } else if (teamH >= maxPoints) {
+        return { team: 'H', name: 'Team H', type: 'team' };
+      }
+    }
+
+    return null;
   }
 }

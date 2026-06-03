@@ -1,8 +1,30 @@
-import type { RawGame, MatchWinner } from './scoreCalculator';
-
 // ═══════════════════════════════════════════════════════════════
 // TYPES
 // ═══════════════════════════════════════════════════════════════
+
+export type RawGame = {
+  p0_pips_remaining: number;
+  p1_pips_remaining: number;
+  p2_pips_remaining: number;
+  p3_pips_remaining: number;
+  p0_name: string;
+  p1_name: string;
+  p2_name: string;
+  p3_name: string;
+  p0_type: 'human' | 'AI';
+  p1_type: 'human' | 'AI';
+  p2_type: 'human' | 'AI';
+  p3_type: 'human' | 'AI';
+  winner_id: number;
+  winner_name: string;
+  winning_type: 'EMPTY_HAND' | 'BLOCKED_GAME';
+  set_number?: number;
+};
+
+export type MatchWinner =
+  | { id: number; name: string; type: 'individual' }
+  | { team: 'V' | 'H'; name: string; type: 'team' }
+  | null;
 
 export type MatchConfig = {
   mode: 'individual' | 'teams';
