@@ -36,6 +36,8 @@ type GameStoreState = IGameStore & {
   _dbInitialized: boolean;
   gameEnded: boolean;
   lastGameData: any | null;
+  _handleGameEnded: ((p: any) => void) | null;
+  _handleGameSaved: ((p: any) => void) | null;
 };
 
 function generateMatchId(): string {
@@ -99,6 +101,8 @@ export const useGameStore = create<GameStoreState>((set, get) => ({
   _dbInitialized: false,
   gameEnded: false,
   lastGameData: null,
+  _handleGameEnded: null,
+  _handleGameSaved: null,
 
   // ═══════════════════════════════════════════
   // ACTIONS
@@ -113,7 +117,10 @@ export const useGameStore = create<GameStoreState>((set, get) => ({
     }
 
     // Nettoyer les anciens listeners AVANT de créer une nouvelle MatchService
-    globalEventEmitter.removeAllListeners('GAME_ENDED');
+    const prev = get();
+    if (prev._handleGameEnded) globalEventEmitter.off('GAME_ENDED', prev._handleGameEnded);
+    if (prev._handleGameSaved) globalEventEmitter.off('GAME_SAVED', prev._handleGameSaved);
+    if (prev.matchService)     prev.matchService.cleanup();
 
     // Nettoyer les matchs "in progress" AVANT de créer un nouveau
     const storage = new LocalMatchStorage(config);
@@ -158,7 +165,12 @@ export const useGameStore = create<GameStoreState>((set, get) => ({
     globalEventEmitter.on('GAME_SAVED', handleGameSaved);
 
     // Mettre à jour l'état du store
-    set({ currentMatchId: matchId, matchService });
+    set({
+      currentMatchId: matchId,
+      matchService,
+      _handleGameEnded: handleGameEnded,
+      _handleGameSaved: handleGameSaved,
+    });
   },
 
   continueOrNewMatch: async () => {
