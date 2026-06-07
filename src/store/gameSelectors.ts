@@ -23,7 +23,7 @@ export const useMyDominos = (myId: number): Domino[] =>
   });
 
 export const useIsMyTurn = (myId: number): boolean =>
-  useActiveGameStore(s => s.turnState?.currentPlayerIndex === myId);
+  useActiveGameStore(s => s.turnState?.currentPlayerId === myId);
 
 export const useDragState = () =>
   useActiveGameStore(s => s.dragState);

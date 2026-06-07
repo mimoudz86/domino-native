@@ -258,7 +258,7 @@ export const useGameStore = create<GameStoreState>((set, get) => ({
 
     // 5. Écouter les mises à jour
     adapter.on('GAME_STARTED', (payload: any) => {
-      console.log(`LOG  [GAME-STORE] 🚀 LISTENER_GAME_STARTED {"players":${payload.players?.length},"startingPlayer":"${payload.players?.[payload.currentPlayerIndex]?.name}"}`);
+      console.log(`LOG  [GAME-STORE] 🚀 LISTENER_GAME_STARTED {"players":${payload.players?.length},"startingPlayer":"${payload.players?.[payload.currentPlayerId]?.name}"}`);
       set({ turnState: payload });
     });
 
@@ -269,7 +269,7 @@ export const useGameStore = create<GameStoreState>((set, get) => ({
 
     adapter.on('TURN_UPDATED', (payload: any) => {
       const playerStats = payload.players?.map((p: any) => `${p.name}:${p.dominoCount}${p.hasPassed ? '🚫' : ''}`).join(' | ');
-      console.log(`LOG  [GAME-STORE] 📊 LISTENER_TURN_UPDATED {"nextPlayer":"${payload.players?.[payload.nextPlayerIndex]?.name}","players":"${playerStats}"}`);
+      console.log(`LOG  [GAME-STORE] 📊 LISTENER_TURN_UPDATED {"nextPlayer":"${payload.players?.[payload.nextPlayerId]?.name}","players":"${playerStats}"}`);
       set({ turnState: payload });
     });
 
@@ -314,6 +314,7 @@ export const useGameStore = create<GameStoreState>((set, get) => ({
     dispatcher.emit({
       type: 'PLAY_RESPONSE',
       payload: {
+        type: 'played',
         playerId: 0, // Toujours le joueur 0 (You)
         domino,
         side,

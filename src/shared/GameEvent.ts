@@ -47,7 +47,7 @@ export interface BoardState {
 
 export interface TurnState {
   turnNumber: number;
-  currentPlayerIndex: number;
+  currentPlayerId: number;
   currentPlayerName: string;
   phase: 'STARTED' | 'PLACED' | 'PASSED' | 'ENDED';
   board: BoardState;
@@ -69,7 +69,7 @@ export interface TurnState {
 
 export interface PlayTurnPayload {
   turnNumber: number;
-  yourIndex: number;
+  yourPlayerId: number;
   yourName: string;
   yourDominos: Domino[];
   playables: number[];
@@ -83,19 +83,21 @@ export interface PlayTurnPayload {
 
 export type PlayResponsePayload =
   | {
+      type: 'played';
       playerId: number;
       domino: Domino;
       side: 'left' | 'right';
       knocked: boolean;
     }
   | {
+      type: 'passed';
       playerId: number;
-      passed: true;
+      playerName: string;
     };
 
 export interface TurnUpdatedPayload {
   turnNumber: number;
-  nextPlayerIndex: number;
+  nextPlayerId: number;
   board: BoardState;
   players: PlayerTurnState[];
   lastPlayerWhoPassedId?: number;
@@ -103,7 +105,7 @@ export interface TurnUpdatedPayload {
 
 export interface GameStartedPayload {
   turnNumber: number;
-  currentPlayerIndex: number;
+  currentPlayerId: number;
   players: PlayerTurnState[];
   board: BoardState;
 }

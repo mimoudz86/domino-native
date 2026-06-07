@@ -34,23 +34,23 @@ export class GameStateBuilder {
   // ÉTATS COMPLETS
   // ═══════════════════════════════════════════════════════════════
 
-  buildStartGame(): { turnNumber: number; currentPlayerIndex: number; players: PlayerTurnState[]; board: BoardState } {
-    const players = this.buildPlayersArray(this.engine.currentPlayerIndex);
+  buildStartGame(): { turnNumber: number; currentPlayerId: number; players: PlayerTurnState[]; board: BoardState } {
+    const players = this.buildPlayersArray(this.engine.currentPlayerId);
     const board = this.buildBoardState();
 
     const state = {
       turnNumber: this.engine.turnNumber,
-      currentPlayerIndex: this.engine.currentPlayerIndex,
+      currentPlayerId: this.engine.currentPlayerId,
       players,
       board
     };
 
-    console.log(`LOG  [GAME-ENGINE] 🚀 GAME_STARTED {"players":${players.length},"startingPlayer":"${this.engine.getPlayers()[this.engine.currentPlayerIndex]?.name}"}`);
+    console.log(`LOG  [GAME-ENGINE] 🚀 GAME_STARTED {"players":${players.length},"startingPlayer":"${this.engine.getPlayers()[this.engine.currentPlayerId]?.name}"}`);
 
     return state;
   }
 
-  buildLocalPlayerState(playerIndex: number): any {
+  bildLocalPlayerState(playerIndex: number): any {
     const player = this.engine.players[playerIndex];
     const playableResult = this.engine.board.getPlayableDominos(player.dominos);
 

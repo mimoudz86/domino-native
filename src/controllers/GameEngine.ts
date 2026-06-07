@@ -16,7 +16,7 @@ interface GameEngineConfig {
 export class GameEngine {
   public players: Player[] = [];
   public board: Board = new Board();
-  public currentPlayerIndex: number = 0;
+  public currentPlayerId: number = 0;
   private _isOver: boolean = false;
   public winner: Player | null = null;
   public turnNumber: number = 0;
@@ -41,10 +41,10 @@ export class GameEngine {
   async initGame(): Promise<void> {
     this.reset();
     Board.distribute(this.players);
-    this.currentPlayerIndex = GameCoreLogic.findFirstPlayerWithDoubleSix(this.players);
+    this.currentPlayerId = GameCoreLogic.findFirstPlayerWithDoubleSix(this.players);
     this.turnNumber = 1;
 
-    console.log(`LOG  [GAME-ENGINE] 🎮 INIT_GAME {"players":${this.players.length},"aiPlayers":${this.players.filter(p => p.isAI).length},"startingPlayer":"${this.players[this.currentPlayerIndex].name}"}`);
+    console.log(`LOG  [GAME-ENGINE] 🎮 INIT_GAME {"players":${this.players.length},"aiPlayers":${this.players.filter(p => p.isAI).length},"startingPlayer":"${this.players[this.currentPlayerId].name}"}`);
   }
 
   async startGameLoop(adapter: ILocalEventDispatcher): Promise<void> {
@@ -58,16 +58,16 @@ export class GameEngine {
     });
 
     while (!this.isOver) {
-      const currentPlayer = this.players[this.currentPlayerIndex];
+      const currentPlayer = this.players[this.currentPlayerId];
 
       if (!currentPlayer.canPlay(this.board)) {
-        await this.handleAutoPass(this.currentPlayerIndex, adapter);
+        await this.handleAutoPass(this.currentPlayerId, adapter);
         continue;
       }
 
       adapter.emit({
         type: 'PLAY_TURN',
-        payload: this.stateBuilder.buildLocalPlayerState(this.currentPlayerIndex)
+        payload: this.stateBuilder.buildLocalBroadcastState()
       });
 
       const response = await this.waitForPlayResponse();
@@ -114,7 +114,7 @@ export class GameEngine {
   // ═══════════════════════════════════════════════════════════════════════════════
 
   getCurrentPlayerIndex(): number {
-    return this.currentPlayerIndex;
+    return this.currentPlayerId;
   }
 
   getTurnNumber(): number {
@@ -259,9 +259,9 @@ export class GameEngine {
       return;
     }
 
-    this.currentPlayerIndex = (this.currentPlayerIndex + 1) % this.players.length;
+    this.currentPlayerId = (this.currentPlayerId + 1) % this.players.length;
     this.turnNumber++;
-    const currentPlayer = this.players[this.currentPlayerIndex];
+    const currentPlayer = this.players[this.currentPlayerId];
 
     // Séparateur visuel de tour
     const boardStr = this.board.playedDominos.map(d => `${d.left}|${d.right}`).join(' ← → ');
@@ -329,7 +329,7 @@ export class GameEngine {
     this.winner = null;
     this.turnNumber = 0;
     this.consecutivePasses = 0;
-    this.currentPlayerIndex = 0;
+    this.currentPlayerId = 0;
     this.trainSequence = [];  // 🎯 Reset train history
     this.lastAction = null;   // 🎯 Reset last action
     this.lastPlayerWhoPassedId = null;  // 🎯 Reset last player who passed

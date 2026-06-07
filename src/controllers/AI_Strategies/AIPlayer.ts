@@ -39,7 +39,7 @@ export class AIPlayer {
    */
   private onPlayTurn(state: PlayTurnPayload): void {
     // Vérifier que c'est bien notre tour
-    if (state.yourIndex !== this.playerId) {
+    if (state.yourPlayerId !== this.playerId) {
       return;
     }
 
@@ -103,6 +103,7 @@ export class AIPlayer {
     this.bus.emit({
       type: 'PLAY_RESPONSE',
       payload: {
+        type: 'played',
         playerId: this.playerId,
         domino: bestDomino,
         side: bestSide,
