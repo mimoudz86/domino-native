@@ -39,7 +39,7 @@ export class AIPlayer {
    */
   private onPlayTurn(state: PlayTurnPayload): void {
     // Vérifier que c'est bien notre tour
-    if (state.yourPlayerId !== this.playerId) {
+    if (state.currentPlayerId !== this.playerId) {
       return;
     }
 
@@ -77,7 +77,7 @@ export class AIPlayer {
     }
 
     // Filtrer les dominos jouables
-    const playableDominos = state.yourDominos.filter((_, i) => state.playables.includes(i));
+    const playableDominos = state.currentPlayerDominos.filter((_, i) => state.playables.includes(i));
 
     // console.log(
     //   `[AIPlayer ${this.playerId}] Playable dominos: ${playableDominos.map(d => `${d.left}|${d.right}`).join(', ')}`
@@ -91,7 +91,7 @@ export class AIPlayer {
     // Choisir le meilleur domino selon la stratégie
     const [bestDomino, bestSide] = this._chooseDomino(
       playableDominos,
-      state.yourDominos,
+      state.currentPlayerDominos,
       trainOnBoard.map(d => d.domino),
       boardLeftEnd,
       boardRightEnd

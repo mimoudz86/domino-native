@@ -69,14 +69,13 @@ export interface TurnState {
 
 export interface PlayTurnPayload {
   turnNumber: number;
-  yourPlayerId: number;
-  yourName: string;
-  yourDominos: Domino[];
+  currentPlayerId: number;
+  currentPlayerName: string;
+  currentPlayerDominos: Domino[];
   playables: number[];
   placements: ('left' | 'right' | 'both')[];
   canPlay: boolean;
   board: BoardState;
-  opponents: PlayerTurnState[];
   players: PlayerTurnState[];
   lastPlayerWhoPassedId?: number;
 }

@@ -67,7 +67,7 @@ export class GameEngine {
 
       adapter.emit({
         type: 'PLAY_TURN',
-        payload: this.stateBuilder.buildLocalBroadcastState()
+        payload: this.stateBuilder.buildLocalPlayerState(this.currentPlayerId)
       });
 
       const response = await this.waitForPlayResponse();

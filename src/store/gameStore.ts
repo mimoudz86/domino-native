@@ -263,7 +263,7 @@ export const useGameStore = create<GameStoreState>((set, get) => ({
     });
 
     adapter.on('PLAY_TURN', (payload: any) => {
-      console.log(`LOG  [GAME-STORE] ⏸️  LISTENER_PLAY_TURN {"player":"${payload.yourName}","hand":${payload.yourDominos?.length},"playable":${payload.playables?.length}}`);
+      console.log(`LOG  [GAME-STORE] ⏸️  LISTENER_PLAY_TURN {"player":"${payload.currentPlayerName}","hand":${payload.currentPlayerDominos?.length},"playable":${payload.playables?.length}}`);
       set({ turnState: payload });
     });
 

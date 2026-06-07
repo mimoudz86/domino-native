@@ -70,9 +70,8 @@ export interface TurnState {
   actionType: 'PLACED' | 'PASSED';
 
   // Current player perspective
-  yourPlayerId: number;
-  yourName: string;
-  yourDominos: Domino[];
+  currentPlayerName: string;
+  currentPlayerDominos: Domino[];
   playables: number[];
   placements: ('left' | 'right' | 'both')[];
   canPlay: boolean;

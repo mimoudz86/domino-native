@@ -17,7 +17,7 @@ export class GameStateBuilder {
     };
   }
 
-  buildPlayersArray(currentPlayerIndex?: number): PlayerTurnState[] {
+  buildPlayersArray(currentPlayerId?: number): PlayerTurnState[] {
     return this.engine.players.map((p: any) => ({
       id: p.id,
       name: p.name,
@@ -50,7 +50,7 @@ export class GameStateBuilder {
     return state;
   }
 
-  bildLocalPlayerState(playerIndex: number): any {
+  buildLocalPlayerState(playerIndex: number): any {
     const player = this.engine.players[playerIndex];
     const playableResult = this.engine.board.getPlayableDominos(player.dominos);
 
@@ -69,9 +69,9 @@ export class GameStateBuilder {
 
     return {
       turnNumber: this.engine.turnNumber,
-      yourIndex: playerIndex,
-      yourName: player.name,
-      yourDominos: player.dominos,
+      currentPlayerId: playerIndex,
+      currentPlayerName: player.name,
+      currentPlayerDominos: player.dominos,
       playables,
       placements,
       canPlay: player.canPlay(this.engine.board),
@@ -83,13 +83,13 @@ export class GameStateBuilder {
   }
 
   buildLocalBroadcastState(): any {
-    const nextPlayerIndex = (this.engine.currentPlayerIndex + 1) % this.engine.players.length;
+    const nextPlayerIndex = (this.engine.currentPlayerId + 1) % this.engine.players.length;
     const boardState = this.buildBoardState();
     const players = this.buildPlayersArray(nextPlayerIndex);
 
     return {
       turnNumber: this.engine.turnNumber,
-      nextPlayerIndex,
+      nextPlayerId: nextPlayerIndex,
       board: boardState,
       players,
       lastPlayerWhoPassedId: this.engine.lastPlayerWhoPassedId ?? undefined
@@ -97,7 +97,7 @@ export class GameStateBuilder {
   }
 
   buildCurrentState(): any {
-    const current = this.engine.players[this.engine.currentPlayerIndex];
+    const current = this.engine.players[this.engine.currentPlayerId];
     const playableResult = this.engine.board.getPlayableDominos(current.dominos);
 
     const playables = playableResult.playable
@@ -126,9 +126,13 @@ export class GameStateBuilder {
 
     return {
       turnNumber: this.engine.turnNumber,
-      currentPlayerIndex: this.engine.currentPlayerIndex,
+      actionType: this.engine.lastAction === 'passed' ? 'PASSED' : 'PLACED',
+
       currentPlayerName: current.name,
-      phase: this.engine.isOver ? 'ENDED' : this.engine.lastAction === 'passed' ? 'PASSED' : this.engine.lastAction === 'played' ? 'PLACED' : 'STARTED',
+      currentPlayerDominos: current.dominos,
+      playables: currentPlayerHand.playables,
+      placements: currentPlayerHand.placements,
+      canPlay: currentPlayerHand.canPlay,
 
       board: {
         trainSequence: this.engine.trainSequence,
@@ -146,28 +150,12 @@ export class GameStateBuilder {
         canPlay: p.id === current.id ? currentPlayerHand.canPlay : false
       })),
 
-      playerState: {
-        id: current.id,
-        playables: currentPlayerHand.playables,
-        canPlay: currentPlayerHand.canPlay
-      },
-
+      currentPlayerId: this.engine.currentPlayerId,
       consecutivePasses: this.engine.consecutivePasses,
-      gameEnded: this.engine.isOver,
-      winner: this.engine.isOver ? this.engine.currentPlayerIndex : undefined,
-      lastPlayerWhoPassedId: this.engine.lastPlayerWhoPassedId ?? undefined,
 
-      endData: this.engine.isOver && this.engine.winner ? {
-        winner: {
-          id: this.engine.winner.id,
-          name: this.engine.winner.name
-        },
-        scores: this.engine.players.map((p: any) => ({
-          playerId: p.id,
-          playerName: p.name,
-          score: p.score
-        }))
-      } : undefined
+      lastPlayedDomino: undefined,
+      lastPlayedPlayerId: undefined,
+      lastPlayerWhoPassedId: this.engine.lastPlayerWhoPassedId ?? undefined
     };
   }
 
