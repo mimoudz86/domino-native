@@ -1,6 +1,6 @@
 /**
  * HomeScreen - Écran d'accueil simple
- * Bouton "Play" centré pour lancer une partie
+ * Boutons "Play" (local) et "Play Online" (socket)
  */
 
 import React from 'react';
@@ -8,11 +8,12 @@ import { View, TouchableOpacity, Text, StyleSheet } from 'react-native';
 
 interface HomeScreenProps {
   onPlayPress: () => void;
+  onPlayOnlinePress: () => void;
   onTestBoard?: () => void;
   onStatsPress?: () => void;
 }
 
-export function HomeScreen({ onPlayPress, onTestBoard, onStatsPress }: HomeScreenProps) {
+export function HomeScreen({ onPlayPress, onPlayOnlinePress, onTestBoard, onStatsPress }: HomeScreenProps) {
   return (
     <View style={styles.container}>
       <View style={styles.centerContainer}>
@@ -27,6 +28,16 @@ export function HomeScreen({ onPlayPress, onTestBoard, onStatsPress }: HomeScree
         </TouchableOpacity>
 
         <Text style={styles.subtitle}>4 Players • Local Game</Text>
+
+        <TouchableOpacity
+          style={styles.playOnlineButton}
+          onPress={onPlayOnlinePress}
+          activeOpacity={0.7}
+        >
+          <Text style={styles.playOnlineButtonText}>🌐 PLAY ONLINE</Text>
+        </TouchableOpacity>
+
+        <Text style={styles.onlineSubtitle}>Multiplayer • Socket Connection</Text>
 
         {onTestBoard && (
           <TouchableOpacity
@@ -86,6 +97,24 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: '#999',
     marginTop: 20,
+  },
+  playOnlineButton: {
+    paddingHorizontal: 50,
+    paddingVertical: 18,
+    backgroundColor: '#34C759',
+    borderRadius: 12,
+    marginBottom: 20,
+    marginTop: 20,
+  },
+  playOnlineButtonText: {
+    fontSize: 22,
+    fontWeight: '700',
+    color: 'white',
+  },
+  onlineSubtitle: {
+    fontSize: 12,
+    color: '#aaa',
+    marginTop: 8,
   },
   testButton: {
     paddingHorizontal: 20,

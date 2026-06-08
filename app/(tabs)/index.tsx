@@ -14,6 +14,11 @@ export default function HomeScreenWrapper() {
     router.push('/setup');
   };
 
+  const handlePlayOnlinePress = () => {
+    console.log(`[HOME-SCREEN] Play Online pressed - navigating to socket`);
+    router.push('/online');
+  };
+
   const handleStatsPress = () => {
     console.log(`[HOME-SCREEN] Stats pressed - navigating to stats`);
     router.push('/stats');
@@ -28,5 +33,11 @@ export default function HomeScreenWrapper() {
     return <GameScreen onBackToHome={handleBackToHome} />;
   }
 
-  return <HomeScreen onPlayPress={handlePlayPress} onStatsPress={handleStatsPress} />;
+  return (
+    <HomeScreen 
+      onPlayPress={handlePlayPress}
+      onPlayOnlinePress={handlePlayOnlinePress}
+      onStatsPress={handleStatsPress}
+    />
+  );
 }
