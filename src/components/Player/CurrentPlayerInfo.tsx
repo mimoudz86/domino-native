@@ -1,11 +1,11 @@
 import React, { useMemo } from 'react';
 import { View, Text, StyleSheet } from 'react-native';
-import type { PlayerTurnState } from '../../shared/localGameEvents';
+import type { PlayerDatas } from '../../controllers/localGameEvents';
 import { generatePlayerAvatar, getPlayerColor } from '../../utils/avatarGenerator';
 
 interface PlayerInfoProps {
   playerId: number;
-  player?: PlayerTurnState;
+  player?: PlayerDatas;
   isCurrentPlayer?: boolean;
   isLastPlayed?: boolean;
 }

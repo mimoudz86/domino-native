@@ -2,7 +2,7 @@ import React from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, Modal, ScrollView } from 'react-native';
 import { SoloTable } from './SoloTable';
 import type { MatchConfig } from '../../services/IMatchStorage';
-import type { PlayerTurnState } from '../../shared/localGameEvents';
+import type { PlayerDatas } from '../../controllers/localGameEvents';
 
 interface GameEndModalProps {
   visible: boolean;
@@ -10,7 +10,7 @@ interface GameEndModalProps {
   lastGameData?: any;
   currentSetData?: any;
   currentMatchData?: any;
-  players?: PlayerTurnState[];
+  players?: PlayerDatas[];
   onContinue: () => void;
   onLeave: () => void;
 }

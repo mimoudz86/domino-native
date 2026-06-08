@@ -1,6 +1,6 @@
 import React, { useMemo } from 'react';
 import { View, Text, StyleSheet, Image } from 'react-native';
-import type { PlayerTurnState } from '../../shared/localGameEvents';
+import type { PlayerDatas } from '../../controllers/localGameEvents';
 import { getPlayerColor } from '../../utils/avatarGenerator';
 
 // Import des images d'avatars
@@ -13,7 +13,7 @@ const AVATAR_IMAGES: { [key: number]: any } = {
 
 interface PlayerInfoProps {
   playerId: number;
-  player?: PlayerTurnState;
+  player?: PlayerDatas;
   isCurrentPlayer?: boolean;
   isLastPlayed?: boolean;
 }

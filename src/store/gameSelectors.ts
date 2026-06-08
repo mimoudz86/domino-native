@@ -1,19 +1,19 @@
 import { useMemo } from 'react';
 import type { Domino } from '../shared/Domino';
-import type { PlayerTurnState, PlacedDomino } from '../shared/localGameEvents';
+import type { PlayerDatas, PlacedDomino } from '../controllers/localGameEvents';
 import type { MatchConfig } from '../services/IMatchStorage';
 import { useActiveGameStore } from './gameStoreContext';
 
 export const useTrainOnBoard = (): PlacedDomino[] =>
   useActiveGameStore(s => s.turnState?.board?.trainOnBoard ?? []);
 
-export const useAllPlayers = (): PlayerTurnState[] =>
+export const useAllPlayers = (): PlayerDatas[] =>
   useActiveGameStore(s => s.turnState?.players ?? []);
 
-export const usePlayerById = (id: number): PlayerTurnState | undefined =>
+export const usePlayerById = (id: number): PlayerDatas | undefined =>
   useActiveGameStore(s => s.turnState?.players?.find(p => p.id === id));
 
-export const useMyPlayer = (myId: number): PlayerTurnState | null =>
+export const useMyPlayer = (myId: number): PlayerDatas | null =>
   useActiveGameStore(s => s.turnState?.players?.find(p => p.id === myId) ?? null);
 
 export const useMyDominos = (myId: number): Domino[] =>
@@ -47,10 +47,13 @@ export const useGameEndActions = () =>
     resetGame: state.resetGame,
   }));
 
-export const useLastPasserId = (): number | undefined =>
-  useActiveGameStore(s => s.turnState?.lastPlayerWhoPassedId);
+export const useLastPasserId = (): number | undefined => {
+  const lastId = useActiveGameStore(s => s.turnState?.state?.lastPlayerWhoPassedId);
+  console.log(`[SELECTOR] useLastPasserId: ${lastId}`);
+  return lastId;
+};
 
-export const usePasserPlayer = (): PlayerTurnState | undefined => {
+export const usePasserPlayer = (): PlayerDatas | undefined => {
   const lastId = useLastPasserId();
   const players = useAllPlayers();
 

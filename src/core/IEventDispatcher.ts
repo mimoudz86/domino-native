@@ -1,4 +1,4 @@
-import type { LocalGameEvent, LocalEventListener } from '../shared/localGameEvents';
+import type { LocalGameEvent, LocalEventListener } from '../controllers/localGameEvents';
 
 /**
  * ═══════════════════════════════════════════════════════════════

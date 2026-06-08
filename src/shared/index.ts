@@ -6,10 +6,12 @@ export type { Domino } from './Domino.js';
 
 export type {
   Player,
+  PlayerDatas,
   PlayerTurnState,
   TrackedDomino,
   PlacedDomino,
   BoardState,
+  StateDatas,
   TurnState,
   PlayTurnPayload,
   PlayResponsePayload,
@@ -20,13 +22,13 @@ export type {
   PassHiddenPayload,
   LocalGameEvent,
   LocalEventListener
-} from './localGameEvents.js';
+} from '../controllers/localGameEvents.js';
 
 // Aliases for socket compatibility
 export type {
   LocalGameEvent as GameEvent,
   LocalEventListener as EventListener
-} from './localGameEvents.js';
+} from '../controllers/localGameEvents.js';
 
 export type {
   TurnState as SocketTurnState,

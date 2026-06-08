@@ -1,5 +1,5 @@
-import type { PlayerTurnState, BoardState } from './localGameEvents';
-import type { GameEndedPayload } from './localGameEvents';
+import type { PlayerDatas, PlayerTurnState, BoardState } from '../controllers/localGameEvents';
+import type { GameEndedPayload } from '../controllers/localGameEvents';
 
 export class GameStateBuilder {
   constructor(private engine: any) {}
@@ -30,12 +30,23 @@ export class GameStateBuilder {
     }));
   }
 
+  buildPlayersDatas(isAI: boolean = false): PlayerDatas[] {
+    return this.engine.players.map((p: any) => ({
+      id: p.id,
+      name: p.name,
+      isAI,
+      dominos: p.dominos,
+      dominoCount: p.dominos.length,
+      hasPassed: p.hasPassed
+    }));
+  }
+
   // ═══════════════════════════════════════════════════════════════
   // ÉTATS COMPLETS
   // ═══════════════════════════════════════════════════════════════
 
-  buildStartGame(): { turnNumber: number; currentPlayerId: number; players: PlayerTurnState[]; board: BoardState } {
-    const players = this.buildPlayersArray(this.engine.currentPlayerId);
+  buildStartGame(): { turnNumber: number; currentPlayerId: number; players: PlayerDatas[]; board: BoardState } {
+    const players = this.buildPlayersDatas(false);
     const board = this.buildBoardState();
 
     const state = {
@@ -67,7 +78,7 @@ export class GameStateBuilder {
     const players = this.buildPlayersArray(playerIndex);
     const opponents = players.filter((p: any) => p.id !== playerIndex);
 
-    return {
+    const result = {
       turnNumber: this.engine.turnNumber,
       currentPlayerId: playerIndex,
       currentPlayerName: player.name,
@@ -78,8 +89,13 @@ export class GameStateBuilder {
       board: boardState,
       opponents,
       players,
-      lastPlayerWhoPassedId: this.engine.lastPlayerWhoPassedId ?? undefined
+      state: {
+        consecutivePasses: this.engine.consecutivePasses,
+        lastPlayerWhoPassedId: this.engine.lastPlayerWhoPassedId ?? undefined
+      }
     };
+    console.log(`[BUILDER] buildLocalPlayerState lastPlayerWhoPassedId: ${result.state.lastPlayerWhoPassedId}`);
+    return result;
   }
 
   buildLocalBroadcastState(): any {
@@ -92,7 +108,10 @@ export class GameStateBuilder {
       nextPlayerId: nextPlayerIndex,
       board: boardState,
       players,
-      lastPlayerWhoPassedId: this.engine.lastPlayerWhoPassedId ?? undefined
+      state: {
+        consecutivePasses: this.engine.consecutivePasses,
+        lastPlayerWhoPassedId: this.engine.lastPlayerWhoPassedId ?? undefined
+      }
     };
   }
 

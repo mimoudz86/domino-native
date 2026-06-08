@@ -22,7 +22,9 @@ export function PassNotificationBadge() {
 
   useEffect(() => {
     // Check if player has passed (new pass event)
+    console.log(`[PASS-BADGE] Effect triggered - passerPlayer: ${passerPlayer?.name || 'none'}, hasPassed: ${passerPlayer?.hasPassed}, lastPassedRef: ${lastPassedIdRef.current}`);
     if (!passerPlayer?.hasPassed || lastPassedIdRef.current === passerPlayer.id) {
+      console.log(`[PASS-BADGE] Skipped - reason: ${!passerPlayer?.hasPassed ? 'no hasPassed' : 'duplicate'}`);
       return;
     }
 

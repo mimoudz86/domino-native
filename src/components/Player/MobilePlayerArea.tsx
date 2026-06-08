@@ -1,12 +1,12 @@
 import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
-import type { PlayerTurnState } from '../../shared/localGameEvents';
+import type { PlayerDatas } from '../../controllers/localGameEvents';
 import { getPlayerColor } from '../../utils/avatarGenerator';
 
 interface MobilePlayerAreaProps {
   playerId: number;
   position: 'top' | 'bottom' | 'left' | 'right';
-  player?: PlayerTurnState;
+  player?: PlayerDatas;
 }
 
 export function MobilePlayerArea({

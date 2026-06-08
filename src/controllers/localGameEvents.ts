@@ -13,6 +13,18 @@ export interface Player {
   score: number;
 }
 
+export interface PlayerDatas {
+  id: number;
+  name: string;
+  isAI: boolean;
+  dominos: Domino[];
+  dominoCount: number;
+  hasPassed: boolean;
+  playables?: number[];
+  placements?: ('left' | 'right' | 'both')[];
+  canPlay?: boolean;
+}
+
 export interface PlayerTurnState {
   id: number;
   name: string;
@@ -45,20 +57,21 @@ export interface BoardState {
   trainOnBoard: PlacedDomino[];
 }
 
+export interface StateDatas {
+  consecutivePasses: number;
+  lastPlayedDomino?: { domino: Domino; side: 'left' | 'right' };
+  lastPlayedPlayerId?: number;
+  lastPlayerWhoPassedId?: number;
+}
+
 export interface TurnState {
   turnNumber: number;
   currentPlayerId: number;
   currentPlayerName: string;
   phase: 'STARTED' | 'PLACED' | 'PASSED' | 'ENDED';
   board: BoardState;
-  players: PlayerTurnState[];
-  playerState: {
-    id: number;
-    playables: number[];
-    canPlay: boolean;
-  };
-  consecutivePasses: number;
-  lastPlayerWhoPassedId?: number;
+  players: PlayerDatas[];
+  state: StateDatas;
   gameEnded: boolean;
   winner?: number;
 }
@@ -76,7 +89,7 @@ export interface PlayTurnPayload {
   placements: ('left' | 'right' | 'both')[];
   canPlay: boolean;
   board: BoardState;
-  players: PlayerTurnState[];
+  players: PlayerDatas[];
   lastPlayerWhoPassedId?: number;
 }
 
@@ -98,14 +111,14 @@ export interface TurnUpdatedPayload {
   turnNumber: number;
   nextPlayerId: number;
   board: BoardState;
-  players: PlayerTurnState[];
+  players: PlayerDatas[];
   lastPlayerWhoPassedId?: number;
 }
 
 export interface GameStartedPayload {
   turnNumber: number;
   currentPlayerId: number;
-  players: PlayerTurnState[];
+  players: PlayerDatas[];
   board: BoardState;
 }
 

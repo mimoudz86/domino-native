@@ -91,13 +91,15 @@ export class GameEngine {
   }
 
   onPassHidden(): void {
-    // [COMMENTED-v1] console.log(`[AUTO-PASS] 📡 onPassHidden called, resolving Promise`);
+    console.log(`[GAME-ENGINE] 📡 onPassHidden called, lastPlayerWhoPassedId BEFORE: ${this.lastPlayerWhoPassedId}`);
+    this.lastPlayerWhoPassedId = null;
+    console.log(`[GAME-ENGINE] ✅ onPassHidden RESET lastPlayerWhoPassedId to: ${this.lastPlayerWhoPassedId}`);
     if (this.resolvePassHidden) {
       this.resolvePassHidden();
       this.resolvePassHidden = null;
       this.passHiddenPromise = null;
     } else {
-      // [COMMENTED-v1] console.log(`[AUTO-PASS] ⚠️ WARNING: No resolver found for PASS_HIDDEN!`);
+      console.log(`[AUTO-PASS] ⚠️ WARNING: No resolver found for PASS_HIDDEN!`);
     }
   }
 
