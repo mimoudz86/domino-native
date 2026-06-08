@@ -2,7 +2,7 @@ import React from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, Modal, ScrollView } from 'react-native';
 import { SoloTable } from './SoloTable';
 import type { MatchConfig } from '../../services/IMatchStorage';
-import type { PlayerTurnState } from '../../shared/GameEvent';
+import type { PlayerTurnState } from '../../shared/localGameEvents';
 
 interface GameEndModalProps {
   visible: boolean;

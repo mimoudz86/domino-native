@@ -20,13 +20,13 @@ export type {
   PassHiddenPayload,
   LocalGameEvent,
   LocalEventListener
-} from './GameEvent.js';
+} from './localGameEvents.js';
 
 // Aliases for socket compatibility
 export type {
   LocalGameEvent as GameEvent,
   LocalEventListener as EventListener
-} from './GameEvent.js';
+} from './localGameEvents.js';
 
 export type {
   TurnState as SocketTurnState,

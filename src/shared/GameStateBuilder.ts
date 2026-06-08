@@ -1,5 +1,5 @@
-import type { PlayerTurnState, BoardState } from './GameEvent';
-import type { GameEndedPayload } from './GameEvent';
+import type { PlayerTurnState, BoardState } from './localGameEvents';
+import type { GameEndedPayload } from './localGameEvents';
 
 export class GameStateBuilder {
   constructor(private engine: any) {}

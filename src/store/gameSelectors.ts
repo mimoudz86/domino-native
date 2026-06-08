@@ -1,6 +1,6 @@
 import { useMemo } from 'react';
 import type { Domino } from '../shared/Domino';
-import type { PlayerTurnState, PlacedDomino } from '../shared/GameEvent';
+import type { PlayerTurnState, PlacedDomino } from '../shared/localGameEvents';
 import type { MatchConfig } from '../services/IMatchStorage';
 import { useActiveGameStore } from './gameStoreContext';
 

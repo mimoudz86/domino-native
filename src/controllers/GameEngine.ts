@@ -1,6 +1,6 @@
 
 import type { Domino } from '../shared/Domino';
-import type { TrackedDomino,PlayResponsePayload } from '../shared/GameEvent';
+import type { TrackedDomino,PlayResponsePayload } from './localGameEvents';
 import type { ILocalEventDispatcher } from '../core/ILocalEventDispatcher';
 import { Board } from './Board';
 import { Player } from './Player';

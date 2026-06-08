@@ -7,7 +7,7 @@
  */
 
 import type { Domino } from '../shared/Domino';
-import type { TurnState } from '../shared/GameEvent';
+import type { TurnState } from '../shared/localGameEvents';
 import type { ILocalEventDispatcher } from '../core/ILocalEventDispatcher';
 import type { MatchConfig, MatchState } from '../services/IMatchStorage';
 
