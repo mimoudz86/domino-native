@@ -7,7 +7,7 @@ import type { PlayerDatas } from '../../controllers/localGameEvents';
 interface GameEndModalProps {
   visible: boolean;
   selectedConfig?: MatchConfig;
-  lastGameData?: any;
+  currentGameData?: any;
   currentSetData?: any;
   currentMatchData?: any;
   players?: PlayerDatas[];
@@ -15,7 +15,7 @@ interface GameEndModalProps {
   onLeave: () => void;
 }
 
-function SoloModeView({ selectedConfig, lastGameData, currentSetData, currentMatchData, players, onContinue, onLeave }: any) {
+function SoloModeView({ selectedConfig, currentGameData, currentSetData, currentMatchData, players, onContinue, onLeave }: any) {
   const displayPlayers = players || [];
 
   return (
@@ -34,7 +34,7 @@ function SoloModeView({ selectedConfig, lastGameData, currentSetData, currentMat
         <Text style={styles.title}>🏆 FIN DU JEU</Text>
       </View>
 
-      <SoloTable lastGameData={lastGameData} currentSetData={currentSetData} currentMatchData={currentMatchData} players={displayPlayers} />
+      <SoloTable currentGameData={currentGameData} currentSetData={currentSetData} currentMatchData={currentMatchData} players={displayPlayers} />
 
       <View style={styles.buttonContainer}>
         <TouchableOpacity style={styles.button} onPress={onContinue}>
@@ -51,15 +51,15 @@ function SoloModeView({ selectedConfig, lastGameData, currentSetData, currentMat
 export function GameEndModal({
   visible,
   selectedConfig,
-  lastGameData,
+  currentGameData,
   currentSetData,
   currentMatchData,
   players,
   onContinue,
   onLeave,
 }: GameEndModalProps) {
-  // Fix race condition: only show modal after lastGameData arrives (after GAME_SAVED event)
-  const isReady = visible && lastGameData !== null && lastGameData !== undefined;
+  // Fix race condition: only show modal after currentGameData arrives (after GAME_SAVED event)
+  const isReady = visible && currentGameData !== null && currentGameData !== undefined;
 
   return (
     <Modal visible={isReady} transparent animationType="fade">
@@ -67,7 +67,7 @@ export function GameEndModal({
         <ScrollView style={styles.scrollContainer} contentContainerStyle={styles.scrollContent}>
           <SoloModeView
             selectedConfig={selectedConfig}
-            lastGameData={lastGameData}
+            currentGameData={currentGameData}
             currentSetData={currentSetData}
             currentMatchData={currentMatchData}
             players={players}

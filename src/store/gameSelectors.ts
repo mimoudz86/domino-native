@@ -31,7 +31,7 @@ export const useDragState = () =>
 export const useGameEndData = () =>
   useActiveGameStore(state => ({
     gameEnded: state.gameEnded,
-    lastGameData: state.lastGameData,
+    currentGameData: state.currentGameData,
     currentGameId: state.currentGameId,
     currentSetId: state.currentSetId,
     currentSetData: state.currentSetData,

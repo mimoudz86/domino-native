@@ -31,7 +31,7 @@ export interface IGameStore {
 
   // Game end modal state
   gameEnded: boolean;
-  lastGameData: any | null;
+  currentGameData: any | null;
   currentSetId: string | null;
   currentGameId: string | null;
   currentSetData: any | null;

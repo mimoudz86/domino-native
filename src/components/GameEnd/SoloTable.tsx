@@ -2,21 +2,21 @@ import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 
 interface SoloTableProps {
-  lastGameData?: any;
+  currentGameData?: any;
   currentSetData?: any;
   currentMatchData?: any;
   players?: any[];
 }
 
-export function SoloTable({ lastGameData, currentSetData, currentMatchData, players = [] }: SoloTableProps) {
+export function SoloTable({ currentGameData, currentSetData, currentMatchData, players = [] }: SoloTableProps) {
   const getPlayerGameScore = (playerId: number) => {
     const scoreKey = `p${playerId}_score`;
-    return lastGameData?.[scoreKey] ?? 0;
+    return currentGameData?.[scoreKey] ?? 0;
   };
 
   const getPlayerName = (playerId: number) => {
     const nameKey = `p${playerId}_name`;
-    return lastGameData?.[nameKey] ?? players?.[playerId]?.name ?? `P${playerId}`;
+    return currentGameData?.[nameKey] ?? players?.[playerId]?.name ?? `P${playerId}`;
   };
 
   const getSetScore = (playerId: number) => {
@@ -43,7 +43,7 @@ export function SoloTable({ lastGameData, currentSetData, currentMatchData, play
 
         {[0, 1, 2, 3].map((playerId) => {
           const player = players.find((p: any) => p.id === playerId);
-          const isWinner = lastGameData?.winner_id === playerId;
+          const isWinner = currentGameData?.winner_id === playerId;
 
           return (
             <View key={playerId} style={styles.tableRow}>

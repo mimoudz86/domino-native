@@ -21,7 +21,7 @@ export function MobileGameBoard({
 }: MobileGameBoardProps) {
 
   const [isExpanded, setIsExpanded] = useState(false);
-  const { gameEnded, lastGameData, currentSetData, currentMatchData, selectedConfig } = useGameEndData();
+  const { gameEnded, currentGameData, currentSetData, currentMatchData, selectedConfig } = useGameEndData();
   const { resetGame, initGame, continueOrNewMatch, resetGameEndState } = useGameEndActions();
   const players = useAllPlayers();
 
@@ -89,7 +89,7 @@ export function MobileGameBoard({
         <GameEndModal
           visible={gameEnded}
           selectedConfig={selectedConfig}
-          lastGameData={lastGameData}
+          currentGameData={currentGameData}
           currentSetData={currentSetData}
           currentMatchData={currentMatchData}
           players={players}
@@ -171,7 +171,7 @@ export function MobileGameBoard({
       <GameEndModal
         visible={gameEnded}
         selectedConfig={selectedConfig}
-        lastGameData={lastGameData}
+        currentGameData={currentGameData}
         currentSetData={currentSetData}
         currentMatchData={currentMatchData}
         players={players}

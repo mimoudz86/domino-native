@@ -68,12 +68,9 @@ export interface TurnState {
   turnNumber: number;
   currentPlayerId: number;
   currentPlayerName: string;
-  phase: 'STARTED' | 'PLACED' | 'PASSED' | 'ENDED';
   board: BoardState;
   players: PlayerDatas[];
   state: StateDatas;
-  gameEnded: boolean;
-  winner?: number;
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════

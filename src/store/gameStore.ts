@@ -34,7 +34,7 @@ type GameStoreState = IGameStore & {
   _isInitializing: boolean;
   _dbInitialized: boolean;
   gameEnded: boolean;
-  lastGameData: any | null;
+  currentGameData: any | null;
   _handleGameEnded: ((p: any) => void) | null;
   _handleGameSaved: ((p: any) => void) | null;
 };
@@ -99,7 +99,7 @@ export const useGameStore = create<GameStoreState>((set, get) => ({
   _isInitializing: false,
   _dbInitialized: false,
   gameEnded: false,
-  lastGameData: null,
+  currentGameData: null,
   _handleGameEnded: null,
   _handleGameSaved: null,
 
@@ -153,7 +153,7 @@ export const useGameStore = create<GameStoreState>((set, get) => ({
     // Listener pour GAME_SAVED - récupérer les données du game, du set, et du match pour afficher dans le modal
     const handleGameSaved = (payload: any) => {
       set({
-        lastGameData: payload.gameData,
+        currentGameData: payload.gameData,
         currentGameId: payload.gameId,
         currentSetId: payload.setData?.set_id,
         currentSetData: payload.setData,
@@ -458,7 +458,7 @@ export const useGameStore = create<GameStoreState>((set, get) => ({
   resetGameEndState: () => {
     set({
       gameEnded: false,
-      lastGameData: null,
+      currentGameData: null,
       currentGameId: null,
       currentSetData: null,
       currentMatchData: null,
