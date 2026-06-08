@@ -9,11 +9,16 @@ export default function SocketGameScreen() {
   const { gameStarted, gameEnded, turnState, adapter, roomId } = useSocketStore();
 
   useEffect(() => {
-    if (!roomId) {
-      console.log('[SOCKET-GAME] No room, navigating back');
-      router.back();
-    }
-  }, [roomId]);
+    // Set a timeout to navigate back only if no game data arrives
+    const timeout = setTimeout(() => {
+      if (!roomId && !gameStarted) {
+        console.log('[SOCKET-GAME] Timeout: No data received, navigating back');
+        router.back();
+      }
+    }, 3000); // 3 second timeout
+
+    return () => clearTimeout(timeout);
+  }, []);
 
   const handleBackPress = () => {
     console.log('[SOCKET-GAME] Back pressed - leaving game');
