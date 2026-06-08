@@ -33,10 +33,12 @@ export class SocketIOAdapter {
 
     this.socket.on('connect', () => {
       console.log('[SOCKET-ADAPTER] Connected to server:', this.socket?.id);
+      this.triggerListeners('connect' as any, { type: 'connect', payload: { socketId: this.socket?.id } } as any);
     });
 
     this.socket.on('disconnect', () => {
       console.log('[SOCKET-ADAPTER] Disconnected from server');
+      this.triggerListeners('disconnect' as any, { type: 'disconnect', payload: {} } as any);
     });
 
     this.socket.on('error', (error: any) => {
