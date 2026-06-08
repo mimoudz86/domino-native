@@ -24,6 +24,16 @@ export default function OnlineScreen() {
     router.back();
   };
 
+  const handlePrivateRoom = () => {
+    console.log('[ONLINE-SCREEN] Private Room selected');
+    router.push('/create-room');
+  };
+
+  const handleQuickPlay = () => {
+    console.log('[ONLINE-SCREEN] Quick Play selected');
+    router.push('/quick-play');
+  };
+
   return (
     <View style={styles.container}>
       <Text style={styles.title}>🌐 PLAY ONLINE</Text>
@@ -33,18 +43,24 @@ export default function OnlineScreen() {
           <Text style={styles.statusText}>✅ Connected</Text>
           <Text style={styles.socketIdText}>Socket ID: {socketId}</Text>
 
+          <Text style={styles.modeLabel}>Choose Game Mode:</Text>
+
           <TouchableOpacity
-            style={styles.createRoomButton}
-            onPress={() => router.push('/create-room')}
+            style={styles.privateRoomButton}
+            onPress={handlePrivateRoom}
           >
-            <Text style={styles.buttonText}>CREATE ROOM</Text>
+            <Text style={styles.buttonIcon}>🔒</Text>
+            <Text style={styles.buttonText}>PRIVATE ROOM</Text>
+            <Text style={styles.buttonSubtext}>Invite friends</Text>
           </TouchableOpacity>
 
           <TouchableOpacity
-            style={styles.joinRoomButton}
-            onPress={() => router.push('/join-room')}
+            style={styles.quickPlayButton}
+            onPress={handleQuickPlay}
           >
-            <Text style={styles.buttonText}>JOIN ROOM</Text>
+            <Text style={styles.buttonIcon}>⚡</Text>
+            <Text style={styles.buttonText}>QUICK PLAY</Text>
+            <Text style={styles.buttonSubtext}>Find players</Text>
           </TouchableOpacity>
         </View>
       ) : error ? (
@@ -91,7 +107,7 @@ const styles = StyleSheet.create({
   },
   connectedContainer: {
     alignItems: 'center',
-    gap: 30,
+    gap: 20,
   },
   statusText: {
     fontSize: 24,
@@ -102,29 +118,45 @@ const styles = StyleSheet.create({
   socketIdText: {
     fontSize: 12,
     color: '#999',
-    marginBottom: 20,
+    marginBottom: 10,
     fontFamily: 'monospace',
   },
-  createRoomButton: {
-    paddingHorizontal: 50,
-    paddingVertical: 18,
+  modeLabel: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#aaa',
+    marginBottom: 20,
+  },
+  privateRoomButton: {
+    paddingHorizontal: 40,
+    paddingVertical: 20,
     backgroundColor: '#34C759',
     borderRadius: 12,
-    minWidth: 200,
+    minWidth: 280,
     alignItems: 'center',
+    gap: 8,
   },
-  joinRoomButton: {
-    paddingHorizontal: 50,
-    paddingVertical: 18,
+  quickPlayButton: {
+    paddingHorizontal: 40,
+    paddingVertical: 20,
     backgroundColor: '#007AFF',
     borderRadius: 12,
-    minWidth: 200,
+    minWidth: 280,
     alignItems: 'center',
+    gap: 8,
+  },
+  buttonIcon: {
+    fontSize: 32,
   },
   buttonText: {
     fontSize: 18,
     fontWeight: '700',
     color: 'white',
+  },
+  buttonSubtext: {
+    fontSize: 12,
+    color: 'rgba(255, 255, 255, 0.7)',
+    fontWeight: '500',
   },
   loadingContainer: {
     alignItems: 'center',

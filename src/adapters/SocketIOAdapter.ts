@@ -90,6 +90,12 @@ export class SocketIOAdapter {
       this.triggerListeners('PLAYER_JOINED', { type: 'PLAYER_JOINED', payload } as any);
     });
 
+    // GAME_STARTING: Game is about to start (quick play)
+    this.socket.on('GAME_STARTING', (payload: any) => {
+      console.log('[SOCKET-ADAPTER] Received GAME_STARTING');
+      this.triggerListeners('GAME_STARTING', { type: 'GAME_STARTING', payload } as any);
+    });
+
     // SET_ENDED
     this.socket.on('SET_ENDED', (payload: any) => {
       console.log('[SOCKET-ADAPTER] Received SET_ENDED');
@@ -223,6 +229,19 @@ export class SocketIOAdapter {
         reject(new Error('JOIN_ROOM timeout'));
       }, 10000);
     });
+  }
+
+  /**
+   * Quick play - join available room or create new one
+   */
+  quickPlay(playerName: string): void {
+    if (!this.socket) {
+      console.error('[SOCKET-ADAPTER] Socket not connected');
+      return;
+    }
+
+    console.log(`[SOCKET-ADAPTER] Emitting QUICK_PLAY with playerName: ${playerName}`);
+    this.socket.emit('QUICK_PLAY', { playerName });
   }
 
   /**

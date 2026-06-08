@@ -1,6 +1,12 @@
 import { create } from 'zustand';
 import { SocketIOAdapter } from '../adapters/SocketIOAdapter';
 
+export interface Player {
+  id: number;
+  name: string;
+  isAI: boolean;
+}
+
 export interface SocketStoreState {
   // Connection state
   isConnected: boolean;
@@ -11,6 +17,7 @@ export interface SocketStoreState {
   roomId: string | null;
   playerId: number | null;
   playerName: string | null;
+  roomPlayers: Player[];
 
   // Game state
   turnState: any | null;
@@ -32,6 +39,7 @@ export interface SocketStoreState {
   setRoomId: (roomId: string) => void;
   setPlayerId: (playerId: number) => void;
   setPlayerName: (name: string) => void;
+  setRoomPlayers: (players: Player[]) => void;
   setTurnState: (state: any) => void;
   setGameStarted: (started: boolean) => void;
   setGameEnded: (ended: boolean) => void;
@@ -49,6 +57,7 @@ export const useSocketStore = create<SocketStoreState>((set, get) => ({
   roomId: null,
   playerId: null,
   playerName: null,
+  roomPlayers: [],
   turnState: null,
   gameStarted: false,
   gameEnded: false,
@@ -75,10 +84,24 @@ export const useSocketStore = create<SocketStoreState>((set, get) => ({
       console.log('[SOCKET-STORE] Disconnected');
     });
 
+    // Setup listeners for room events
+    const unsubscribeRoomJoined = adapter.on('ROOM_JOINED' as any, (payload: any) => {
+      console.log('[SOCKET-STORE] ROOM_JOINED received:', payload);
+      set({
+        roomId: payload.roomId,
+        playerId: payload.playerId
+      });
+    });
+
     // Setup listeners for game events
     const unsubscribeGameStarted = adapter.on('GAME_STARTED' as any, (payload: any) => {
       console.log('[SOCKET-STORE] GAME_STARTED received');
       set({ gameStarted: true, turnState: null });
+    });
+
+    const unsubscribeGameStarting = adapter.on('GAME_STARTING' as any, (payload: any) => {
+      console.log('[SOCKET-STORE] GAME_STARTING received (quick play)');
+      set({ gameStarted: true });
     });
 
     const unsubscribeTurnState = adapter.on('TURN_STATE' as any, (payload: any) => {
@@ -94,7 +117,9 @@ export const useSocketStore = create<SocketStoreState>((set, get) => ({
     return () => {
       unsubscribeConnect();
       unsubscribeDisconnect();
+      unsubscribeRoomJoined();
       unsubscribeGameStarted();
+      unsubscribeGameStarting();
       unsubscribeTurnState();
       unsubscribeGameEnded();
     };
@@ -106,6 +131,7 @@ export const useSocketStore = create<SocketStoreState>((set, get) => ({
   setRoomId: (roomId: string) => set({ roomId }),
   setPlayerId: (playerId: number) => set({ playerId }),
   setPlayerName: (name: string) => set({ playerName: name }),
+  setRoomPlayers: (players: Player[]) => set({ roomPlayers: players }),
   setTurnState: (state: any) => set({ turnState: state }),
   setGameStarted: (started: boolean) => set({ gameStarted: started }),
   setGameEnded: (ended: boolean) => set({ gameEnded: ended }),
@@ -121,6 +147,7 @@ export const useSocketStore = create<SocketStoreState>((set, get) => ({
         isConnected: false,
         roomId: null,
         playerId: null,
+        roomPlayers: [],
         gameStarted: false,
         gameEnded: false,
         turnState: null,
@@ -136,6 +163,7 @@ export const useSocketStore = create<SocketStoreState>((set, get) => ({
       roomId: null,
       playerId: null,
       playerName: null,
+      roomPlayers: [],
       turnState: null,
       gameStarted: false,
       gameEnded: false,
