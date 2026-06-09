@@ -98,6 +98,12 @@ export class SocketIOAdapter {
       this.triggerListeners('GAME_STARTING', { type: 'GAME_STARTING', payload } as any);
     });
 
+    // GAME_READY: Le serveur a relancé la partie suivante (ferme le modal de fin)
+    this.socket.on('GAME_READY', (payload: any) => {
+      console.log('[SOCKET-ADAPTER] Received GAME_READY');
+      this.triggerListeners('GAME_READY', { type: 'GAME_READY', payload } as any);
+    });
+
     // SET_ENDED
     this.socket.on('SET_ENDED', (payload: any) => {
       console.log('[SOCKET-ADAPTER] Received SET_ENDED');

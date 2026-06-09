@@ -27,6 +27,13 @@ export interface SocketStoreState {
   gameEnded: boolean;
   gameEndedPayload: any | null;
 
+  // End-game view data — mappé depuis GameEndedPayload serveur vers la shape
+  // attendue par GameEndModal/SoloTable (p{id}_score / p{id}_sets_won).
+  currentGameData: any | null;
+  currentSetData: any | null;
+  currentMatchData: any | null;
+  selectedConfig: any | null;
+
   // Error handling
   error: string | null;
 
@@ -51,6 +58,11 @@ export interface SocketStoreState {
   setError: (error: string | null) => void;
   playDomino: (domino: any, side: 'left' | 'right', knocked?: boolean) => void;
   passTurn: () => void;
+  // End-game actions (compat IGameStore — en socket, le serveur gère la relance via GAME_READY)
+  resetGameEndState: () => void;
+  continueOrNewMatch: () => Promise<void>;
+  initGame: (names?: string[], ai?: boolean[]) => Promise<void>;
+  resetGame: () => void;
   disconnect: () => void;
   reset: () => void;
 }
@@ -70,6 +82,10 @@ export const useSocketStore = create<SocketStoreState>((set, get) => ({
   gameStarted: false,
   gameEnded: false,
   gameEndedPayload: null,
+  currentGameData: null,
+  currentSetData: null,
+  currentMatchData: null,
+  selectedConfig: null,
   error: null,
   adapter: null,
 
@@ -127,7 +143,36 @@ export const useSocketStore = create<SocketStoreState>((set, get) => ({
 
     const unsubscribeGameEnded = adapter.on('GAME_ENDED' as any, (payload: any) => {
       console.log('[SOCKET-STORE] GAME_ENDED received');
-      set({ gameEnded: true, gameEndedPayload: payload });
+      // Mapper le payload canonique → shape attendue par GameEndModal/SoloTable (p{id}_*)
+      const nameOf = (id: number) => payload.players?.find((pl: any) => pl.id === id)?.name ?? `P${id}`;
+      const g = payload.game, s = payload.set, m = payload.match;
+      set({
+        gameEnded: true,
+        gameEndedPayload: payload,
+        selectedConfig: { mode: payload.mode, maxPoints: payload.config?.maxPoints, numSets: payload.config?.numSets },
+        currentGameData: {
+          winner_id: g.winnerId,
+          winner_name: g.winnerName,
+          winning_type: g.winningType,
+          p0_score: g.individualScores.p0, p1_score: g.individualScores.p1, p2_score: g.individualScores.p2, p3_score: g.individualScores.p3,
+          p0_name: nameOf(0), p1_name: nameOf(1), p2_name: nameOf(2), p3_name: nameOf(3),
+          teamV_score: g.teamScores.V, teamH_score: g.teamScores.H
+        },
+        currentSetData: {
+          p0_score: s.individualTotals.p0, p1_score: s.individualTotals.p1, p2_score: s.individualTotals.p2, p3_score: s.individualTotals.p3,
+          teamV_score: s.teamTotals.V, teamH_score: s.teamTotals.H
+        },
+        currentMatchData: {
+          p0_sets_won: m.individualSetsWon.p0, p1_sets_won: m.individualSetsWon.p1, p2_sets_won: m.individualSetsWon.p2, p3_sets_won: m.individualSetsWon.p3,
+          teamV_sets_won: m.teamSetsWon.V, teamH_sets_won: m.teamSetsWon.H
+        }
+      });
+    });
+
+    // GAME_READY : le serveur a relancé la partie suivante → fermer le modal de fin
+    const unsubscribeGameReady = adapter.on('GAME_READY' as any, () => {
+      console.log('[SOCKET-STORE] GAME_READY received - dismissing end-game modal');
+      set({ gameEnded: false, currentGameData: null, currentSetData: null, currentMatchData: null });
     });
 
     return () => {
@@ -138,6 +183,7 @@ export const useSocketStore = create<SocketStoreState>((set, get) => ({
       unsubscribeGameStarting();
       unsubscribeTurnState();
       unsubscribeGameEnded();
+      unsubscribeGameReady();
     };
   },
 
@@ -191,6 +237,21 @@ export const useSocketStore = create<SocketStoreState>((set, get) => ({
     }
   },
 
+  // End-game actions (compat IGameStore). En mode socket, c'est le SERVEUR qui
+  // relance la partie suivante (GAME_READY) → ces actions ne font que gérer l'UI locale.
+  resetGameEndState: () => set({
+    gameEnded: false, currentGameData: null, currentSetData: null, currentMatchData: null
+  }),
+  continueOrNewMatch: async () => {
+    // No-op : le serveur enchaîne automatiquement (handleAutoRestart → GAME_READY)
+  },
+  initGame: async () => {
+    // No-op : l'init est gérée côté serveur
+  },
+  resetGame: () => set({
+    gameEnded: false, currentGameData: null, currentSetData: null, currentMatchData: null
+  }),
+
   disconnect: () => {
     const { adapter } = get();
     if (adapter) {
@@ -206,7 +267,11 @@ export const useSocketStore = create<SocketStoreState>((set, get) => ({
         gameStarted: false,
         gameEnded: false,
         turnState: null,
-        gameEndedPayload: null
+        gameEndedPayload: null,
+        currentGameData: null,
+        currentSetData: null,
+        currentMatchData: null,
+        selectedConfig: null
       });
     }
   },
@@ -225,6 +290,10 @@ export const useSocketStore = create<SocketStoreState>((set, get) => ({
       gameStarted: false,
       gameEnded: false,
       gameEndedPayload: null,
+      currentGameData: null,
+      currentSetData: null,
+      currentMatchData: null,
+      selectedConfig: null,
       error: null,
       adapter: null
     });

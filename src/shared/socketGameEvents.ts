@@ -60,30 +60,6 @@ export interface PlayerTurnState {
 // GAME STATE
 // ═══════════════════════════════════════════════════════════════════════════════
 
-export interface GameEndData {
-  winner: {
-    id: number;
-    name: string;
-  };
-  scores?: Array<{
-    playerId: number;
-    playerName: string;
-    score: number;
-  }>;
-  teamV?: {
-    teamName: string;
-    players: Array<{ id: number; name: string; score: number }>;
-    totalScore: number;
-  };
-  teamH?: {
-    teamName: string;
-    players: Array<{ id: number; name: string; score: number }>;
-    totalScore: number;
-  };
-  winningTeam?: 'V' | 'H';
-  pointsEarned?: number;
-}
-
 export interface TurnState {
   turnNumber: number;
   currentPlayerId: number;
@@ -151,31 +127,50 @@ export interface GameStartedPayload {
   }>;
 }
 
+/**
+ * Payload canonique GAME_ENDED (mode SOCKET) — MIROIR de
+ * domino-vite/src/shared/GameEvent.ts. Le serveur est la source de vérité :
+ * garder ces deux interfaces synchronisées. Émis à la fin de CHAQUE partie.
+ */
 export interface GameEndedPayload {
-  winner: {
-    id: number;
-    name: string;
-  };
-  winningType: 'EMPTY_HAND' | 'BLOCKED_GAME';
-  rawScores: {
-    p0: number;
-    p1: number;
-    p2: number;
-    p3: number;
-  };
-  scores: Array<{
-    playerId: number;
-    playerName: string;
-    score: number;
-  }>;
+  // ─── Contexte ───
+  matchId: string;
+  gameId: string;
+  mode: 'individual' | 'teams';
+  config: { maxPoints: number; numSets: number };
 
-  // Données du set (depuis MatchService via SocketManager)
-  setScore: { teamVPoints: number; teamHPoints: number };
-  winningTeam?: 'V' | 'H';
+  // ─── Joueurs (métadonnées) ───
+  players: Array<{ id: number; name: string; type: 'human' | 'AI'; team: 'V' | 'H' }>;
 
-  // Progression du match (depuis MatchService)
-  matchProgress: { team1SetsWon: number; team2SetsWon: number };
-  isMatchFinished: boolean;
+  // ─── Niveau PARTIE (cette main) ───
+  game: {
+    winnerId: number;
+    winnerName: string;
+    winningType: 'EMPTY_HAND' | 'BLOCKED_GAME';
+    remainingPips: { p0: number; p1: number; p2: number; p3: number };
+    individualScores: { p0: number; p1: number; p2: number; p3: number };
+    teamScores: { V: number; H: number };
+  };
+
+  // ─── Niveau SET (cumul en cours) ───
+  set: {
+    individualTotals: { p0: number; p1: number; p2: number; p3: number };
+    teamTotals: { V: number; H: number };
+    isFinished: boolean;
+    winnerId?: number;
+    winnerTeam?: 'V' | 'H';
+  };
+
+  // ─── Niveau MATCH (progression) ───
+  match: {
+    individualSetsWon: { p0: number; p1: number; p2: number; p3: number };
+    teamSetsWon: { V: number; H: number };
+    isFinished: boolean;
+    winner:
+      | { id: number; name: string; type: 'individual' }
+      | { team: 'V' | 'H'; name: string; type: 'team' }
+      | null;
+  };
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
