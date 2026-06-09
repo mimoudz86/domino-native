@@ -158,26 +158,22 @@ export class GameCoreLogic {
   private static isDrawGameIndividual(game: RawGame): boolean {
     if (game.winning_type !== 'BLOCKED_GAME') return false;
 
+    // Le gagnant est le joueur au MINIMUM de pips. Nul si ce minimum est partagé par ≥2 joueurs.
     const pips = [game.p0_pips_remaining, game.p1_pips_remaining, game.p2_pips_remaining, game.p3_pips_remaining];
-    const maxPips = Math.max(...pips);
-    const countWithMaxPips = pips.filter(p => p === maxPips).length;
+    const minPips = Math.min(...pips);
+    const countWithMinPips = pips.filter(p => p === minPips).length;
 
-    return countWithMaxPips >= 2;
+    return countWithMinPips >= 2;
   }
 
   private static isDrawGameTeam(game: RawGame): boolean {
     if (game.winning_type !== 'BLOCKED_GAME') return false;
 
-    const teamVPips = [game.p0_pips_remaining, game.p2_pips_remaining];
-    const teamHPips = [game.p1_pips_remaining, game.p3_pips_remaining];
+    // Min de CHAQUE équipe (le meilleur joueur, PAS la somme). Nul si les deux mins sont égaux.
+    const teamVmin = Math.min(game.p0_pips_remaining, game.p2_pips_remaining);
+    const teamHmin = Math.min(game.p1_pips_remaining, game.p3_pips_remaining);
 
-    for (const vpip of teamVPips) {
-      for (const hpip of teamHPips) {
-        if (vpip === hpip) return true;
-      }
-    }
-
-    return false;
+    return teamVmin === teamHmin;
   }
 
   static calcIndividualScores(games: RawGame[]): Record<number, number> {
@@ -199,11 +195,12 @@ export class GameCoreLogic {
         return acc;
       }
 
+      // L'équipe GAGNANTE marque la somme des pips de l'équipe adverse.
       const isWinnerV = g.winner_id === 0 || g.winner_id === 2;
       if (isWinnerV) {
-        acc.teamH += g.p1_pips_remaining + g.p3_pips_remaining;
+        acc.teamV += g.p1_pips_remaining + g.p3_pips_remaining; // V gagne → marque les pips de H
       } else {
-        acc.teamV += g.p0_pips_remaining + g.p2_pips_remaining;
+        acc.teamH += g.p0_pips_remaining + g.p2_pips_remaining; // H gagne → marque les pips de V
       }
       return acc;
     }, { teamV: 0, teamH: 0 });
