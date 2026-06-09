@@ -1,32 +1,46 @@
 /**
- * GameStoreContext - Contexte pour switcher entre LocalGameStore et ServerGameStore
+ * GameStoreContext - Contexte pour switcher entre LocalGameStore et SocketStore
+ *
+ * - GameScreenLocal: mode = 'local' → useActiveGameStore retourne gameStore
+ * - GameScreenSocket: mode = 'socket' → useActiveGameStore retourne socketStore
  *
  * Les composants utilisent `useActiveGameStore()` qui retourne le bon store.
  * Complètement transparent pour les composants.
- *
- * Futur: Ajouter ServerGameStore, configurer via context.
  */
 
-import { createContext, useContext , ReactNode, useState } from 'react';
+import { createContext, useContext, ReactNode, useState } from 'react';
 import type { IGameStore } from './IGameStore';
 import { useGameStore } from './gameStore';
+import { useSocketStore } from './socketStore';
 
-// ═══════════════════════════════════════════════════════════════════════════════
-// PROVIDER: GameStoreProvider
-// À ajouter au niveau de l'App
-// ═══════════════════════════════════════════════════════════════════════════════
-
-
-// ═══════════════════════════════════════════════════════════════════════════════
-// CONTEXT (sera utilisé pour switcher à l'avenir)
-// ═══════════════════════════════════════════════════════════════════════════════
+type GameMode = 'local' | 'socket';
 
 interface GameStoreContextType {
-  mode: 'local' | 'server';
-  setMode: (mode: 'local' | 'server') => void;
+  mode: GameMode;
+  setMode: (mode: GameMode) => void;
 }
 
 export const GameStoreContext = createContext<GameStoreContextType | undefined>(undefined);
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// HOOK: useGameMode()
+// Retourne le mode courant
+// ═══════════════════════════════════════════════════════════════════════════════
+
+export function useGameMode(): GameMode {
+  const context = useContext(GameStoreContext);
+  // Défaut 'local': les écrans de menu (hors GameStoreProvider) utilisent le gameStore local.
+  // Seul GameScreenSocket force explicitement mode='socket'.
+  return context?.mode ?? 'local';
+}
+
+export function useIsLocalMode(): boolean {
+  return useGameMode() === 'local';
+}
+
+export function useIsSocketMode(): boolean {
+  return useGameMode() === 'socket';
+}
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // HOOK: useActiveGameStore()
@@ -36,27 +50,34 @@ export const GameStoreContext = createContext<GameStoreContextType | undefined>(
 export function useActiveGameStore(): IGameStore;
 export function useActiveGameStore<T>(selector: (state: IGameStore) => T): T;
 export function useActiveGameStore<T>(selector?: (state: IGameStore) => T): IGameStore | T {
-  const context = useContext(GameStoreContext);
-  const store = useGameStore();
+  const mode = useGameMode();
+  const localStore = useGameStore();
+  const socketStoreState = useSocketStore();
 
-  // Pour maintenant, on retourne toujours LocalGameStore
-  // À l'avenir: retourner ServerGameStore si mode === 'server'
+  // Sélectionner le bon store selon le mode
+  const activeStore = mode === 'socket'
+    ? (socketStoreState as unknown as IGameStore)
+    : (localStore as IGameStore);
+
   if (selector) {
-    return selector(store as IGameStore);
+    return selector(activeStore);
   }
-  return store as IGameStore;
+  return activeStore;
 }
 
 interface GameStoreProviderProps {
   children: ReactNode;
-  initialMode?: 'local' | 'server';
+  mode: GameMode;
 }
 
-export function GameStoreProvider({ children, initialMode = 'local' }: GameStoreProviderProps) {
-  const [mode, setMode] = useState<'local' | 'server'>(initialMode);
+/**
+ * GameStoreProvider - À envelopper autour de GameScreenLocal/Socket
+ */
+export function GameStoreProvider({ children, mode }: GameStoreProviderProps) {
+  const [currentMode, setMode] = useState<GameMode>(mode);
 
   return (
-    <GameStoreContext.Provider value={{ mode, setMode }}>
+    <GameStoreContext.Provider value={{ mode: currentMode, setMode }}>
       {children}
     </GameStoreContext.Provider>
   );

@@ -65,7 +65,7 @@ export class AIPlayer {
   }
 
   /**
-   * Prend la décision et émet PLAY_RESPONSE
+   * Prend la décision et émet TURN_POST (local mode)
    */
   private decideAndPlay(state: PlayTurnPayload): void {
     this.resetDecision();
@@ -99,11 +99,12 @@ export class AIPlayer {
 
     // console.log(`[AIPlayer ${this.playerId}] Chose ${bestDomino.left}|${bestDomino.right} on ${bestSide}`);
 
-    // Émettre la décision via PLAY_RESPONSE
+    // Émettre la décision via TURN_POST (local mode)
     this.bus.emit({
-      type: 'PLAY_RESPONSE',
+      type: 'TURN_POST',
       payload: {
         type: 'played',
+        mode: 'local',
         playerId: this.playerId,
         domino: bestDomino,
         side: bestSide,

@@ -20,6 +20,8 @@ export interface SocketStoreState {
   roomPlayers: Player[];
 
   // Game state
+  currentPlayerId: number | null;
+  gameStartedPayload: any | null;
   turnState: any | null;
   gameStarted: boolean;
   gameEnded: boolean;
@@ -33,18 +35,22 @@ export interface SocketStoreState {
 
   // Actions
   setServerUrl: (url: string) => void;
-  initAdapter: (serverUrl?: string) => void;
+  initAdapter: (serverUrl?: string, namespace?: string) => void;
   setConnected: (connected: boolean) => void;
   setSocketId: (id: string | undefined) => void;
   setRoomId: (roomId: string) => void;
   setPlayerId: (playerId: number) => void;
   setPlayerName: (name: string) => void;
   setRoomPlayers: (players: Player[]) => void;
+  setCurrentPlayerId: (id: number) => void;
+  setGameStartedPayload: (payload: any) => void;
   setTurnState: (state: any) => void;
   setGameStarted: (started: boolean) => void;
   setGameEnded: (ended: boolean) => void;
   setGameEndedPayload: (payload: any) => void;
   setError: (error: string | null) => void;
+  playDomino: (domino: any, side: 'left' | 'right', knocked?: boolean) => void;
+  passTurn: () => void;
   disconnect: () => void;
   reset: () => void;
 }
@@ -58,6 +64,8 @@ export const useSocketStore = create<SocketStoreState>((set, get) => ({
   playerId: null,
   playerName: null,
   roomPlayers: [],
+  currentPlayerId: null,
+  gameStartedPayload: null,
   turnState: null,
   gameStarted: false,
   gameEnded: false,
@@ -66,11 +74,11 @@ export const useSocketStore = create<SocketStoreState>((set, get) => ({
   adapter: null,
 
   // Initialize Socket.io adapter
-  initAdapter: (serverUrl?: string) => {
+  initAdapter: (serverUrl?: string, namespace: string = '/public') => {
     const url = serverUrl || get().serverUrl;
-    console.log(`[SOCKET-STORE] Initializing adapter with URL: ${url}`);
+    console.log(`[SOCKET-STORE] Initializing adapter with URL: ${url}${namespace}`);
 
-    const adapter = new SocketIOAdapter(url);
+    const adapter = new SocketIOAdapter(url, namespace);
     set({ adapter, serverUrl: url });
 
     // Setup listeners for connection changes
@@ -95,8 +103,13 @@ export const useSocketStore = create<SocketStoreState>((set, get) => ({
 
     // Setup listeners for game events
     const unsubscribeGameStarted = adapter.on('GAME_STARTED' as any, (payload: any) => {
-      console.log('[SOCKET-STORE] GAME_STARTED received');
-      set({ gameStarted: true, turnState: null });
+      console.log('[SOCKET-STORE] GAME_STARTED received:', payload);
+      // NE PAS écraser turnState: le TURN_STATE peut arriver avant GAME_STARTED
+      set({
+        gameStarted: true,
+        gameStartedPayload: payload,
+        currentPlayerId: payload.firstPlayerId
+      });
     });
 
     const unsubscribeGameStarting = adapter.on('GAME_STARTING' as any, (payload: any) => {
@@ -105,8 +118,11 @@ export const useSocketStore = create<SocketStoreState>((set, get) => ({
     });
 
     const unsubscribeTurnState = adapter.on('TURN_STATE' as any, (payload: any) => {
-      console.log('[SOCKET-STORE] TURN_STATE received');
-      set({ turnState: payload });
+      console.log('[SOCKET-STORE] TURN_STATE received:', payload);
+      set({
+        turnState: payload,
+        currentPlayerId: payload.currentPlayerId
+      });
     });
 
     const unsubscribeGameEnded = adapter.on('GAME_ENDED' as any, (payload: any) => {
@@ -132,11 +148,48 @@ export const useSocketStore = create<SocketStoreState>((set, get) => ({
   setPlayerId: (playerId: number) => set({ playerId }),
   setPlayerName: (name: string) => set({ playerName: name }),
   setRoomPlayers: (players: Player[]) => set({ roomPlayers: players }),
+  setCurrentPlayerId: (id: number) => set({ currentPlayerId: id }),
+  setGameStartedPayload: (payload: any) => set({ gameStartedPayload: payload }),
   setTurnState: (state: any) => set({ turnState: state }),
   setGameStarted: (started: boolean) => set({ gameStarted: started }),
   setGameEnded: (ended: boolean) => set({ gameEnded: ended }),
   setGameEndedPayload: (payload: any) => set({ gameEndedPayload: payload }),
   setError: (error: string | null) => set({ error }),
+
+  // Game actions - send to server
+  playDomino: (domino: any, side: 'left' | 'right', knocked: boolean = false) => {
+    const { adapter, playerId } = get();
+    if (adapter) {
+      console.log(`[SOCKET-STORE] Sending TURN_POST: playerId=${playerId}, domino=${JSON.stringify(domino)}, side=${side}`);
+      adapter.emit({
+        type: 'TURN_POST' as any,
+        payload: {
+          type: 'played',
+          mode: 'socket',
+          playerId: playerId ?? 0,
+          domino,
+          side,
+          knocked
+        }
+      });
+    }
+  },
+
+  passTurn: () => {
+    const { adapter, playerId, playerName } = get();
+    if (adapter) {
+      console.log(`[SOCKET-STORE] Sending TURN_POST: pass`);
+      adapter.emit({
+        type: 'TURN_POST' as any,
+        payload: {
+          type: 'passed',
+          mode: 'socket',
+          playerId: playerId ?? 0,
+          playerName: playerName ?? 'Unknown'
+        }
+      });
+    }
+  },
 
   disconnect: () => {
     const { adapter } = get();
@@ -148,6 +201,8 @@ export const useSocketStore = create<SocketStoreState>((set, get) => ({
         roomId: null,
         playerId: null,
         roomPlayers: [],
+        currentPlayerId: null,
+        gameStartedPayload: null,
         gameStarted: false,
         gameEnded: false,
         turnState: null,
@@ -164,6 +219,8 @@ export const useSocketStore = create<SocketStoreState>((set, get) => ({
       playerId: null,
       playerName: null,
       roomPlayers: [],
+      currentPlayerId: null,
+      gameStartedPayload: null,
       turnState: null,
       gameStarted: false,
       gameEnded: false,

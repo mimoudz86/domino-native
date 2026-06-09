@@ -68,9 +68,15 @@ export interface TurnState {
   turnNumber: number;
   currentPlayerId: number;
   currentPlayerName: string;
+  actionType: 'PLACED' | 'PASSED';
   board: BoardState;
   players: PlayerDatas[];
-  state: StateDatas;
+
+  // Champs FLAT (alignés serveur + web) — source de vérité = players[]
+  consecutivePasses: number;
+  lastPlayedDomino?: { domino: Domino; side: 'left' | 'right' };
+  lastPlayedPlayerId?: number;
+  lastPlayerWhoPassedId?: number;
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
@@ -90,9 +96,10 @@ export interface PlayTurnPayload {
   lastPlayerWhoPassedId?: number;
 }
 
-export type PlayResponsePayload =
+export type TurnPostPayload =
   | {
       type: 'played';
+      mode: 'local' | 'socket';
       playerId: number;
       domino: Domino;
       side: 'left' | 'right';
@@ -100,6 +107,7 @@ export type PlayResponsePayload =
     }
   | {
       type: 'passed';
+      mode: 'local' | 'socket';
       playerId: number;
       playerName: string;
     };
@@ -153,7 +161,7 @@ export interface PassHiddenPayload {
 export type LocalGameEvent =
   | { type: 'GAME_STARTED'; payload: GameStartedPayload }
   | { type: 'PLAY_TURN'; payload: PlayTurnPayload }
-  | { type: 'PLAY_RESPONSE'; payload: PlayResponsePayload }
+  | { type: 'TURN_POST'; payload: TurnPostPayload }
   | { type: 'PLAY_PASSED'; payload: PlayPassedPayload }
   | { type: 'TURN_UPDATED'; payload: TurnUpdatedPayload }
   | { type: 'GAME_ENDED'; payload: GameEndedPayload }

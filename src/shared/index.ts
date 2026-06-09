@@ -14,7 +14,7 @@ export type {
   StateDatas,
   TurnState,
   PlayTurnPayload,
-  PlayResponsePayload,
+  TurnPostPayload,
   TurnUpdatedPayload,
   GameStartedPayload,
   PlayPassedPayload,
@@ -32,7 +32,6 @@ export type {
 
 export type {
   TurnState as SocketTurnState,
-  TurnPostPayload,
   GameStartedPayload as SocketGameStartedPayload,
   GameEndedPayload as SocketGameEndedPayload
 } from './socketGameEvents.js';

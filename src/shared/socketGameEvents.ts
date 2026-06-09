@@ -26,6 +26,25 @@ export interface BoardState {
   trainOnBoard: PlacedDomino[];
 }
 
+export interface PlayerDatas {
+  id: number;
+  name: string;
+  isAI: boolean;
+  dominos: Domino[];
+  dominoCount: number;
+  hasPassed: boolean;
+  playables?: number[];
+  placements?: ('left' | 'right' | 'both')[];
+  canPlay?: boolean;
+}
+
+export interface StateDatas {
+  consecutivePasses: number;
+  lastPlayedDomino?: { domino: Domino; side: 'left' | 'right' };
+  lastPlayedPlayerId?: number;
+  lastPlayerWhoPassedId?: number;
+}
+
 export interface PlayerTurnState {
   id: number;
   name: string;
@@ -67,33 +86,15 @@ export interface GameEndData {
 
 export interface TurnState {
   turnNumber: number;
+  currentPlayerId: number;
+  currentPlayerName: string;
   actionType: 'PLACED' | 'PASSED';
 
-  // Current player perspective
-  currentPlayerName: string;
-  currentPlayerDominos: Domino[];
-  playables: number[];
-  placements: ('left' | 'right' | 'both')[];
-  canPlay: boolean;
-
-  // Board and players
   board: BoardState;
-  players: Array<{
-    id: number;
-    name: string;
-    dominos: Domino[];
-    dominoCount: number;
-    playables: number[];
-    placements: ('left' | 'right' | 'both')[];
-    hasPassed: boolean;
-    canPlay: boolean;
-  }>;
+  players: PlayerDatas[];
 
-  // Game state
-  currentPlayerId: number;
+  // Champs FLAT (format réel émis par le serveur) — source de vérité = players[]
   consecutivePasses: number;
-
-  // Visual effects
   lastPlayedDomino?: { domino: Domino; side: 'left' | 'right' };
   lastPlayedPlayerId?: number;
   lastPlayerWhoPassedId?: number;
@@ -106,6 +107,7 @@ export interface TurnState {
 export type TurnPostPayload =
   | {
       type: 'played';
+      mode: 'local' | 'socket';
       playerId: number;
       domino: Domino;
       side: 'left' | 'right';
@@ -113,6 +115,7 @@ export type TurnPostPayload =
     }
   | {
       type: 'passed';
+      mode: 'local' | 'socket';
       playerId: number;
       playerName: string;
     };

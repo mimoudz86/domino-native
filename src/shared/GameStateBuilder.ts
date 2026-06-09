@@ -75,43 +75,69 @@ export class GameStateBuilder {
     });
 
     const boardState = this.buildBoardState();
-    const players = this.buildPlayersArray(playerIndex);
-    const opponents = players.filter((p: any) => p.id !== playerIndex);
+    const canPlay = player.canPlay(this.engine.board);
 
-    const result = {
+    // players[] = SOURCE DE VÉRITÉ (comme le serveur/web)
+    // Vrais dominos pour tous (local = info complète), playables/placements/canPlay sur le joueur courant
+    const players = this.engine.players.map((p: any) => ({
+      id: p.id,
+      name: p.name,
+      isAI: p.isAI ?? false,
+      dominos: p.dominos,
+      dominoCount: p.dominos.length,
+      hasPassed: p.hasPassed,
+      playables: p.id === playerIndex ? playables : [],
+      placements: p.id === playerIndex ? placements : [],
+      canPlay: p.id === playerIndex ? canPlay : false
+    }));
+
+    return {
       turnNumber: this.engine.turnNumber,
       currentPlayerId: playerIndex,
       currentPlayerName: player.name,
+      actionType: this.engine.lastAction === 'passed' ? 'PASSED' : 'PLACED',
+
+      // Top-level: consommé par AIPlayer (PlayTurnPayload), PAS par l'UI
       currentPlayerDominos: player.dominos,
       playables,
       placements,
-      canPlay: player.canPlay(this.engine.board),
+      canPlay,
+
       board: boardState,
-      opponents,
       players,
-      state: {
-        consecutivePasses: this.engine.consecutivePasses,
-        lastPlayerWhoPassedId: this.engine.lastPlayerWhoPassedId ?? undefined
-      }
+
+      // Champs FLAT (alignés serveur + web)
+      consecutivePasses: this.engine.consecutivePasses,
+      lastPlayedDomino: undefined,
+      lastPlayedPlayerId: undefined,
+      lastPlayerWhoPassedId: this.engine.lastPlayerWhoPassedId ?? undefined
     };
-    console.log(`[BUILDER] buildLocalPlayerState lastPlayerWhoPassedId: ${result.state.lastPlayerWhoPassedId}`);
-    return result;
   }
 
   buildLocalBroadcastState(): any {
     const nextPlayerIndex = (this.engine.currentPlayerId + 1) % this.engine.players.length;
     const boardState = this.buildBoardState();
-    const players = this.buildPlayersArray(nextPlayerIndex);
+
+    const players = this.engine.players.map((p: any) => ({
+      id: p.id,
+      name: p.name,
+      isAI: p.isAI ?? false,
+      dominos: p.dominos,
+      dominoCount: p.dominos.length,
+      hasPassed: p.hasPassed,
+      playables: [],
+      placements: [],
+      canPlay: false
+    }));
 
     return {
       turnNumber: this.engine.turnNumber,
       nextPlayerId: nextPlayerIndex,
       board: boardState,
       players,
-      state: {
-        consecutivePasses: this.engine.consecutivePasses,
-        lastPlayerWhoPassedId: this.engine.lastPlayerWhoPassedId ?? undefined
-      }
+      // Champs FLAT (alignés serveur + web)
+      consecutivePasses: this.engine.consecutivePasses,
+      lastPlayerWhoPassedId: this.engine.lastPlayerWhoPassedId ?? undefined
     };
   }
 

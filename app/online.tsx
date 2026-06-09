@@ -3,20 +3,11 @@ import { View, Text, ActivityIndicator, StyleSheet, TouchableOpacity } from 'rea
 import { useRouter } from 'expo-router';
 import { useSocketStore } from '@/store/socketStore';
 
+const SERVER_URL = 'http://192.168.1.151:3001';
+
 export default function OnlineScreen() {
   const router = useRouter();
-  const { isConnected, socketId, error, initAdapter, disconnect } = useSocketStore();
-
-  useEffect(() => {
-    // Initialize socket connection with server
-    console.log('[ONLINE-SCREEN] Initializing socket connection...');
-    initAdapter('http://192.168.1.151:3001');
-
-    return () => {
-      // Cleanup on unmount
-      disconnect();
-    };
-  }, []);
+  const { error, initAdapter, disconnect } = useSocketStore();
 
   const handleBackPress = () => {
     console.log('[ONLINE-SCREEN] Back pressed');
@@ -25,12 +16,16 @@ export default function OnlineScreen() {
   };
 
   const handlePrivateRoom = () => {
-    console.log('[ONLINE-SCREEN] Private Room selected');
+    console.log('[ONLINE-SCREEN] Private Room selected → /private');
+    disconnect();
+    initAdapter(SERVER_URL, '/private');
     router.push('/create-room');
   };
 
   const handleQuickPlay = () => {
-    console.log('[ONLINE-SCREEN] Quick Play selected');
+    console.log('[ONLINE-SCREEN] Quick Play selected → /public');
+    disconnect();
+    initAdapter(SERVER_URL, '/public');
     router.push('/quick-play');
   };
 
@@ -38,48 +33,29 @@ export default function OnlineScreen() {
     <View style={styles.container}>
       <Text style={styles.title}>🌐 PLAY ONLINE</Text>
 
-      {isConnected ? (
-        <View style={styles.connectedContainer}>
-          <Text style={styles.statusText}>✅ Connected</Text>
-          <Text style={styles.socketIdText}>Socket ID: {socketId}</Text>
+      <View style={styles.connectedContainer}>
+        <Text style={styles.modeLabel}>Choose Game Mode:</Text>
 
-          <Text style={styles.modeLabel}>Choose Game Mode:</Text>
+        <TouchableOpacity
+          style={styles.privateRoomButton}
+          onPress={handlePrivateRoom}
+        >
+          <Text style={styles.buttonIcon}>🔒</Text>
+          <Text style={styles.buttonText}>PRIVATE ROOM</Text>
+          <Text style={styles.buttonSubtext}>Invite friends</Text>
+        </TouchableOpacity>
 
-          <TouchableOpacity
-            style={styles.privateRoomButton}
-            onPress={handlePrivateRoom}
-          >
-            <Text style={styles.buttonIcon}>🔒</Text>
-            <Text style={styles.buttonText}>PRIVATE ROOM</Text>
-            <Text style={styles.buttonSubtext}>Invite friends</Text>
-          </TouchableOpacity>
+        <TouchableOpacity
+          style={styles.quickPlayButton}
+          onPress={handleQuickPlay}
+        >
+          <Text style={styles.buttonIcon}>⚡</Text>
+          <Text style={styles.buttonText}>QUICK PLAY</Text>
+          <Text style={styles.buttonSubtext}>Find players</Text>
+        </TouchableOpacity>
 
-          <TouchableOpacity
-            style={styles.quickPlayButton}
-            onPress={handleQuickPlay}
-          >
-            <Text style={styles.buttonIcon}>⚡</Text>
-            <Text style={styles.buttonText}>QUICK PLAY</Text>
-            <Text style={styles.buttonSubtext}>Find players</Text>
-          </TouchableOpacity>
-        </View>
-      ) : error ? (
-        <View style={styles.errorContainer}>
-          <Text style={styles.errorText}>❌ Connection Error</Text>
-          <Text style={styles.errorMessage}>{error}</Text>
-          <TouchableOpacity
-            style={styles.retryButton}
-            onPress={() => initAdapter('http://192.168.1.151:3001')}
-          >
-            <Text style={styles.buttonText}>RETRY</Text>
-          </TouchableOpacity>
-        </View>
-      ) : (
-        <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color="#007AFF" />
-          <Text style={styles.connectingText}>Connecting to server...</Text>
-        </View>
-      )}
+        {error && <Text style={styles.errorMessage}>{error}</Text>}
+      </View>
 
       <TouchableOpacity
         style={styles.backButton}

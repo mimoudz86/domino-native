@@ -3,7 +3,7 @@
  *
  * Architecture séquentielle:
  * 1. EventBusAdapter émet PLAY_TURN au joueur courant
- * 2. Joueur/IA répond avec PLAY_RESPONSE
+ * 2. Joueur/IA répond avec TURN_POST (mode: 'local')
  * 3. EventBusAdapter valide et émet TURN_UPDATED (broadcast)
  * 4. Quand partie terminée → GAME_ENDED
  *
@@ -24,14 +24,17 @@ export class EventBusAdapter implements ILocalEventDispatcher {
   }
 
   private setupEventHandlers(): void {
-    this.on('PLAY_RESPONSE', (payload: any) => {
-      // console.log(`[ADAPTER] Received PLAY_RESPONSE:`, payload);
-      const success = this.engine.handlePlayResponse(payload, this);
-      // console.log(`[ADAPTER] handlePlayResponse returned:`, success);
-      if (success) {
-        this.engine.resolvePlayResponse(payload);
-      } else {
-        // console.log(`[ADAPTER] ❌ Play response validation FAILED`);
+    this.on('TURN_POST', (payload: any) => {
+      // Only process local mode TURN_POST (socket mode goes to server)
+      if (payload.mode === 'local') {
+        // console.log(`[ADAPTER] Received TURN_POST (local):`, payload);
+        const success = this.engine.handlePlayResponse(payload, this);
+        // console.log(`[ADAPTER] handlePlayResponse returned:`, success);
+        if (success) {
+          this.engine.resolvePlayResponse(payload);
+        } else {
+          // console.log(`[ADAPTER] ❌ Play response validation FAILED`);
+        }
       }
     });
 

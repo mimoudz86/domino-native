@@ -1,25 +1,24 @@
-import React, { useEffect } from 'react';
-import { StyleSheet, StatusBar } from 'react-native';
-import { MobileGameBoard } from '../components/Board/MobileGameBoard';
-import { useAllPlayers } from '../store/gameSelectors';
+import React from 'react';
+import { useSocketStore } from '../store/socketStore';
+import { GameScreenLocal } from './GameScreenLocal';
+import { GameScreenSocket } from './GameScreenSocket';
 
 interface GameScreenProps {
   onBackToHome?: () => void;
 }
 
+/**
+ * GameScreen - Router pour LOCAL vs SOCKET mode
+ * Choisit automatiquement le bon screen selon le mode
+ */
 export function GameScreen({ onBackToHome }: GameScreenProps) {
-  const players = useAllPlayers();
+  const gameStartedPayload = useSocketStore(s => s.gameStartedPayload);
 
-  useEffect(() => {
-    StatusBar.setHidden(true, 'slide');
-    return () => StatusBar.setHidden(false, 'slide');
-  }, []);
-
-  if (players.length < 4) {
-    return null;
+  // Mode LOCAL
+  if (!gameStartedPayload) {
+    return <GameScreenLocal onBackToHome={onBackToHome} />;
   }
 
-  return <MobileGameBoard thisPlayerId={0} onBackToHome={onBackToHome} />;
+  // Mode SOCKET
+  return <GameScreenSocket onBackToHome={onBackToHome} />;
 }
-
-const styles = StyleSheet.create({});

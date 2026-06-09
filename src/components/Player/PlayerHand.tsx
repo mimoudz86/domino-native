@@ -2,9 +2,8 @@ import React, { useMemo } from 'react';
 import { View, StyleSheet } from 'react-native';
 import type { Domino } from '../../shared/Domino';
 import { DominoView } from '../DominoView';
-import { useActiveGameStore } from '../../store/gameStoreContext';
 import { useDragDetection } from '../../hooks/useDragDetection';
-import { useMyPlayer, useIsMyTurn, useMyDominos } from '../../store/gameSelectors';
+import { useIsMyTurn, useCurrentPlayerDominos, usePlayables, usePlacements, usePlayDominoAction } from '../../store/gameSelectors';
 
 interface PlayerHandProps {
   playerId: number;
@@ -66,44 +65,39 @@ export function PlayerHand({
   orientation = 'horizontal',
   position: positionProp = 'bottom',
 }: PlayerHandProps) {
-  const { playDomino } = useActiveGameStore();
-  const myPlayer = useMyPlayer(playerId);
+  const playDomino = usePlayDominoAction();
   const isOurTurn = useIsMyTurn(playerId);
-
-  const isHorizontal =
-    orientation === 'horizontal' || positionProp === 'bottom' || positionProp === 'top';
-  if (isOurTurn) {
-    // console.log(`[HUMAN PLAYER] 👤 It's your turn! Playables: ${playerState?.playables.join(', ')}`);
-  }
+  const currentPlayerDominos = useCurrentPlayerDominos(playerId);
+  const playables = usePlayables(playerId);
+  const placements = usePlacements(playerId);
 
   const getDraggableStatus = (
     dominoIndex: number
   ): 'none' | 'left' | 'right' | 'both' => {
-    if (!myPlayer) return 'none';
-    const playableIdx = myPlayer.playables.indexOf(dominoIndex);
+    const playableIdx = playables.indexOf(dominoIndex);
     if (playableIdx === -1) {
       return 'none';
     }
-    return (myPlayer.placements[playableIdx] as 'left' | 'right' | 'both') || 'both';
+    return (placements[playableIdx] as 'left' | 'right' | 'both') || 'both';
   };
 
   const getDraggableStatusMemo = useMemo(
     () => getDraggableStatus,
-    [myPlayer]
+    [playables, placements]
   );
 
   const dominoElements = useMemo(() => {
-    if (!myPlayer || !isOurTurn) {
+    if (currentPlayerDominos.length === 0) {
       return [];
     }
 
-    const dominos = myPlayer.dominos.filter((d): d is Domino => d !== null);
-
-    return dominos.map((domino, index) => {
-      const draggableStatus = getDraggableStatusMemo(index);
+    return currentPlayerDominos.map((domino, index) => {
+      // Dominos TOUJOURS visibles. Drag/tap actif uniquement à notre tour
+      // (draggableStatus 'none' désactive le PanResponder dans useDragDetection).
+      const draggableStatus = isOurTurn ? getDraggableStatusMemo(index) : 'none';
       const isPlayable = draggableStatus !== 'none';
 
-      const opacityValue = isPlayable ? 1 : 0.65;
+      const opacityValue = isOurTurn ? (isPlayable ? 1 : 0.65) : 0.55;
       const bgColor = isPlayable ? 'transparent' : 'rgba(100, 100, 100, 0.15)';
 
       return (
@@ -124,15 +118,7 @@ export function PlayerHand({
         />
       );
     });
-  }, [myPlayer, playerId, isOurTurn, playDomino, getDraggableStatusMemo]);
-
-  if (!isOurTurn) {
-    return (
-      <View style={styles.scrollContainer}>
-        {/* Placeholder */}
-      </View>
-    );
-  }
+  }, [currentPlayerDominos, playerId, isOurTurn, playDomino, getDraggableStatusMemo]);
 
   return (
     <View style={styles.scrollContainer}>

@@ -9,9 +9,11 @@ export class SocketIOAdapter {
   private socket: Socket | null = null;
   private listeners: Map<string, Set<EventListener<any>>> = new Map();
   private serverUrl: string;
+  private namespace: string;
 
-  constructor(serverUrl?: string) {
+  constructor(serverUrl?: string, namespace: string = '/public') {
     this.serverUrl = serverUrl || 'http://192.168.1.151:3001'; // Default to dev server
+    this.namespace = namespace; // '/public' (Quick Play) ou '/private' (rooms entre amis)
     this.initSocket();
   }
 
@@ -19,7 +21,7 @@ export class SocketIOAdapter {
    * Initialize Socket.io connection
    */
   private initSocket(): void {
-    this.socket = io(this.serverUrl, {
+    this.socket = io(this.serverUrl + this.namespace, {
       reconnection: true,
       reconnectionDelay: 1000,
       reconnectionDelayMax: 5000,
@@ -159,7 +161,8 @@ export class SocketIOAdapter {
     if (typeListeners) {
       typeListeners.forEach(listener => {
         try {
-          listener(event as any);
+          // Les listeners attendent le PAYLOAD déballé (cf. type EventListener = (payload) => void)
+          listener((event as any).payload as any);
         } catch (error) {
           console.error(`[SOCKET-ADAPTER] Error in listener for ${eventType}:`, error);
         }

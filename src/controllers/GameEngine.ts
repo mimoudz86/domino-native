@@ -1,6 +1,6 @@
 
 import type { Domino } from '../shared/Domino';
-import type { TrackedDomino,PlayResponsePayload } from './localGameEvents';
+import type { TrackedDomino, TurnPostPayload } from './localGameEvents';
 import type { ILocalEventDispatcher } from '../core/ILocalEventDispatcher';
 import { Board } from './Board';
 import { Player } from './Player';
@@ -24,8 +24,8 @@ export class GameEngine {
   public trainSequence: TrackedDomino[] = [];
   public lastAction: 'played' | 'passed' | null = null;
   public lastPlayerWhoPassedId: number | null = null;
-  private pendingResponse: Promise<PlayResponsePayload> | null = null;
-  private resolveResponse: ((payload: PlayResponsePayload) => void) | null = null;
+  private pendingResponse: Promise<TurnPostPayload> | null = null;
+  private resolveResponse: ((payload: TurnPostPayload) => void) | null = null;
   private passHiddenPromise: Promise<void> | null = null;
   private resolvePassHidden: (() => void) | null = null;
   public winningType: 'EMPTY_HAND' | 'BLOCKED_GAME' = 'EMPTY_HAND';
@@ -75,14 +75,14 @@ export class GameEngine {
     }
   }
 
-  async waitForPlayResponse(): Promise<PlayResponsePayload> {
+  async waitForPlayResponse(): Promise<TurnPostPayload> {
     this.pendingResponse = new Promise(resolve => {
       this.resolveResponse = resolve;
     });
     return this.pendingResponse;
   }
 
-  resolvePlayResponse(payload: PlayResponsePayload): void {
+  resolvePlayResponse(payload: TurnPostPayload): void {
     if (this.resolveResponse) {
       this.resolveResponse(payload);
       this.resolveResponse = null;
@@ -171,7 +171,7 @@ export class GameEngine {
     return true;
   }
 
-  handlePlayResponse(payload: PlayResponsePayload, adapter?: ILocalEventDispatcher): boolean {
+  handlePlayResponse(payload: TurnPostPayload, adapter?: ILocalEventDispatcher): boolean {
     if (this.isOver) {
       return false;
     }

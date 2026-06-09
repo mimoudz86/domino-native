@@ -310,11 +310,12 @@ export const useGameStore = create<GameStoreState>((set, get) => ({
 
     // console.log(`[HUMAN PLAYER] 🎮 Played ${domino.left}|${domino.right} on ${side}`);
 
-    // Émettre PLAY_RESPONSE → EventBusAdapter → GameEngine
+    // Émettre TURN_POST → EventBusAdapter → GameEngine
     dispatcher.emit({
-      type: 'PLAY_RESPONSE',
+      type: 'TURN_POST',
       payload: {
         type: 'played',
+        mode: 'local',
         playerId: 0, // Toujours le joueur 0 (You)
         domino,
         side,

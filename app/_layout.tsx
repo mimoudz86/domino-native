@@ -5,7 +5,6 @@ import { StatusBar } from 'expo-status-bar';
 import 'react-native-reanimated';
 import { useEffect } from 'react';
 
-import { GameStoreProvider } from '@/store/gameStoreContext';
 import { DragContextProvider } from '@/context/DragContext';
 import { LocalMatchStorage } from '@/services/LocalMatchStorage';
 
@@ -23,16 +22,14 @@ export default function RootLayout() {
 
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
-      <GameStoreProvider>
-        <DragContextProvider>
-          <ThemeProvider value={DefaultTheme}>
-            <Stack>
-              <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-            </Stack>
-            <StatusBar style="auto" />
-          </ThemeProvider>
-        </DragContextProvider>
-      </GameStoreProvider>
+      <DragContextProvider>
+        <ThemeProvider value={DefaultTheme}>
+          <Stack>
+            <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+          </Stack>
+          <StatusBar style="auto" />
+        </ThemeProvider>
+      </DragContextProvider>
     </GestureHandlerRootView>
   );
 }
